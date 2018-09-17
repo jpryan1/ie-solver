@@ -1,0 +1,15 @@
+Make sure all shapes take N and actually produce that many DoFs instead of some constant times N
+
+Make superclass for shapes
+
+Generalize integral_solve function, there are currently two basically identical versions one for stokes and one for laplace
+
+Fix makefile issue with loading MKL library
+
+Split skelfac.cpp into other files
+
+pass physics to matrix class instead of having it use hardcoded functions
+
+make another pass at cmd line args, consider passing timing, testing parameters
+
+
