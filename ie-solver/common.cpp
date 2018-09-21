@@ -1,7 +1,6 @@
 #include "common.h"
 
 
-
 int ie_Mat::id( std::vector<int>& p, ie_Mat& Z, double tol){
 
 		ie_Mat cpy;

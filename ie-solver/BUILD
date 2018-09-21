@@ -10,9 +10,7 @@ cc_binary(
 	linkopts = ["-llapacke",
 				"-llapack",
 				"-lblas",
-				"-lgfortran",
-				"-lgomp",
-				"-lpthread"]
+				"-lgomp"]
 
 )
 

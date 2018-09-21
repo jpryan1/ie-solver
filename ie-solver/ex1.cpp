@@ -1,4 +1,3 @@
-
 #include <fstream>
 
 #include "common.h"
@@ -6,60 +5,49 @@
 #include "skelfac.h"
 #include "quadtree.h"
 #include "circle.h"
-#define DEFAULT_N 128
+
+#define DEFAULT_NUM_DISCRETIZATION_POINTS 128
 #define DEFAULT_ID_TOL 1e-6
 #define TEST_SIZE 50
 
+LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
+	
 
-//TODO put everything in a class so the functions can have access to shared variables for things like blocksize
+// TODO put everything in a class so the functions can have access to shared 
+// variables for things like blocksize
 
-
-
-
-
-
-
-
-
+// TODO isn't this a commin function? why not put it there?
 double vec_norm(ie_Mat& vec){
 	double sum=0;
 	for(int i=0; i<vec.height(); i++){
 		sum += pow(vec.get(i, 0),2);
-	}return sqrt(sum);
+	}
+	return sqrt(sum);
 }
 
 
-void boundary_integral_solve(int N, int verbosity, double id_tol,
-	void (*make_shape) (int, std::vector<double>&, std::vector<double>&, std::vector<double>&, std::vector<double>&),
-	int (*out_of_shape)(Vec2& a)){
-	
+void boundary_integral_solve(int N, double id_tol, void (*make_shape) 
+	(int, std::vector<double>&, std::vector<double>&, std::vector<double>&, 
+		std::vector<double>&), int (*out_of_shape)(Vec2& a), int verbosity){
 
-
+	// TODO replace Clock with more specialized timing module, do printing of 
+	// stats at very end
+	Clock clock;
 	int timing = 1;
+	int is_stokes = 0;
 
+	// TODO insert comment here explaining why this is necessary
 	if(!timing && N>10000){
 		printf("Turn down N or disable accuracy checking please\n");
 		return;
 	}
-	omp_set_num_threads(1);
-
-	Clock clock;
-	int is_stokes = 0;
-
 
 	std::vector<double> points, normals, curvatures, weights;
 	make_shape(N, points, normals, curvatures, weights);
-	int dofs = points.size()/2;
-	
-	
-	printf("N= %d\n", dofs);
-	printf("e= %.10f\n", id_tol);
+	int dofs = points.size() / 2;
 
-	//clock.tic();
 	QuadTree quadtree;
 	quadtree.initialize_tree(points, is_stokes); 
-	//clock.toc("Tree make");
-
 
 	Skelfac skelfac(id_tol, points, normals, weights, is_stokes);
 	skelfac.verbosity = verbosity;
@@ -165,24 +153,22 @@ void boundary_integral_solve(int N, int verbosity, double id_tol,
 		 double der = vec_norm(domain)/vec_norm(true_domain);
 		 printf("\n\nError in Solution: %.10f\n", der);
 	}
-
 }
 
 
-
-
-
 int main(int argc, char** argv){
-
-
+	
+	// TODO incorporate logging struct instead of using verbosity variable.
+	LOG::log_level_ = LOG::LOG_LEVEL::WARNING_;
 	int verbosity = 0;
 	double id_tol = DEFAULT_ID_TOL;
 	int c;
-	int N         = DEFAULT_N;
-	//Set parameters based on arguments
+	int num_discretization_points = DEFAULT_NUM_DISCRETIZATION_POINTS;
+	// TODO allow for command line args for setting parameters
 
-	//boundary_integral_solve(verbosity, id_tol, squiggly, out_of_squiggly);
-	boundary_integral_solve(N, verbosity, id_tol, circle, out_of_circle);
+	LOG::INFO("Testing logging");
+	boundary_integral_solve(num_discretization_points, id_tol, circle,
+		out_of_circle, verbosity);
 
 	return 0;
 }
