@@ -61,8 +61,6 @@ struct Clock{
 	}
 };
 
-
-
 struct Box {
 // Note, maybe redundant and skel could be Range<int>s, that would make things faster maybe
 	std::vector<int> box_range;
@@ -75,9 +73,6 @@ struct Box {
 	std::vector<int> p;
 
 };
-
-
-
 
 struct Vec2{
 
@@ -154,15 +149,9 @@ struct ie_Mat{
 		memset(mat, 0, height_*width_*sizeof(double));
 	}
 
-
-
 	// This function stores the DoF data,  and calculates the diagonals of the mat
 	void load(std::vector<double>* p, std::vector<double>* n, 
 		std::vector<double>* c, std::vector<double>* w);
-
-
-
-
 
 	void resize(int h, int w);
 
@@ -183,16 +172,12 @@ struct ie_Mat{
 	
 	void addset(int i, int j, double a);
 
-
-
-
 	void inverse();
 
 	void left_multiply_inverse(ie_Mat& K, ie_Mat& U);
 	void right_multiply_inverse(ie_Mat& K, ie_Mat& L);
 
 	void set_submatrix(std::vector<int> I_, std::vector<int> J_, ie_Mat& A);
-	
 
 	void transpose(ie_Mat& A){
 	
@@ -223,11 +208,6 @@ struct ie_Mat{
 		return sqrt(sum);
 	}
 
-	
-
-
-
-
 	int id( std::vector<int>& p, ie_Mat& Z, double tol);
 
 
@@ -255,15 +235,11 @@ struct ie_Mat{
 
 };
 
-
-
 class Matmul{
 public:
 
 	static void ie_gemv(int trans0, double alpha, ie_Mat& A, ie_Mat& x, double beta, ie_Mat& b){
-
-
-		
+	
 	//assumption is that b is the right size
 	//please fix this stupid if/else nonsense
 	if(trans0){
@@ -304,35 +280,5 @@ public:
 	}
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif
