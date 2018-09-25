@@ -5,7 +5,7 @@ namespace ie_solver{
 // Performs interpolative decomposition, and eturns number of skeleton columns. 
 // Takes double /tol/, tolerance factorfor error in CPQR factorization. 
 // Populates /p/ with permutation, Z with linear transformation.
-int ie_Mat::id( std::vector<int>& p, ie_Mat& Z, double tol){
+int ie_Mat::id( std::vector<unsigned int>& p, ie_Mat& Z, double tol){
 
 	ie_Mat cpy;
 	this->copy(cpy);
@@ -17,10 +17,10 @@ int ie_Mat::id( std::vector<int>& p, ie_Mat& Z, double tol){
 	double tau[width_];
 	LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_, pvt, tau);
 
-	int skel = -1;
+	unsigned int skel = 0;
 	double thresh = fabs(tol * cpy.get(0,0));
 	
-	for (int i=1; i<width_; i++){
+	for (unsigned int i = 1; i < width_; i++){
 		// check if R_{i,i} / R_{0,0} < tol
 		if(fabs(cpy.get(i,i)) < thresh){
 			skel = i;
@@ -28,12 +28,12 @@ int ie_Mat::id( std::vector<int>& p, ie_Mat& Z, double tol){
 		}
 	}
 	
-	if(skel == -1){
+	if(skel == 0){
 		//no compression to be done :/
 		return 0;
 	}
 
-	for (int i = 0; i < width_; i++){
+	for (unsigned int i = 0; i < width_; i++){
 		p.push_back(pvt[i]-1);
 	}
 
@@ -44,10 +44,10 @@ int ie_Mat::id( std::vector<int>& p, ie_Mat& Z, double tol){
 	LAPACKE_dtrtrs(CblasColMajor, 'U', 'N', 'N', skel, redund, cpy.mat, 
 		cpy.lda_, cpy.mat + cpy.lda_ * skel, cpy.lda_);
 	
-	std::vector<int> I_;
-	std::vector<int> J_;
-	for(int i=0; i<skel; i++) I_.push_back(i);
-	for(int i=skel; i<width_; i++) J_.push_back(i);
+	std::vector<unsigned int> I_;
+	std::vector<unsigned int> J_;
+	for(unsigned int i = 0; i < skel; i++) I_.push_back(i);
+	for(unsigned int i = skel; i < skel + redund; i++) J_.push_back(i);
 	cpy(I_, J_).copy(Z);
 
 	return skel;
@@ -58,7 +58,7 @@ void ie_Mat::left_multiply_inverse(ie_Mat& K, ie_Mat& U){
 	// X^-1K = U
 	//aka, XU = K
 
-//TODO insert asserts for these functions
+	//TODO insert asserts for these functions
 
 	ie_Mat X_copy(height_, width_);
 	copy(X_copy);
@@ -73,16 +73,11 @@ void ie_Mat::left_multiply_inverse(ie_Mat& K, ie_Mat& U){
 	LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat, X_copy.lda_, ipiv );
 
 
-	int err = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,  K_copy.width_ , X_copy.mat ,
+	int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,  K_copy.width_ , X_copy.mat ,
 	 X_copy.lda_ , ipiv , K_copy.mat, K_copy.lda_ );
 	
-	assert(err==0);
-
-
+	assert(status==0);
 	K_copy.copy(U);
-
-
-
 }
 
 
@@ -110,17 +105,12 @@ void ie_Mat::right_multiply_inverse(ie_Mat& K, ie_Mat& L){
 
 
 	K_copy.transpose(L);
-
 }
-
-
-
-
 
 // This function stores the DoF data,  and calculates the diagonals of the mat
 void ie_Mat::load(std::vector<double>* p, std::vector<double>* n, 
 	std::vector<double>* c, std::vector<double>* w){
-	assert(dynamic);
+	assert(is_dynamic);
 	points     = p;
 	normals    = n;
 	curvatures = c;
@@ -134,7 +124,9 @@ void ie_Mat::load(std::vector<double>* p, std::vector<double>* n,
 
 	if(is_stokes){
 		double avg = 0;
-		for(int i=0; i<weights->size(); i++) avg += (*weights)[i];
+		for(double weight : *weights){
+			avg += weight;
+		}
 		avg /= weights->size();
 
 		double alpha = avg/2.0;
@@ -145,14 +137,10 @@ void ie_Mat::load(std::vector<double>* p, std::vector<double>* n,
 	
 		//printf("Diagonals are %f\n", diag_00);
 	}	
-
 }
 
 
-
-
-
-void ie_Mat::resize(int h, int w){
+void ie_Mat::resize(unsigned int h, unsigned int w){
 	assert(h>0 && w>0);
 	if(mat) delete[] mat;
 	lda_ = h;
@@ -175,39 +163,33 @@ void ie_Mat::copy(ie_Mat& copy){
 		copy.mat     = new double[height_*width_];
 	}
 
-	//if(dynamic){
-		for(int i=0; i<copy.height(); i++){
-			for(int j=0; j<copy.width(); j++){
-				copy.set(i,j, get(i,j));
-			}
+	for(int i=0; i<copy.height(); i++){
+		for(int j=0; j<copy.width(); j++){
+			copy.set(i,j, get(i,j));
 		}
-//	}else{
-//		memcpy(copy.mat, mat, width_*height_*sizeof(double));
-//	}
+	}
 }
 
-void ie_Mat::rand_vec(int dofs){
+void ie_Mat::rand_vec(unsigned int dofs){
 	//check if we need a resize
-	if(width_ != 1 || height_ != dofs || lda_ != dofs){
+	if (width_ != 1 || height_ != dofs || lda_ != dofs){
 		if(mat) delete[] mat;
 		lda_    = dofs;
 		height_ = dofs;
 		width_  = 1;
 		mat     = new double[height_*width_];
 	}
-
-	for(int i=0; i<dofs; i++){
+	for(unsigned int i=0; i<dofs; i++){
 		mat[i] = rand()/(0.0+RAND_MAX);
 	}
-
 }
 
 
-double ie_Mat::stokes_kernel(int i, int j){
+double ie_Mat::stokes_kernel(unsigned int i, unsigned int j){
 	// So this is much more awkwardly written than the function in stokes_init.cpp
 	// that just writes the entire matrix at once, but the cost of writing the whole
 	// matrix is just stupid. So we power through this function
-//below commented is single layer
+	//below commented is single layer
 	// // We first need to ascertain which DoFs are relevant here. 
 	// int dof_i = i/2;
 	// int dof_j = j/2;
@@ -277,11 +259,9 @@ double ie_Mat::stokes_kernel(int i, int j){
 	else{
 		return potential*r0*r1;
 	}
-
-
 }
 
-double ie_Mat::laplace_kernel(int i, int j){
+double ie_Mat::laplace_kernel(unsigned int i, unsigned int j){
 	
 	if(i==j){
 		return 0.5 + 0.5*(*curvatures)[i]*(*weights)[i]*scale;
@@ -299,50 +279,44 @@ double ie_Mat::laplace_kernel(int i, int j){
 }
 
 
-
-double ie_Mat::get(int i, int j){
-	if(dynamic){
+double ie_Mat::get(unsigned int i, unsigned int j){
+	if(is_dynamic){
 		if(is_stokes){
 			return stokes_kernel(i,j);
 		}else{
 			return laplace_kernel(i,j);
 		}
 	}
-	assert(i<height_ && j<width_ && mat !=NULL);
+	assert(i < height_ && j < width_ && mat !=NULL);
 	
 	return mat[i + lda_*j];
-	
 }
 
 
-
-void ie_Mat::set(int i, int j, double a){
+void ie_Mat::set(unsigned int i, unsigned int j, double a){
 	
-	assert(!dynamic && i<height_ && j<width_ && mat !=NULL);
+	assert(!is_dynamic && i < height_ && j < width_ && mat !=NULL);
 	mat[i + lda_*j] = a;
-	
 }
 
-void ie_Mat::addset(int i, int j, double a){
-	assert(!dynamic);
-	assert(i<height_ && j<width_ && mat !=NULL);
+
+void ie_Mat::addset(unsigned int i, unsigned int j, double a){
+	assert(!is_dynamic);
+	assert(i < height_ && j < width_ && mat !=NULL);
 	mat[i + lda_*j] += a;
-	
 }
 
 
-
-
-void ie_Mat::set_submatrix(std::vector<int> I_, std::vector<int> J_, ie_Mat& A){
-
-
-	assert(I_.size() == A.height_ && J_.size() == A.width_ && !dynamic);
-	for(int i=0; i<I_.size(); i++){
-		for(int j=0; j<J_.size(); j++){
+void ie_Mat::set_submatrix(std::vector<unsigned int> I_, 
+	std::vector<unsigned int> J_, ie_Mat& A){
+	assert(I_.size() == A.height_ && J_.size() == A.width_ && !is_dynamic);
+	for(unsigned int i = 0; i < I_.size(); i++){
+		for(unsigned int j = 0; j < J_.size(); j++){
 			set(I_[i], J_[j], A.get(i,j));
 		}
 	}
 }
+
 
 void ie_Mat::inverse(){
 	assert(mat!= NULL && height_>0 && height_==width_);
@@ -350,37 +324,33 @@ void ie_Mat::inverse(){
 
 
 	lapack_int ipiv[height_*2];
-
-
 	//for some reason, the pivots are written into the array every OTHER element, even with the
 	// correct data type (lapack_int) used. To prevent buffer overflow, we double the size of the
 	// pivot array
+	// TODO investigate this further. 
 
 	LAPACKE_dgetrf(LAPACK_COL_MAJOR, height_, width_, mat, lda_, ipiv );
-
-
 	LAPACKE_dgetri(LAPACK_COL_MAJOR, height_, mat, lda_, ipiv);
-
 }
 
 
 ie_Mat& ie_Mat::operator-=(const ie_Mat& o){
-	assert(o.height_==height_ && o.width_==width_ && !dynamic);
+	assert(o.height_ == height_ && o.width_ == width_ && !is_dynamic);
 
-	for(int i=0; i<height_; i++){
-		for(int j=0; j<width_; j++){
-
+	for(unsigned int i=0; i<height_; i++){
+		for(unsigned int j=0; j<width_; j++){
 			mat[i + lda_*j] =  mat[i + lda_*j] - o. mat[i + lda_*j];
 		}
 	}
 	return *this;
 }
 
+
 ie_Mat& ie_Mat::operator+=(const ie_Mat& o){
 
-	assert(o.height_==height_ && o.width_==width_ && !dynamic);
-	for(int i=0; i<height_; i++){
-		for(int j=0; j<width_; j++){
+	assert(o.height_== height_ && o.width_== width_ && !is_dynamic);
+	for(unsigned int i = 0; i < height_; i++){
+		for(unsigned int j = 0; j < width_; j++){
 			 mat[i + lda_*j] =  mat[i + lda_*j] + o. mat[i + lda_*j];
 		}
 	}
@@ -389,26 +359,25 @@ ie_Mat& ie_Mat::operator+=(const ie_Mat& o){
 
 
 ie_Mat& ie_Mat::operator*=(const double o){
-	assert(!dynamic);
-	for(int i=0; i<height_; i++){
-		for(int j=0; j<width_; j++){
+	assert(!is_dynamic);
+	for(unsigned int i = 0; i < height_; i++){
+		for(unsigned int j = 0; j < width_; j++){
 			 mat[i + lda_*j] =  mat[i + lda_*j] *o;
 		}
 	}
 	return *this;
 }
 
+//TODO shouldn't this->I have the underscore after it, not this arg?
+ie_Mat& ie_Mat::operator()(std::vector<unsigned int> I_, 
+	std::vector<unsigned int> J_){
 
-ie_Mat& ie_Mat::operator()(std::vector<int> I_, std::vector<int> J_){
-
-	assert(height_>0 && width_>0);
+	assert(height_ > 0 && width_ > 0);
 	int olda_ = I_.size();
 	double* omat = new double[I_.size()*J_.size()];
-	for(int x=0; x<I_.size(); x++){
-		for(int y=0; y<J_.size(); y++){
-
-			omat[x + olda_*y] = get(I_[x],J_[y]);//mat[I[x] + lda_* J[y]];
-
+	for(unsigned int i = 0; i < I_.size(); i++){
+		for(unsigned int j = 0; j < J_.size(); j++){
+			omat[i + olda_*j] = get(I_[i],J_[j]);//mat[I[x] + lda_* J[y]];
 		}
 	}
 	ie_Mat* ret  = new ie_Mat();
@@ -421,7 +390,7 @@ ie_Mat& ie_Mat::operator()(std::vector<int> I_, std::vector<int> J_){
 
 
 void ie_Mat::operator=(const ie_Mat& copy){
-	assert(!dynamic);
+	assert(!is_dynamic);
 	
 	if(height_ != copy.height_ || width_ != copy.width_ || lda_ != copy.lda_){
 		if(mat) delete[] mat;
@@ -431,19 +400,15 @@ void ie_Mat::operator=(const ie_Mat& copy){
 		mat = new double[height_*width_];
 	}
 	memcpy(mat, copy.mat, width_*height_*sizeof(double));
-
 }
 
+// TODO fix this mess
 void ie_Mat::print(){
-	for(int i=0; i<height_; i++){
-		for(int j=0; j<width_; j++){
-			// if(get(i,j)==0) continue;
-			// if(fabs(get(i,j)-1)>1e-2) std::cout<<"Error "<<get(i,j)<<std::endl;
-			// continue;
-			//if(get(i,j)<1e-10) continue;
-			printf("%.7f ",get(i,j));
-		}printf("\n");
-	}
+	// for(int i=0; i<height_; i++){
+	// 	for(int j=0; j<width_; j++){
+	// 		sprintf("%.7f ",get(i,j));
+	// 	}sprintf("\n");
+	// }
 }
 
 } // namespace ie_solver
