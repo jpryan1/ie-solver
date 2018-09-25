@@ -4,7 +4,8 @@
 #include "common.h"
 #include "quadtree.h"
 
-
+namespace ie_solver{
+	
 struct Initialization{
 
 	void InitializeKernel(ie_Mat& K, std::vector<double>&, std::vector<double>&, std::vector<double>&,
@@ -26,14 +27,8 @@ struct Initialization{
 
 	Initialization(){}
 	~Initialization(){}
-
-		
-
-
-
-
 };
 
-
+} // namespace
 
 #endif

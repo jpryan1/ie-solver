@@ -1,9 +1,6 @@
-
 #include "skelfac.h"
 
-
-
-
+namespace ie_solver{
 
 void Skelfac::GetXMatrices(ie_Mat& K, ie_Mat& Z, ie_Mat& Xrr, 
 	std::vector<int>& r, std::vector<int>& s, std::vector<int>& n) {
@@ -696,3 +693,5 @@ void Skelfac::Conjugate_Gradient(ie_Mat& K, QuadTree& tree, ie_Mat& phi, ie_Mat&
 	
 
 }
+
+} // namespace

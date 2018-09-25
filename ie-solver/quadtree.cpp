@@ -1,13 +1,8 @@
 #include "quadtree.h"
 
-
+namespace ie_solver{
 
 int QuadTreeNode::id_count = 0;
-
-
-
-
-
 
 void QuadTree::initialize_tree(std::vector<double> points, int stokes) {
 		
@@ -435,16 +430,4 @@ void QuadTree::rec_print(QuadTreeNode* n){
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+} // namespace
