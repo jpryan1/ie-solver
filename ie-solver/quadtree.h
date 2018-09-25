@@ -88,8 +88,6 @@ private:
 	int is_stokes;
 };
 
-} // namespace
+} // namespace ie_solver
 
 #endif
-
-//

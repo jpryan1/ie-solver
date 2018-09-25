@@ -81,6 +81,6 @@ class Skelfac {
 		double gemm_time = 0;
 };
 
-} // namespace
+} // namespace ie_solver
 
 #endif

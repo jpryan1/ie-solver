@@ -694,4 +694,4 @@ void Skelfac::Conjugate_Gradient(ie_Mat& K, QuadTree& tree, ie_Mat& phi, ie_Mat&
 
 }
 
-} // namespace
+} // namespace ie_solver

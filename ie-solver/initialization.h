@@ -29,6 +29,6 @@ struct Initialization{
 	~Initialization(){}
 };
 
-} // namespace
+} // namespace ie_solver
 
 #endif

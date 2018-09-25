@@ -446,4 +446,4 @@ void ie_Mat::print(){
 	}
 }
 
-} // namespace
+} // namespace ie_solver

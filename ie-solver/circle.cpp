@@ -60,4 +60,4 @@ int out_of_circle(Vec2& a){
 
 }
 
-} // namespace
+} // namespace ie_solver

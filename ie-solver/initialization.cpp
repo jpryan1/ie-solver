@@ -109,4 +109,4 @@ void Initialization::InitializeBoundary(ie_Mat& f, std::vector<double>& points){
 	}
 }
 
-} // namespace
+} // namespace ie_solver

@@ -157,7 +157,7 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 }
 
 
-} // namespace
+} // namespace ie_solver
 
 int main(int argc, char** argv){
 	

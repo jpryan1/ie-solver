@@ -430,4 +430,4 @@ void QuadTree::rec_print(QuadTreeNode* n){
 
 }
 
-} // namespace
+} // namespace ie_solver

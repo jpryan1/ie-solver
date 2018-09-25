@@ -11,6 +11,6 @@ void circle(int, std::vector<double>& points, std::vector<double>& normals, std:
 
 int out_of_circle(Vec2& a);
 
-} // ie_solver
+} // namespace ie_solver
 
 #endif
