@@ -217,7 +217,7 @@ void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	
 	b = ie_Mat(x.height(), 1);
 	x.copy( b);
-	unsigned int lvls = tree.levels.size();
+	int lvls = tree.levels.size();
 	LOG::INFO("Begin sweep up...");
 	for(int level = lvls-1; level>=0; level--){
 		LOG::INFO("Level " + std::to_string(level));
@@ -280,7 +280,7 @@ void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 
 void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 
-	unsigned int lvls = tree.levels.size();
+	int lvls = tree.levels.size();
 
 	x = ie_Mat(b.height(), 1);
 
