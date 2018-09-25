@@ -1,17 +1,11 @@
-
-
-
 #ifndef _QUADTREE_H_
 #define _QUADTREE_H_
-
-//#include <El.hpp>
-//#include <omp.h>
 
 #include "common.h"
 
 #define MAX_LEAF_DOFS 128
 
-
+namespace ie_solver{
 
 struct QuadTreeNode{
 
@@ -94,8 +88,6 @@ private:
 	int is_stokes;
 };
 
-
+} // namespace ie_solver
 
 #endif
-
-//

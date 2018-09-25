@@ -10,13 +10,14 @@
 #define DEFAULT_ID_TOL 1e-6
 #define TEST_SIZE 50
 
+namespace ie_solver{
+
 LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
-	
 
 // TODO put everything in a class so the functions can have access to shared 
 // variables for things like blocksize
 
-// TODO isn't this a commin function? why not put it there?
+// TODO isn't this a common function? why not put it there?
 double vec_norm(ie_Mat& vec){
 	double sum=0;
 	for(int i=0; i<vec.height(); i++){
@@ -156,21 +157,22 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 }
 
 
+} // namespace ie_solver
+
 int main(int argc, char** argv){
 	
 	// TODO incorporate logging struct instead of using verbosity variable.
-	LOG::log_level_ = LOG::LOG_LEVEL::WARNING_;
+	ie_solver::LOG::log_level_ = ie_solver::LOG::LOG_LEVEL::WARNING_;
 	int verbosity = 0;
 	double id_tol = DEFAULT_ID_TOL;
 	int c;
 	int num_discretization_points = DEFAULT_NUM_DISCRETIZATION_POINTS;
 	// TODO allow for command line args for setting parameters
 
-	LOG::INFO("Testing logging");
-	boundary_integral_solve(num_discretization_points, id_tol, circle,
-		out_of_circle, verbosity);
+	ie_solver::LOG::INFO("Testing logging");
+	ie_solver::boundary_integral_solve(num_discretization_points, id_tol, 
+		ie_solver::circle, ie_solver::out_of_circle, verbosity);
 
 	return 0;
 }
-
 

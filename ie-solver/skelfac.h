@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+namespace ie_solver{
 
 class Skelfac {
 
@@ -79,5 +80,7 @@ class Skelfac {
 		void log(int level, const char *fmt, ...);
 		double gemm_time = 0;
 };
+
+} // namespace ie_solver
 
 #endif

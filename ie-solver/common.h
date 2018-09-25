@@ -14,9 +14,10 @@
 #include <cblas.h>
 #include <lapacke.h>
 
-
 #define NORMAL_ 0
 #define TRANSPOSE_ 1
+
+namespace ie_solver{
 
 struct LOG{
 	enum LOG_LEVEL {
@@ -280,5 +281,7 @@ public:
 	}
 
 };
+
+} // namespace ie_solver
 
 #endif

@@ -1,10 +1,8 @@
-
-
 #include "initialization.h"
 
+namespace ie_solver{
 
 //TODO - subclasses for different PDES
-
 void Initialization::InitializeKernel(ie_Mat& K, std::vector<double>& points,
 										std::vector<double>& normals, std::vector<double>& curvatures,
 										std::vector<double>& weights){
@@ -101,24 +99,14 @@ void Initialization::DomainSolution(ie_Mat& K, int test_size,
 
 }
 
-
-
-
-
 void Initialization::InitializeBoundary(ie_Mat& f, std::vector<double>& points){
 	for(int i=0; i<f.height(); i++){
-
-
 		double x0 = points[2*i]+2;
 		double y0 = points[2*i+1]+2;
 
 		double potential = log(sqrt( pow(x0,2)+pow(y0,2)))/(2*M_PI);
 		f.set(i, 0, potential);
 	}
-
-
-
-
 }
 
-
+} // namespace ie_solver

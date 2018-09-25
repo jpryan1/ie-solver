@@ -1,5 +1,6 @@
 #include "circle.h"
 
+namespace ie_solver{
 
 void circle(int N, std::vector<double>& points, std::vector<double>& normals, std::vector<double>& curvatures,
 	std::vector<double>& weights){
@@ -58,3 +59,5 @@ int out_of_circle(Vec2& a){
 	// return 1;
 
 }
+
+} // namespace ie_solver
