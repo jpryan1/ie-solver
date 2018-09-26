@@ -44,15 +44,14 @@ void Skelfac::GetXMatrices(ie_Mat& K, ie_Mat& Z, ie_Mat& Xrr,
 	//blocks will be eliminated anyways. This should be worked out on a whiteboard
 void Skelfac::SchurUpdate(ie_Mat& K, ie_Mat& Z, ie_Mat& L, ie_Mat& U, QuadTreeNode* node) {
     //height of Z is number of skeleton columns
-	unsigned int num_box 	  = node->box.box_range.size();
 	unsigned int num_redundant = Z.width();
 	unsigned int num_skel 	  = Z.height();
 	unsigned int num_near 	  = node->box.near_range.size();
 
 	//GENERATE K_BN,BN
 	std::vector<unsigned int> BN;
-	for(unsigned int i=0; i<num_box ; i++) BN.push_back(node->box.box_range[i]);
-	for(unsigned int i=0; i<num_near; i++) BN.push_back(node->box.near_range[i]);
+	for(unsigned int idx : node->box.box_range)  BN.push_back(idx);
+	for(unsigned int idx : node->box.near_range) BN.push_back(idx);
 
 	ie_Mat K_BN = K(BN, BN); //que bien!
 	ie_Mat update(BN.size(), BN.size());
@@ -105,7 +104,7 @@ int Skelfac::InterpolativeDecomposition( ie_Mat& K, ie_Mat& Z,
 	double cntr_y = node->corners[1] + node->side/2.0;
 	ie_Mat pxy;
 
-	if(is_stokes){
+	if(is_stokes_){
 		pxy = ie_Mat(200, node->box.box_range.size());
 		make_stokes_proxy_mat(pxy, cntr_x, cntr_y, node->side*2, node->box.box_range );
 	}
@@ -161,7 +160,7 @@ void Skelfac::Skeletonize(ie_Mat& K, QuadTree& tree){
 }
 
 
-//This function sets vec(b) = vec(b) + mat*vec(a)
+// Sets vec(b) = vec(b) + mat*vec(a)
 void Skelfac::ApplySweepMatrix(ie_Mat& mat, ie_Mat& vec, 
 	std::vector<unsigned int> a, std::vector<unsigned int> b, 
 	bool transpose = false) {
@@ -183,7 +182,7 @@ void Skelfac::ApplySweepMatrix(ie_Mat& mat, ie_Mat& vec,
 }
 
 
-//This function sets vec(range) = mat * vec(range)
+// Sets vec(range) = mat * vec(range)
 void Skelfac::ApplyDiagMatrix(ie_Mat& K, ie_Mat& vec, std::vector<unsigned int> range){
 	if(range.size()==0) return;
 
@@ -262,7 +261,11 @@ void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	for(int level = 0; level<lvls; level++){
 		LOG::INFO("Level " + std::to_string(level));
 		QuadTreeLevel* current_level = tree.levels[level];
-		for (QuadTreeNode* current_node : current_level->nodes) {
+		// TODO record in notes and explore the following observation:
+		// changing the order of this for loop affects the accuracy of the 
+		// sparsematvec on a random vector, BUT NOT THE SOLUTION ERROR
+		for(int n = current_level->nodes.size() - 1; n >= 0; n--){
+			QuadTreeNode* current_node = current_level->nodes[n];
 		
 			// Next we need to apply L inverse
 			// L inverse changes the skelnear elements - it makes them equal to L times the redundant elements + the skelnear elements
@@ -274,7 +277,6 @@ void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	}
 	LOG::INFO("End sweep down.");
 	LOG::INFO("End sparse matrix vector multiply.");
-	
 }
 
 
@@ -313,8 +315,6 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 			//red_mat.inverse();
 	
 			ApplyDiagInvMatrix(red_mat, x, current_node->box.redundant_range);
-			
-
 		}
 	}
 
@@ -331,7 +331,7 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	allskel_mat *=-1;
 	allskel_mat += K(allskel, allskel);
 
-	// if(is_stokes){
+	// if(is_stokes_){
 	// 	int buddy_counter = 0;
 
 	// 	for(int i=0; i<allskel.size()-1; i++){
@@ -346,7 +346,8 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	
 	for(int level = 0; level < lvls; level++){
 		QuadTreeLevel* current_level = tree.levels[level];
-		for (QuadTreeNode* current_node : current_level->nodes) {
+		for(int n = current_level->nodes.size() - 1; n >= 0; n--){
+			QuadTreeNode* current_node = current_level->nodes[n];
 		
 			current_node->U*=-1;
 			current_node->T*=-1;
@@ -469,7 +470,7 @@ void Skelfac::set_rs_ranges(Box& box, std::vector<unsigned int>& prm, unsigned i
 	assert(prm.size() == sk+rd);
 
 	for(unsigned int i = 0; i<sk; i++){
-       box.skel_range.push_back(box.box_range[prm[i]]);
+    	box.skel_range.push_back(box.box_range[prm[i]]);
     	box.p.push_back(prm[i]);	
     }
     for(unsigned int i = sk; i<sk+rd; i++){

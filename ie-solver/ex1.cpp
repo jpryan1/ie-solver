@@ -14,13 +14,12 @@ namespace ie_solver{
 
 LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
 
-// TODO put everything in a class so the functions can have access to shared 
-// variables for things like blocksize
+// TODO underscores on member variables
 
 // TODO isn't this a common function? why not put it there?
 double vec_norm(ie_Mat& vec){
 	double sum=0;
-	for(int i=0; i<vec.height(); i++){
+	for(unsigned int i=0; i<vec.height(); i++){
 		sum += pow(vec.get(i, 0),2);
 	}
 	return sqrt(sum);
@@ -123,7 +122,7 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 		output.open("laplace.txt");
 
 		if(output.is_open()){
-			for(int i=0; i<domain.height(); i++){
+			for(unsigned int i=0; i<domain.height(); i++){
 				output<<domain.get(i, 0)<<std::endl;
 			}
 			output.close();

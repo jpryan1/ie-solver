@@ -141,7 +141,6 @@ void ie_Mat::load(std::vector<double>* p, std::vector<double>* n,
 
 
 void ie_Mat::resize(unsigned int h, unsigned int w){
-	assert(h>0 && w>0);
 	if(mat) delete[] mat;
 	lda_ = h;
 	height_ = h;
@@ -163,8 +162,8 @@ void ie_Mat::copy(ie_Mat& copy){
 		copy.mat     = new double[height_*width_];
 	}
 
-	for(int i=0; i<copy.height(); i++){
-		for(int j=0; j<copy.width(); j++){
+	for(unsigned int i=0; i<copy.height(); i++){
+		for(unsigned int j=0; j<copy.width(); j++){
 			copy.set(i,j, get(i,j));
 		}
 	}
@@ -372,12 +371,11 @@ ie_Mat& ie_Mat::operator*=(const double o){
 ie_Mat& ie_Mat::operator()(std::vector<unsigned int> I_, 
 	std::vector<unsigned int> J_){
 
-	assert(height_ > 0 && width_ > 0);
 	int olda_ = I_.size();
 	double* omat = new double[I_.size()*J_.size()];
 	for(unsigned int i = 0; i < I_.size(); i++){
 		for(unsigned int j = 0; j < J_.size(); j++){
-			omat[i + olda_*j] = get(I_[i],J_[j]);//mat[I[x] + lda_* J[y]];
+			omat[i + olda_*j] = get(I_[i],J_[j]);
 		}
 	}
 	ie_Mat* ret  = new ie_Mat();

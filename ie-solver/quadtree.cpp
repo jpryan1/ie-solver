@@ -4,9 +4,9 @@ namespace ie_solver{
 
 int QuadTreeNode::id_count = 0;
 
-void QuadTree::initialize_tree(std::vector<double> points, bool stokes) {
+void QuadTree::initialize_tree(std::vector<double> points, bool is_stokes) {
 		
-	is_stokes = stokes;
+	is_stokes_ = is_stokes;
 
 	min = points[0];
 	max = points[1];
@@ -81,7 +81,7 @@ void QuadTree::initialize_tree(std::vector<double> points, bool stokes) {
 	// 	for(int k=0; k< current_level->nodes.size(); k++){
 
 	// 		QuadTreeNode* current_node = current_level->nodes[k];
-	// 		if(is_stokes){
+	// 		if(is_stokes_){
 	// 			assert(current_node->box.box_range.size()+
 	// 			current_node->box.near_range.size()+
 	// 			current_node->box.far_range.size() == points.size());
@@ -120,10 +120,10 @@ void QuadTree::initialize_tree(std::vector<double> points, bool stokes) {
 	}
 	for(unsigned int j=0; j<levels.size(); j++){
 		QuadTreeLevel* current_level = levels[j];
-		for(unsigned int k=0; k< current_level->nodes.size(); k++){
-			QuadTreeNode* node_a = current_level->nodes[k];
+		for( QuadTreeNode* node_a : current_level->nodes ){
 			for(QuadTreeNode* neighbor: node_a->neighbors){
-				for(unsigned int i : node_a->box.box_range) neighbor->box.near_range.push_back(i);
+				neighbor->box.near_range.insert(neighbor->box.near_range.end(),
+					node_a->box.box_range.begin(), node_a->box.box_range.end());
 			}		
 		}
 	}
@@ -132,7 +132,7 @@ void QuadTree::initialize_tree(std::vector<double> points, bool stokes) {
 
 void QuadTree::add_index(std::vector<unsigned int>& r, unsigned int ind){
 
-	if(is_stokes){
+	if(is_stokes_){
 		r.push_back(2*ind);
 		r.push_back(2*ind+1);
 	}else{
@@ -287,7 +287,7 @@ void QuadTree::node_subdivide(QuadTreeNode* node){
 		unsigned int ind = node->box.box_range[dof];
 		//theres a non-trivial difference between the stokes
 		// and laplace case here, so we split this up
-		if(is_stokes){
+		if(is_stokes_){
 			if(ind%2==1) continue; //because in stokes case, two "dof"s correspond to one point
 			double x = pts[ind];
 			double y = pts[ind+1];

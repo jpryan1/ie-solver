@@ -88,7 +88,7 @@ void Initialization::DomainSolution(ie_Mat& K, int test_size,
 
 
 void Initialization::InitializeBoundary(ie_Mat& f, std::vector<double>& points){
-	for(int i = 0; i < f.height(); i++){
+	for(unsigned int i = 0; i < f.height(); i++){
 		double x0 = points[2*i]+2;
 		double y0 = points[2*i+1]+2;
 

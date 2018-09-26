@@ -16,12 +16,12 @@ class Skelfac {
 	public:
 		Skelfac(){}
 		Skelfac(double id_tol, std::vector<double> points, 
-			std::vector<double> normals, std::vector<double> weights, bool s) {
+			std::vector<double> normals, std::vector<double> weights, bool is_stokes) {
 			this->id_tol = id_tol;
 			this->points = points;
 			this->normals = normals;
 			this->weights = weights;
-			is_stokes = s;
+			is_stokes_ = is_stokes;
 		}
 		~Skelfac(){}
 
@@ -71,7 +71,7 @@ class Skelfac {
 	private:
 		void set_rs_ranges(Box&, std::vector<unsigned int>&, unsigned int, unsigned int);
 		void set_skelnear_range(Box& box);
-		bool is_stokes;
+		bool is_stokes_;
 		/**
 		 * Quick and easy logging function based on verbosity
 		 */

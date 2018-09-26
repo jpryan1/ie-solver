@@ -138,7 +138,6 @@ struct ie_Mat{
 	}
 
 	ie_Mat(unsigned int h, unsigned int w){
-		assert(h > 0 && w > 0);
 		is_dynamic   = false;
 		is_stokes = false;
 		lda_      = h;
@@ -193,10 +192,10 @@ struct ie_Mat{
 		return sqrt(sum);
 	}
 
-	int height(){
+	unsigned int height(){
 		return height_;
 	}
-	int width(){
+	unsigned int width(){
 		return width_;
 	}
 

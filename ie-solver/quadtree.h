@@ -70,7 +70,7 @@ public:
 	void rec_print(QuadTreeNode*);
 
 private:
-	bool is_stokes;
+	bool is_stokes_;
 };
 
 } // namespace ie_solver
