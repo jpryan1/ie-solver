@@ -6,7 +6,14 @@ namespace ie_solver{
 void Initialization::InitializeKernel(ie_Mat& K, std::vector<double>& points,
 										std::vector<double>& normals, 
 										std::vector<double>& curvatures,
-										std::vector<double>& weights){
+										std::vector<double>& weights, 
+										bool is_stokes){
+
+	if(is_stokes){
+		Stokes_InitializeKernel(K, points, normals, curvatures, weights);
+		return;
+	}
+
 	int dofs = points.size() / 2;
 	double scale = 1.0 / (2*M_PI);
 
@@ -35,7 +42,16 @@ void Initialization::InitializeDomainKernel(ie_Mat& K, std::vector<double>& poin
 										std::vector<double>& normals, 
 										std::vector<double>& weights, 
 										double min, double max, int test_size,
-										int (*out_of_domain)(Vec2& a)){
+										int (*out_of_domain)(Vec2& a),
+										bool is_stokes){
+	// is stokes TODO
+
+	if(is_stokes){
+		Stokes_InitializeDomainKernel(K, points, normals, weights, 
+			min, max, test_size, out_of_domain);
+		return;
+	}
+
 	//columns for phi (aka dofs), rows for spatial domain
 	int dofs = points.size()/2;
 	double scale = 1.0 / (2*M_PI);

@@ -1,6 +1,22 @@
 cc_binary(
-	name = "ie-solver",
+	name = "laplace-ie-solver",
 	srcs = ["ex1.cpp"],
+	deps = [":common",
+			":initialization",
+			":skelfac",
+			":quadtree",
+			":circle"
+			],
+	linkopts = ["-llapacke",
+				"-llapack",
+				"-lblas",
+				"-lgomp"]
+
+)
+
+cc_binary(
+	name = "stokes-ie-solver",
+	srcs = ["ex2.cpp"],
 	deps = [":common",
 			":initialization",
 			":skelfac",
@@ -24,7 +40,9 @@ cc_library(
 cc_library(
 	name = "initialization",
 	hdrs = ["initialization.h"],
-	srcs = ["initialization.cpp"],
+	srcs = ["initialization.cpp",
+			"stokes_init.cpp",
+			],
 	deps = [":common",
 			":quadtree"]
 )
