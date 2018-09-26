@@ -3,39 +3,37 @@
 namespace ie_solver{
 
 void Skelfac::GetXMatrices(ie_Mat& K, ie_Mat& Z, ie_Mat& Xrr, 
-	std::vector<int>& r, std::vector<int>& s, std::vector<int>& n) {
+	std::vector<unsigned int>& r, std::vector<unsigned int>& s, 
+	std::vector<unsigned int>& n) {
     
-
-	int rs = r.size();
-	int ss = s.size();
-	int ns = n.size();
+	unsigned int rs = r.size();
+	unsigned int ss = s.size();
+	unsigned int ns = n.size();
     ie_Mat  Xrs(rs, ss), Xsr(ss, rs),
 	Xrn(rs, ns), Xnr(ns, rs);
 	
-	
-//this is just for readability
+	//this is just for readability
 	Xrr = K(r,r);
 	Xrs = K(r,s);
 	Xrn = K(r,n);
 	Xsr = K(s,r);
 	Xnr = K(n,r);
 
+	Matmul::ie_gemm(TRANSPOSE_, NORMAL_, -1., Z, 	  K(s,r), 1., Xrr);
+	Matmul::ie_gemm(TRANSPOSE_, NORMAL_, -1., Z, 	  K(s,s), 1., Xrs);
+	Matmul::ie_gemm(TRANSPOSE_, NORMAL_, -1., Z, 	  K(s,n), 1., Xrn);
+	Matmul::ie_gemm(NORMAL_, 	NORMAL_, -1., Xrs, 	  Z, 	  1., Xrr);
+	Matmul::ie_gemm(NORMAL_, 	NORMAL_, -1., K(s,s), Z, 	  1., Xsr);
+	Matmul::ie_gemm(NORMAL_, 	NORMAL_, -1., K(n,s), Z, 	  1., Xnr);
 
-	Matmul::ie_gemm(TRANSPOSE_, NORMAL_, -1., Z, 	K(s,r), 1., Xrr);
-	Matmul::ie_gemm(TRANSPOSE_, NORMAL_, -1., Z, 	K(s,s), 1., Xrs);
-	Matmul::ie_gemm(TRANSPOSE_, NORMAL_, -1., Z, 	K(s,n), 1., Xrn);
-	Matmul::ie_gemm(NORMAL_, 	NORMAL_, -1., Xrs, 	Z, 		1., Xrr);
-	Matmul::ie_gemm(NORMAL_, 	NORMAL_, -1., K(s,s),Z, 		1., Xsr);
-	Matmul::ie_gemm(NORMAL_, 	NORMAL_, -1., K(n,s),Z, 		1., Xnr);
-
-set_get.tic();
+	set_get.tic();
 	K.set_submatrix(r, s, Xrs);
 	K.set_submatrix(r, n, Xrn);
 	//K.set_submatrix(r, r, Xrr);
 	K.set_submatrix(s, r, Xsr);
 	K.set_submatrix(n, r, Xnr);
-set_get.toc();
-// TODO this seems like an awful lot of stores, can we avoid this? 
+	set_get.toc();
+	// TODO this seems like an awful lot of stores, can we avoid this? 
 }
 
 
@@ -44,22 +42,16 @@ set_get.toc();
 	//Does it matter?
 	//Also, we might not need to do ALL of these matmuls, since some of the 
 	//blocks will be eliminated anyways. This should be worked out on a whiteboard
-	
 void Skelfac::SchurUpdate(ie_Mat& K, ie_Mat& Z, ie_Mat& L, ie_Mat& U, QuadTreeNode* node) {
     //height of Z is number of skeleton columns
-	int num_box 	  = node->box.box_range.size();
-	int num_redundant = Z.width();
-	int num_skel 	  = Z.height();
-	int num_near 	  = node->box.near_range.size();
+	unsigned int num_redundant = Z.width();
+	unsigned int num_skel 	  = Z.height();
+	unsigned int num_near 	  = node->box.near_range.size();
 
-
-
-
-	
 	//GENERATE K_BN,BN
-	std::vector<int> BN;
-	for(int i=0; i<num_box ; i++) BN.push_back(node->box.box_range[i]);
-	for(int i=0; i<num_near; i++) BN.push_back(node->box.near_range[i]);
+	std::vector<unsigned int> BN;
+	for(unsigned int idx : node->box.box_range)  BN.push_back(idx);
+	for(unsigned int idx : node->box.near_range) BN.push_back(idx);
 
 	ie_Mat K_BN = K(BN, BN); //que bien!
 	ie_Mat update(BN.size(), BN.size());
@@ -67,36 +59,25 @@ void Skelfac::SchurUpdate(ie_Mat& K, ie_Mat& Z, ie_Mat& L, ie_Mat& U, QuadTreeNo
 	K_BN -= update;
 	//printf("Update norm is %f\n", testing.norm2());
 
-
-
-
-
 	// Generate various index ranges within BN
-	std::vector<int> s, r, n, sn;
-	for(int i=0; i<num_skel; i++){
+	std::vector<unsigned int> s, r, n, sn;
+	for(unsigned int i=0; i<num_skel; i++){
 		s.push_back(node->box.p[i]);
 		sn.push_back(node->box.p[i]);
 	}
 	
-	for(int i=0; i<num_redundant; i++) r.push_back(node->box.p[i+num_skel]);
-	
-	for(int i=0; i<num_near; i++){
+	for(unsigned int i=0; i<num_redundant; i++){
+		r.push_back(node->box.p[i+num_skel]);
+	}
+
+	for(unsigned int i=0; i<num_near; i++){
 		n.push_back(i+num_redundant+num_skel);
 		sn.push_back(i+num_redundant+num_skel);
 	}
 
-
-
-
-	
 	ie_Mat  Xrr(num_redundant, num_redundant);
 	GetXMatrices(K_BN, Z, Xrr, r,s,n);
 	node->D_r = Xrr;
-	
-
-
-
-
 
 	// Generate left and right schur complement matrices
 	
@@ -106,32 +87,24 @@ void Skelfac::SchurUpdate(ie_Mat& K, ie_Mat& Z, ie_Mat& L, ie_Mat& U, QuadTreeNo
 	Xrr.right_multiply_inverse(K_BN(sn, r), L);//F.K(node->box.skelnear_range, node->box.redundant_range), L);
 	Xrr.left_multiply_inverse( K_BN(r, sn), U);//F.K(node->box.redundant_range, node->box.skelnear_range), U);
 
-
-
-
-
-
 	ie_Mat schur(node->box.skelnear_range.size(), node->box.skelnear_range.size());
 	Matmul::ie_gemm(NORMAL_, NORMAL_, 1.0, L, 
 		K_BN(r,sn), 0., schur);
 	
-
-
 	//set schur update
 	node->schur_update = schur;
 	node->schur_updated = true;
-	
-
-	
 }
-int Skelfac::InterpolativeDecomposition( ie_Mat& K, ie_Mat& Z,
-							QuadTreeNode* node) {
+
+
+int Skelfac::InterpolativeDecomposition( ie_Mat& K, ie_Mat& Z, 
+	QuadTreeNode* node) {
 
 	double cntr_x = node->corners[0] + node->side/2.0;
 	double cntr_y = node->corners[1] + node->side/2.0;
 	ie_Mat pxy;
 
-	if(is_stokes){
+	if(is_stokes_){
 		pxy = ie_Mat(200, node->box.box_range.size());
 		make_stokes_proxy_mat(pxy, cntr_x, cntr_y, node->side*2, node->box.box_range );
 	}
@@ -139,37 +112,23 @@ int Skelfac::InterpolativeDecomposition( ie_Mat& K, ie_Mat& Z,
 		pxy = ie_Mat(100, node->box.box_range.size());
 		make_proxy_mat(pxy, cntr_x, cntr_y, node->side*2, node->box.box_range );
 	}
-
-
-
-
-	std::vector<int> p;
-	int numskel = pxy.id(p, Z, id_tol);
+	std::vector<unsigned int> p;
+	unsigned int numskel = pxy.id(p, Z, id_tol);
 	if(numskel==0) return 0;
-
-
-
-
 	set_rs_ranges(node->box, p, Z.height(), Z.width());
 	
 	set_skelnear_range(node->box);
 	
-
 	return Z.width();
-
 }
 
 
 void Skelfac::Skeletonize(ie_Mat& K, QuadTree& tree){
 	
-
-	int lvls = tree.levels.size();
-
-	//Clock idc;
-
-	for(int level = lvls-1; level>0; level--){	
+	unsigned int lvls = tree.levels.size();
+	for(unsigned int level = lvls-1; level>0; level--){	
 		QuadTreeLevel* current_level = tree.levels[level];
-		for(int n = 0; n<current_level->nodes.size(); n++){
+		for(unsigned int n = 0; n<current_level->nodes.size(); n++){
 			QuadTreeNode* current_node = current_level->nodes[n];
 
 			if(current_node->box.box_range.size()==0){
@@ -185,19 +144,11 @@ void Skelfac::Skeletonize(ie_Mat& K, QuadTree& tree){
 				continue;
 			}
 
-			//idc.tic();
 			int redundants = InterpolativeDecomposition(K, Z, current_node);
-			//idc.toc();
-
-
 			if(redundants == 0) continue;
-
-
 
 			current_node->T = Z;
 			SchurUpdate(K, Z, L, U, current_node);
-			
-
 
 			set_get.tic();
 			current_node->L = L;
@@ -206,24 +157,19 @@ void Skelfac::Skeletonize(ie_Mat& K, QuadTree& tree){
 		}
 	}	
 	remove_inactive_dofs(tree.root);
-
-
-
-	//std::cout<<"Redundant columns: "<<F.redundant_dofs.size()<<std::endl;
-	//idc.elapsed("Interp Decomp");set_get.elapsed("Setget");
 }
 
 
-//This function sets vec(b) = vec(b) + mat*vec(a)
-void Skelfac::ApplySweepMatrix(ie_Mat& mat, ie_Mat& vec, std::vector<int> a, std::vector<int> b, bool transpose = false) {
+// Sets vec(b) = vec(b) + mat*vec(a)
+void Skelfac::ApplySweepMatrix(ie_Mat& mat, ie_Mat& vec, 
+	std::vector<unsigned int> a, std::vector<unsigned int> b, 
+	bool transpose = false) {
 	if(a.size()*b.size()==0) return;
 
-
 	//This vector is just used for indexing an Vector	
-	std::vector<int> ZERO_VECTOR;
+	std::vector<unsigned int> ZERO_VECTOR;
 	ZERO_VECTOR.push_back(0);
 
-	
 	ie_Mat temp = vec(a, ZERO_VECTOR);
 	ie_Mat product(b.size(), 1);
 	if(transpose){
@@ -233,27 +179,27 @@ void Skelfac::ApplySweepMatrix(ie_Mat& mat, ie_Mat& vec, std::vector<int> a, std
 	}
 	product += vec(b, ZERO_VECTOR);
 	vec.set_submatrix( b, ZERO_VECTOR, product);
-
 }
 
 
-//This function sets vec(range) = mat * vec(range)
-void Skelfac::ApplyDiagMatrix(ie_Mat& K, ie_Mat& vec, std::vector<int> range){
+// Sets vec(range) = mat * vec(range)
+void Skelfac::ApplyDiagMatrix(ie_Mat& K, ie_Mat& vec, std::vector<unsigned int> range){
 	if(range.size()==0) return;
 
-	std::vector<int> ZERO_VECTOR;
+	std::vector<unsigned int> ZERO_VECTOR;
 	ZERO_VECTOR.push_back(0);
 	ie_Mat temp = vec(range, ZERO_VECTOR);
 	ie_Mat product(range.size(), 1);
 	Matmul::ie_gemv(NORMAL_, 1., K, temp, 0., product);
 		
 	vec.set_submatrix( range, ZERO_VECTOR, product);
-
 }
-void Skelfac::ApplyDiagInvMatrix(ie_Mat& K, ie_Mat& vec, std::vector<int> range){
+
+
+void Skelfac::ApplyDiagInvMatrix(ie_Mat& K, ie_Mat& vec, std::vector<unsigned int> range){
 	if(range.size()==0) return;
 
-	std::vector<int> ZERO_VECTOR;
+	std::vector<unsigned int> ZERO_VECTOR;
 	ZERO_VECTOR.push_back(0);
 	ie_Mat temp = vec(range, ZERO_VECTOR);
 	ie_Mat product(range.size(), 1);
@@ -261,79 +207,80 @@ void Skelfac::ApplyDiagInvMatrix(ie_Mat& K, ie_Mat& vec, std::vector<int> range)
 	//Matmul::ie_gemv(NORMAL_, 1., K, temp, 0., product);
 		
 	vec.set_submatrix( range, ZERO_VECTOR, product);
-
 }
-
-
-
 
 
 void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 
+	LOG::INFO("Beginning sparse matrix vector multiply...");
+	
 	b = ie_Mat(x.height(), 1);
 	x.copy( b);
 	int lvls = tree.levels.size();
-	for(int level = lvls-1; level>=0; level--){//level>=0; level--){
+	LOG::INFO("Begin sweep up...");
+	for(int level = lvls-1; level>=0; level--){
+		LOG::INFO("Level " + std::to_string(level));
 		QuadTreeLevel* current_level = tree.levels[level];
-		for(int n = 0; n<current_level->nodes.size(); n++){
-
-			QuadTreeNode* current_node = current_level->nodes[n];
-	//First we need to apply L_T inverse
-		// //L_T inverse changes the skel elements - it makes them equal to T times the redundant elements + the skeleton elements. 
+		for (QuadTreeNode* current_node : current_level->nodes) {
+		
+			// First we need to apply L_T inverse
+			// L_T inverse changes the skel elements - it makes them equal to T times the redundant elements + the skeleton elements. 
 			ApplySweepMatrix(current_node->T, b, current_node->box.redundant_range, current_node->box.skel_range, false);
-		// //Next we need to apply U inverse
-		// //U inverse changes the redundant elements - it makes them equal to L transpose times the skelnear elements + the redundant elements
+			// Next we need to apply U inverse
+			// U inverse changes the redundant elements - it makes them equal to L transpose times the skelnear elements + the redundant elements
 			ApplySweepMatrix(current_node->U, b, current_node->box.skelnear_range, current_node->box.redundant_range, false);	
 		}
 	}
-	//This can go through the tree in any order, is parallelizable 
+	LOG::INFO("End sweep up.");
 	
-	for(int level = lvls-1; level>=0; level--){//level>=0; level--){
+	//This can go through the tree in any order, is parallelizable 
+	LOG::INFO("Begin block diagonal multiply...");
+	for(int level = lvls-1; level>=0; level--){
+		LOG::INFO("Level " + std::to_string(level));
 		QuadTreeLevel* current_level = tree.levels[level];
-		for(int n = 0; n<current_level->nodes.size(); n++){
-			QuadTreeNode* current_node = current_level->nodes[n];
-
+		for (QuadTreeNode* current_node : current_level->nodes) {
+		
 			ApplyDiagMatrix(current_node->D_r, b, current_node->box.redundant_range);
 		}
 	}
+	LOG::INFO("End block diagonal multiply.");
 	
-
 	// This is just for initial testing - once the tree structure is working properly, this will be
 	// implemented in a smarter fashion
 
 	// We need all of the skeleton indices. This is just the negation of [0,b.size()] and the redundant DoFs
 	// with that in mind...
-	std::vector<int> allskel = tree.root->box.box_range;
+	std::vector<unsigned int> allskel = tree.root->box.box_range;
 	
 	ie_Mat allskel_mat(allskel.size(), allskel.size());
 	get_all_schur_updates(allskel_mat, allskel, tree.root);
 	allskel_mat*=-1;
 	allskel_mat += K(allskel, allskel);
 	ApplyDiagMatrix(allskel_mat, b, allskel);
-	
-	
-
-	for(int level = 0; level<lvls; level++){//level>=0; level--){
+	LOG::INFO("Begin sweep down...");
+	for(int level = 0; level<lvls; level++){
+		LOG::INFO("Level " + std::to_string(level));
 		QuadTreeLevel* current_level = tree.levels[level];
-		for(int n =current_level->nodes.size()-1; n>=0; n--){
+		// TODO record in notes and explore the following observation:
+		// changing the order of this for loop affects the accuracy of the 
+		// sparsematvec on a random vector, BUT NOT THE SOLUTION ERROR
+		for(int n = current_level->nodes.size() - 1; n >= 0; n--){
 			QuadTreeNode* current_node = current_level->nodes[n];
-	//Next we need to apply L inverse
-		//L inverse changes the skelnear elements - it makes them equal to L times the redundant elements + the skelnear elements
+		
+			// Next we need to apply L inverse
+			// L inverse changes the skelnear elements - it makes them equal to L times the redundant elements + the skelnear elements
 			ApplySweepMatrix(current_node->L, b, current_node->box.redundant_range, current_node->box.skelnear_range,false);
-		//Finally we need to apply U_T inverse
-		//U_T inverse changes the redundant elements - it makes them equal to T transpose times the skeleton elements + the redundant elements
+			// Finally we need to apply U_T inverse
+			// U_T inverse changes the redundant elements - it makes them equal to T transpose times the skeleton elements + the redundant elements
 	 		ApplySweepMatrix(current_node->T, b, current_node->box.skel_range, current_node->box.redundant_range, true);
 	 	}
 	}
-	
+	LOG::INFO("End sweep down.");
+	LOG::INFO("End sparse matrix vector multiply.");
 }
 
 
-
-
 void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
-
-	
 
 	int lvls = tree.levels.size();
 
@@ -341,11 +288,10 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 
 	b.copy(x);
 
-	for(int level = lvls-1; level>=0; level--){//level>=0; level--){
+	for (int level = lvls-1; level>=0; level--){//level>=0; level--){
 		QuadTreeLevel* current_level = tree.levels[level];
-		for(int n = 0; n<current_level->nodes.size(); n++){
-			QuadTreeNode* current_node = current_level->nodes[n];
-	//Next we need to apply L inverse
+		for (QuadTreeNode* current_node : current_level->nodes) {
+		//Next we need to apply L inverse
 		//L inverse changes the skelnear elements - it makes them equal to L times the redundant elements + the skelnear elements
 			current_node->L*=-1;
 			current_node->T*=-1;
@@ -358,32 +304,26 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 			current_node->T*=-1;
 		}
 	}
-
-
 	//This can go through the tree in any order, is parallelizable 
 	
 	for(int level = lvls-1; level>=0; level--){//level>=0; level--){
 		QuadTreeLevel* current_level = tree.levels[level];
-		for(int n = 0; n<current_level->nodes.size(); n++){
-			QuadTreeNode* current_node = current_level->nodes[n];
+		for (QuadTreeNode* current_node : current_level->nodes) {
 			if(current_node->box.redundant_range.size()==0) continue;
 
 			ie_Mat red_mat = current_node->D_r;
 			//red_mat.inverse();
 	
 			ApplyDiagInvMatrix(red_mat, x, current_node->box.redundant_range);
-			
-
 		}
 	}
 
-	
 	// This is just for initial testing - once the tree structure is working properly, this will be
 	// implemented in a smarter fashion
 
 	// We need all of the skeleton indices. This is just the negation of [0,b.size()] and the redundant DoFs
 	// with that in mind...
-	std::vector<int> allskel = tree.root->box.box_range;
+	std::vector<unsigned int> allskel = tree.root->box.box_range;
 	
 	ie_Mat allskel_mat(allskel.size(), allskel.size());
 	get_all_schur_updates(allskel_mat, allskel, tree.root);
@@ -391,7 +331,7 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	allskel_mat *=-1;
 	allskel_mat += K(allskel, allskel);
 
-	// if(is_stokes){
+	// if(is_stokes_){
 	// 	int buddy_counter = 0;
 
 	// 	for(int i=0; i<allskel.size()-1; i++){
@@ -401,19 +341,14 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	// 	//printf("Of the %lu skeleton columns that remain, there are %d DoF pairs, hence %.0f%% are solo\n", 
 	// 	//		allskel.size(), buddy_counter, 100*(allskel.size()-2*buddy_counter+0.0)/allskel.size());
 	// }
-
-
-
-
 	//allskel_mat.inverse();
 	ApplyDiagInvMatrix(allskel_mat, x, allskel);
 	
-	
-	for(int level = 0; level<lvls; level++){//level>=0; level--){
+	for(int level = 0; level < lvls; level++){
 		QuadTreeLevel* current_level = tree.levels[level];
-		for(int n =current_level->nodes.size()-1; n>=0; n--){
-
+		for(int n = current_level->nodes.size() - 1; n >= 0; n--){
 			QuadTreeNode* current_node = current_level->nodes[n];
+		
 			current_node->U*=-1;
 			current_node->T*=-1;
 	//First we need to apply L_T inverse
@@ -425,29 +360,23 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 		
 			current_node->U*=-1;
 			current_node->T*=-1;
-
-			
 	 	}
 	}		
-
 }
 
 
-
-
 void Skelfac::remove_inactive_dofs(QuadTreeNode* node){
-
 
 	//this function removes from the box any DoFs which have already been made redundant. 
 	//It involves a bunch of annoying C++ functions and probably would look nicer in matlab
 
 	if(!node->is_leaf){
-		std::vector<int> active_box;
+		std::vector<unsigned int> active_box;
 		for(QuadTreeNode* child: node->children){
 			if(child->schur_updated){
-				for(int i : child->box.skel_range) active_box.push_back(i);
+				for(unsigned int i : child->box.skel_range) active_box.push_back(i);
 			}else{
-				for(int i : child->box.box_range) active_box.push_back(i);
+				for(unsigned int i : child->box.box_range) active_box.push_back(i);
 			}
 		}
 		node->box.box_range = active_box;
@@ -457,28 +386,28 @@ void Skelfac::remove_inactive_dofs(QuadTreeNode* node){
 	// std::set_difference(node->box.box_range.begin(), node->box.box_range.end(),
 	// 	F.redundant_dofs.begin(), F.redundant_dofs.end(), std::back_inserter(active_box));
 
-	std::vector<int> active_near;	
+	std::vector<unsigned int> active_near;	
 	for(QuadTreeNode* neighbor: node->neighbors){
 		if(neighbor->schur_updated){
-			for(int i : neighbor->box.skel_range) active_near.push_back(i);
+			for(unsigned int i : neighbor->box.skel_range) active_near.push_back(i);
 		}
 		else if(!neighbor->is_leaf){
 			for(QuadTreeNode* child: neighbor->children){
 				if(child->schur_updated){
-					for(int i : child->box.skel_range) active_near.push_back(i);
+					for(unsigned int i : child->box.skel_range) active_near.push_back(i);
 				}else{
-					for(int i : child->box.box_range) active_near.push_back(i);
+					for(unsigned int i : child->box.box_range) active_near.push_back(i);
 				}
 			}
 		}else{
-			for(int i : neighbor->box.box_range) active_near.push_back(i);
+			for(unsigned int i : neighbor->box.box_range) active_near.push_back(i);
 		}
 	}
 	node->box.near_range = active_near;	
 }
 
 
-void Skelfac::make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r, std::vector<int>& range){
+void Skelfac::make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r, std::vector<unsigned int>& range){
 	
 	//each row is a pxy point, cols are box dofs
 
@@ -488,14 +417,12 @@ void Skelfac::make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r
 		
 		double ang = 2*M_PI*i*0.01;
 		Vec2 p(cntr_x+r*cos(ang), cntr_y+r*sin(ang));
-
-		for(int j_=0; j_<range.size(); j_++){
-			int j = 2*range[j_];
+		for(unsigned int j_=0; j_<range.size(); j_++){
+			unsigned int j = 2*range[j_];
 			Vec2 q(points[j], points[j+1]);
 
 			Vec2 r = p-q;
 			Vec2 n(normals[j], normals[j+1]);
-
 
 			double potential = -weights[j/2]*scale*(r.dot(n))/(r.dot(r));
 			pxy.set(i, j_, potential);
@@ -504,8 +431,8 @@ void Skelfac::make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r
 }
 
 
-void Skelfac::make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r, std::vector<int>& range){
-
+void Skelfac::make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, 
+	double r, std::vector<unsigned int>& range){
 
 	double scale = 1.0 / (M_PI);
 
@@ -514,8 +441,8 @@ void Skelfac::make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, d
 		double ang = 2*M_PI*i*0.01;
 		Vec2 p(cntr_x + r*cos(ang), cntr_y + r*sin(ang));
 
-		for(int j_=0; j_<range.size(); j_++){
-			int j = range[j_];
+		for(unsigned int j_=0; j_<range.size(); j_++){
+			unsigned int j = range[j_];
 			Vec2 q(points[j], points[j+1]);
 
 			Vec2 r = p-q;
@@ -538,39 +465,33 @@ void Skelfac::make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, d
 	}
 }
 
-void Skelfac::set_rs_ranges(Box& box, std::vector<int>& prm, int sk, int rd) {
+void Skelfac::set_rs_ranges(Box& box, std::vector<unsigned int>& prm, unsigned int sk, unsigned int rd) {
 
 	assert(prm.size() == sk+rd);
 
-	for(int i = 0; i<sk; i++){
-       box.skel_range.push_back(box.box_range[prm[i]]);
+	for(unsigned int i = 0; i<sk; i++){
+    	box.skel_range.push_back(box.box_range[prm[i]]);
     	box.p.push_back(prm[i]);	
     }
-    for(int i = sk; i<sk+rd; i++){
+    for(unsigned int i = sk; i<sk+rd; i++){
         box.redundant_range.push_back(box.box_range[prm[i]]);
         box.p.push_back(prm[i]);
     }
-
-
-
 }
 
 void Skelfac::set_skelnear_range(Box& box){
-	for(int i = 0; i<box.skel_range.size(); i++){
+	for(unsigned int i = 0; i<box.skel_range.size(); i++){
         box.skelnear_range.push_back(box.skel_range[i]);
     }
-    for(int i=0; i<box.near_range.size(); i++){
+    for(unsigned int i=0; i<box.near_range.size(); i++){
         box.skelnear_range.push_back(box.near_range[i]);
     }
 }
 
 
-
-
-
-void Skelfac::get_all_schur_updates(ie_Mat& updates, std::vector<int>& BN, QuadTreeNode* node){
-
-//	printf("Getting all neighbors and descendents on %d...\n",node->id);
+void Skelfac::get_all_schur_updates(ie_Mat& updates, std::vector<unsigned int>& BN, 
+	QuadTreeNode* node){
+	//	printf("Getting all neighbors and descendents on %d...\n",node->id);
 	if(!node->is_leaf) get_descendents_updates(updates, BN, node);
 	//Check each neighbor's neighbor, if updated, grab its schur update, then recurse on everyone's children
 	for(QuadTreeNode* neighbor : node->neighbors){
@@ -586,7 +507,7 @@ void Skelfac::get_all_schur_updates(ie_Mat& updates, std::vector<int>& BN, QuadT
 }
 	
 
-void Skelfac::get_descendents_updates(ie_Mat& updates, std::vector<int>& BN, QuadTreeNode* node){
+void Skelfac::get_descendents_updates(ie_Mat& updates, std::vector<unsigned int>& BN, QuadTreeNode* node){
 	//by assumption, node is not a leaf
 	
 	for(QuadTreeNode* child : node->children){
@@ -596,25 +517,24 @@ void Skelfac::get_descendents_updates(ie_Mat& updates, std::vector<int>& BN, Qua
 }
 
 
-
-void Skelfac::get_update(ie_Mat& update, std::vector<int>& BN, QuadTreeNode* node){
+void Skelfac::get_update(ie_Mat& update, std::vector<unsigned int>& BN, QuadTreeNode* node){
 	
 	//node needs to check all its dofs against BN, enter interactions into corresponding locations
 	
 	//node only updated its own BN dofs, and the redundant ones are no longer relevant, so we only care 
 	//about child's SN dofs
 
-	std::vector<int> sn = node->box.skelnear_range;
+	std::vector<unsigned int> sn = node->box.skelnear_range;
 
 	// First create a list of Dofs that are also in node's skelnear, 
 	// and with each one give the index in skelnear and the index in BN
 
-	std::vector<int> BN_indices;
-	std::vector<int> sn_indices;
+	std::vector<unsigned int> BN_indices;
+	std::vector<unsigned int> sn_indices;
 
 
-	for(int i=0; i<sn.size(); i++){
-		for(int j=0; j<BN.size(); j++){
+	for(unsigned int i=0; i<sn.size(); i++){
+		for(unsigned int j=0; j<BN.size(); j++){
 			if(BN[j] == sn[i]){
 				sn_indices.push_back(i);
 				BN_indices.push_back(j);
@@ -622,25 +542,12 @@ void Skelfac::get_update(ie_Mat& update, std::vector<int>& BN, QuadTreeNode* nod
 		}
 	}	
 
-	for(int i=0; i<BN_indices.size(); i++){
-		for(int j=0; j<BN_indices.size(); j++){
+	for(unsigned int i=0; i<BN_indices.size(); i++){
+		for(unsigned int j=0; j<BN_indices.size(); j++){
 			update.addset(BN_indices[i], BN_indices[j],node->schur_update.get(sn_indices[i], sn_indices[j]));
 		}
 	}
 }
-
-void Skelfac::log(int level, const char *fmt, ...) {
-    // va_list args;
-    // va_start(args, fmt);
-    // if(level <= verbosity)
-    //     vprintf(fmt, args);
-}
-
-
-
-
-
-
 
 
 void Skelfac::Conjugate_Gradient(ie_Mat& K, QuadTree& tree, ie_Mat& phi, ie_Mat& f){
@@ -691,7 +598,6 @@ void Skelfac::Conjugate_Gradient(ie_Mat& K, QuadTree& tree, ie_Mat& phi, ie_Mat&
 
 	// }
 	
-
 }
 
 } // namespace ie_solver

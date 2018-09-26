@@ -5,10 +5,11 @@
 
 #define MAX_LEAF_DOFS 128
 
+// TODO all headers should have variable names explicit. 
+
 namespace ie_solver{
 
 struct QuadTreeNode{
-
 
 	int id;
 	static int id_count;
@@ -20,24 +21,17 @@ struct QuadTreeNode{
 	QuadTreeNode* children[4];
 
 	std::vector<QuadTreeNode*> neighbors, far_neighbors;
-	
 
 	ie_Mat T, L, U, D_r, schur_update;
 	Box box;
 	
-
 	double side;
-	int level;
+	unsigned int level;
 	bool is_leaf;
 	bool schur_updated = false;
 	
-	
 	//format is {BL, TL, TR, BR}
 	double corners[8];
-
-
-
-
 
 	QuadTreeNode(){
 		id = id_count++;
@@ -48,11 +42,6 @@ struct QuadTreeNode{
 		br=NULL;
 		for(int i=0; i<4; i++) children[i] = NULL;
 	}
-	
-
-		
-
-
 };
 
 struct QuadTreeLevel{
@@ -63,8 +52,6 @@ struct QuadTreeLevel{
 class QuadTree {
 
 public:
-
-
 	QuadTreeNode* root;
 	std::vector<QuadTreeLevel*> levels;
 	std::vector<double> pts;
@@ -73,19 +60,17 @@ public:
 
 	int which_field(double, double, QuadTreeNode* );
 
-
-
-	void initialize_tree(std::vector<double>, int);
-	void recursive_add(QuadTreeNode*, double, double, int);
+	void initialize_tree(std::vector<double>, bool);
+	void recursive_add(QuadTreeNode*, double, double, unsigned int);
 	void node_subdivide(QuadTreeNode*);
-	void add_index(std::vector<int>& r, int ind);
+	void add_index(std::vector<unsigned int>& r, unsigned int ind);
 
 
 	void print();
 	void rec_print(QuadTreeNode*);
 
 private:
-	int is_stokes;
+	bool is_stokes_;
 };
 
 } // namespace ie_solver
