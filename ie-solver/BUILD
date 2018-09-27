@@ -24,7 +24,9 @@ cc_library(
 cc_library(
 	name = "initialization",
 	hdrs = ["initialization.h"],
-	srcs = ["initialization.cpp"],
+	srcs = ["initialization.cpp",
+			"stokes_init.cpp",
+			],
 	deps = [":common",
 			":quadtree"]
 )

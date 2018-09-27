@@ -1,8 +1,6 @@
-
-
 #include "initialization.h"
 
-
+namespace ie_solver{
 //TODO - subclasses for different PDES
 
 void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& points,
@@ -201,3 +199,4 @@ void Initialization::Stokes_InitializeBoundary(ie_Mat& f, std::vector<double>& n
 	}
 }
 
+} // namespace
