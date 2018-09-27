@@ -1,22 +1,6 @@
 cc_binary(
-	name = "laplace-ie-solver",
+	name = "ie-solver",
 	srcs = ["ex1.cpp"],
-	deps = [":common",
-			":initialization",
-			":skelfac",
-			":quadtree",
-			":circle"
-			],
-	linkopts = ["-llapacke",
-				"-llapack",
-				"-lblas",
-				"-lgomp"]
-
-)
-
-cc_binary(
-	name = "stokes-ie-solver",
-	srcs = ["ex2.cpp"],
 	deps = [":common",
 			":initialization",
 			":skelfac",

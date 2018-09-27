@@ -28,9 +28,9 @@ double vec_norm(ie_Mat& vec){
 void get_circle_stokes_solution(double min, double max, ie_Mat& domain, int (*out_of_shape)(Vec2& a)){
 	//min and max describe the box inside which our sample is taken. 
 
-	double total_err = 0;
-	double max_err   = 0;
-	double true_norm = 0;
+	// double total_err = 0;
+	// double max_err   = 0;
+	// double true_norm = 0;
 	
 	for(int i=0; i<TEST_SIZE*TEST_SIZE; i++){
 
@@ -48,7 +48,7 @@ void get_circle_stokes_solution(double min, double max, ie_Mat& domain, int (*ou
 		x0-=0.5;
 		y0-=0.5;
 		
-		double r = sqrt(x0*x0+y0*y0);
+		// double r = sqrt(x0*x0+y0*y0);
 
 		domain.set(2*i  , 0, -4*y0/(1));
 		domain.set(2*i+1, 0,  4*x0/(1));
@@ -165,8 +165,9 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 		Matmul::ie_gemv(NORMAL_, 1., K_domain, phi, 0., domain);
 
 		std::ofstream output;
+		// TODO this filename should depend on what pde we're solving
 		output.open("ie-solver-output.txt");
-
+		// TODO move all this nonsense to a print function in the matrix class
 		if(output.is_open()){
 			for(unsigned int i=0; i<domain.height(); i += dim){
 				output<<domain.get(i, 0);
@@ -191,7 +192,8 @@ int main(int argc, char** argv){
 	
 	// TODO incorporate logging struct instead of using verbosity variable.
 	int verbosity = 0;
-	bool is_stokes = false;
+	// TODO this should obviously be a command line arg
+	bool is_stokes = true;
 	double id_tol = DEFAULT_ID_TOL;
 	int num_discretization_points = DEFAULT_NUM_DISCRETIZATION_POINTS;
 	// TODO allow for command line args for setting parameters
