@@ -1,6 +1,6 @@
 cc_binary(
 	name = "ie-solver",
-	srcs = ["ex1.cpp"],
+	srcs = ["ie-solver.cpp"],
 	deps = [":common",
 			":initialization",
 			":skelfac",
