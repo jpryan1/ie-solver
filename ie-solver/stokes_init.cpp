@@ -11,7 +11,6 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 	for(int i=0; i<weights.size(); i++) avg += weights[i];
 	avg /= weights.size();
 	
-
 	int Q = floor(sqrt(K.height()));
 	double alpha = avg/2.0;
 	double beta = alpha*alpha;
@@ -21,8 +20,6 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 	//singular_00 = 10000;
 
 	double singular_11 = singular_00;
-
-
 
 	printf("Singulars calculated as %f %f %f\n", singular_00, singular_01, singular_11);
 	// exit(0);
@@ -70,7 +67,6 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 	// 	}
 	// }
 
-
 //DOUBLE LAYER POTENTIAL BELOW
 	double scale = 1.0 / (M_PI);
 
@@ -94,7 +90,6 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 
 				continue;
 			 }
-		 	
 
 		 	int ind_j = j/2;
 			
@@ -117,8 +112,8 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 
 		}
 	}
-
 }
+
 
 void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double>& points,
 										std::vector<double>& normals, 
@@ -154,14 +149,10 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 				continue;
 			}
 
-
 			Vec2 r = x-y;
 			Vec2 n(normals[j], normals[j+1]);
 			double r0 = r.a[0];
 			double r1 = r.a[1];
-		
-
-
 
 			// K.set(2*i  , 2*ind_j  , weights[ind_j]*scale*(log(1.0/r.norm()) + (r0*r0/r.dot(r)) ));
 			// K.set(2*i+1, 2*ind_j  , weights[ind_j]*scale*(                    (r0*r1/r.dot(r)) ));
@@ -183,8 +174,6 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 
 
 }
-
-
 
 
 void Initialization::Stokes_InitializeBoundary(ie_Mat& f, std::vector<double>& normals){
