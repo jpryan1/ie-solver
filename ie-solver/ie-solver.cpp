@@ -12,7 +12,7 @@
 
 namespace ie_solver{
 
-LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
+LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::WARNING_;
 
 // TODO underscores on member variables
 
@@ -152,7 +152,6 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
  	ie_Mat phi(dim*dofs, 1);
  	clock.tic();
 	skelfac.Solve(K, quadtree, phi, f);
-	LOG::INFO("Solve returned");
 	clock.toc("Solve");
 	if(!timing){
 		result_f = ie_Mat(dim*dofs,1);
@@ -200,7 +199,6 @@ int main(int argc, char** argv){
 	// TODO allow for command line args for setting parameters
 
 	ie_solver::LOG::INFO("Testing logging");
-	
 
 	for(int i=1; i<5; i++){
 		ie_solver::boundary_integral_solve(num_discretization_points*i, id_tol, 

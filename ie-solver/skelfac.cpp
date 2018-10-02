@@ -211,8 +211,6 @@ void Skelfac::ApplyDiagInvMatrix(ie_Mat& K, ie_Mat& vec, std::vector<unsigned in
 
 
 void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
-
-	LOG::INFO("Beginning sparse matrix vector multiply...");
 	
 	b = ie_Mat(x.height(), 1);
 	x.copy( b);
@@ -344,8 +342,6 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 			current_node->T *= -1;
 	 	}
 	}	
-	LOG::INFO("End solve");
-
 }
 
 
