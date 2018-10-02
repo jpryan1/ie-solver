@@ -6,17 +6,16 @@ namespace ie_solver{
 // Takes double /tol/, tolerance factorfor error in CPQR factorization. 
 // Populates /p/ with permutation, Z with linear transformation.
 int ie_Mat::id( std::vector<unsigned int>& p, ie_Mat& Z, double tol){
-
 	ie_Mat cpy;
 	this->copy(cpy);
-
+	
 	lapack_int pvt[width_];
 	memset(pvt, 0, width_*sizeof(lapack_int));
 	
 	// /tau/ will contain an output from dgeqp3 that we don't need.
 	double tau[width_];
 	LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_, pvt, tau);
-
+	
 	unsigned int skel = 0;
 	double thresh = fabs(tol * cpy.get(0,0));
 	
@@ -48,13 +47,12 @@ int ie_Mat::id( std::vector<unsigned int>& p, ie_Mat& Z, double tol){
 	std::vector<unsigned int> J_;
 	for(unsigned int i = 0; i < skel; i++) I_.push_back(i);
 	for(unsigned int i = skel; i < skel + redund; i++) J_.push_back(i);
-	cpy(I_, J_).copy(Z);
-
+	Z = cpy(I_, J_);	
 	return skel;
 }
 
 
-void ie_Mat::left_multiply_inverse(ie_Mat& K, ie_Mat& U){
+void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat& U){
 	// X^-1K = U
 	//aka, XU = K
 
@@ -81,7 +79,7 @@ void ie_Mat::left_multiply_inverse(ie_Mat& K, ie_Mat& U){
 }
 
 
-void ie_Mat::right_multiply_inverse(ie_Mat& K, ie_Mat& L){
+void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat& L){
 	// KX^-1 = L
 	// aka X_T L^T = K^T
 	
@@ -150,7 +148,7 @@ void ie_Mat::resize(unsigned int h, unsigned int w){
 }
 
 
-void ie_Mat::copy(ie_Mat& copy){
+void ie_Mat::copy(ie_Mat& copy) const{
 
 	assert(height_>0 && width_>0 && mat != NULL);
 	//check if we need a resize
@@ -184,7 +182,7 @@ void ie_Mat::rand_vec(unsigned int dofs){
 }
 
 
-double ie_Mat::stokes_kernel(unsigned int i, unsigned int j){
+double ie_Mat::stokes_kernel(unsigned int i, unsigned int j) const{
 	// So this is much more awkwardly written than the function in stokes_init.cpp
 	// that just writes the entire matrix at once, but the cost of writing the whole
 	// matrix is just stupid. So we power through this function
@@ -260,7 +258,7 @@ double ie_Mat::stokes_kernel(unsigned int i, unsigned int j){
 	}
 }
 
-double ie_Mat::laplace_kernel(unsigned int i, unsigned int j){
+double ie_Mat::laplace_kernel(unsigned int i, unsigned int j) const{
 	
 	if(i==j){
 		return 0.5 + 0.5*(*curvatures)[i]*(*weights)[i]*scale;
@@ -278,7 +276,7 @@ double ie_Mat::laplace_kernel(unsigned int i, unsigned int j){
 }
 
 
-double ie_Mat::get(unsigned int i, unsigned int j){
+double ie_Mat::get(unsigned int i, unsigned int j) const{
 	if(is_dynamic){
 		if(is_stokes){
 			return stokes_kernel(i,j);
@@ -368,26 +366,22 @@ ie_Mat& ie_Mat::operator*=(const double o){
 }
 
 //TODO shouldn't this->I have the underscore after it, not this arg?
-ie_Mat& ie_Mat::operator()(std::vector<unsigned int> I_, 
+ie_Mat ie_Mat::operator()(std::vector<unsigned int> I_, 
 	std::vector<unsigned int> J_){
 
+	ie_Mat ret(I_.size(), J_.size());
+
 	int olda_ = I_.size();
-	double* omat = new double[I_.size()*J_.size()];
 	for(unsigned int i = 0; i < I_.size(); i++){
 		for(unsigned int j = 0; j < J_.size(); j++){
-			omat[i + olda_*j] = get(I_[i],J_[j]);
+			ret.mat[i + olda_*j] = get(I_[i],J_[j]);
 		}
 	}
-	ie_Mat* ret  = new ie_Mat();
-	ret->mat     = omat;
-	ret->height_ = I_.size();
-	ret->width_  = J_.size();
-	ret->lda_    = ret->height_;
-	return *ret;
+	return ret;
 }
 
 
-void ie_Mat::operator=(const ie_Mat& copy){
+ie_Mat& ie_Mat::operator=(const ie_Mat& copy){
 	assert(!is_dynamic);
 	
 	if(height_ != copy.height_ || width_ != copy.width_ || lda_ != copy.lda_){
@@ -398,6 +392,7 @@ void ie_Mat::operator=(const ie_Mat& copy){
 		mat = new double[height_*width_];
 	}
 	memcpy(mat, copy.mat, width_*height_*sizeof(double));
+	return *this;
 }
 
 // TODO fix this mess

@@ -42,16 +42,32 @@ struct QuadTreeNode{
 		br=NULL;
 		for(int i=0; i<4; i++) children[i] = NULL;
 	}
+	~QuadTreeNode(){
+		for(QuadTreeNode* child: children){
+			if(child){
+				delete child;
+			}
+		}
+	}
 };
 
 struct QuadTreeLevel{
 	std::vector<QuadTreeNode*> nodes;
-	
 };
 
 class QuadTree {
 
 public:
+	~QuadTree(){
+		if(root){
+			delete root;
+		}
+		for(QuadTreeLevel* level : levels){
+			if(level){
+				delete level;
+			}
+		}
+	}
 	QuadTreeNode* root;
 	std::vector<QuadTreeLevel*> levels;
 	std::vector<double> pts;

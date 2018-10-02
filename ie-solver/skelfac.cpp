@@ -169,9 +169,9 @@ void Skelfac::ApplySweepMatrix(ie_Mat& mat, ie_Mat& vec,
 	//This vector is just used for indexing an Vector	
 	std::vector<unsigned int> ZERO_VECTOR;
 	ZERO_VECTOR.push_back(0);
-
 	ie_Mat temp = vec(a, ZERO_VECTOR);
 	ie_Mat product(b.size(), 1);
+
 	if(transpose){
 		Matmul::ie_gemv(TRANSPOSE_, 1., mat, temp, 0., product);
 	}else{
@@ -211,15 +211,11 @@ void Skelfac::ApplyDiagInvMatrix(ie_Mat& K, ie_Mat& vec, std::vector<unsigned in
 
 
 void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
-
-	LOG::INFO("Beginning sparse matrix vector multiply...");
 	
 	b = ie_Mat(x.height(), 1);
 	x.copy( b);
 	int lvls = tree.levels.size();
-	LOG::INFO("Begin sweep up...");
 	for(int level = lvls-1; level>=0; level--){
-		LOG::INFO("Level " + std::to_string(level));
 		QuadTreeLevel* current_level = tree.levels[level];
 		for (QuadTreeNode* current_node : current_level->nodes) {
 		
@@ -231,19 +227,15 @@ void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 			ApplySweepMatrix(current_node->U, b, current_node->box.skelnear_range, current_node->box.redundant_range, false);	
 		}
 	}
-	LOG::INFO("End sweep up.");
 	
 	//This can go through the tree in any order, is parallelizable 
-	LOG::INFO("Begin block diagonal multiply...");
 	for(int level = lvls-1; level>=0; level--){
-		LOG::INFO("Level " + std::to_string(level));
 		QuadTreeLevel* current_level = tree.levels[level];
 		for (QuadTreeNode* current_node : current_level->nodes) {
 		
 			ApplyDiagMatrix(current_node->D_r, b, current_node->box.redundant_range);
 		}
 	}
-	LOG::INFO("End block diagonal multiply.");
 	
 	// This is just for initial testing - once the tree structure is working properly, this will be
 	// implemented in a smarter fashion
@@ -257,9 +249,7 @@ void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	allskel_mat*=-1;
 	allskel_mat += K(allskel, allskel);
 	ApplyDiagMatrix(allskel_mat, b, allskel);
-	LOG::INFO("Begin sweep down...");
 	for(int level = 0; level<lvls; level++){
-		LOG::INFO("Level " + std::to_string(level));
 		QuadTreeLevel* current_level = tree.levels[level];
 		// TODO record in notes and explore the following observation:
 		// changing the order of this for loop affects the accuracy of the 
@@ -275,33 +265,29 @@ void Skelfac::SparseMatVec(ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	 		ApplySweepMatrix(current_node->T, b, current_node->box.skel_range, current_node->box.redundant_range, true);
 	 	}
 	}
-	LOG::INFO("End sweep down.");
-	LOG::INFO("End sparse matrix vector multiply.");
 }
 
 
 void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 
 	int lvls = tree.levels.size();
-
 	x = ie_Mat(b.height(), 1);
-
 	b.copy(x);
-
+	
 	for (int level = lvls-1; level>=0; level--){//level>=0; level--){
 		QuadTreeLevel* current_level = tree.levels[level];
 		for (QuadTreeNode* current_node : current_level->nodes) {
 		//Next we need to apply L inverse
 		//L inverse changes the skelnear elements - it makes them equal to L times the redundant elements + the skelnear elements
-			current_node->L*=-1;
-			current_node->T*=-1;
-			
+			current_node->L *= -1;
+			current_node->T *= -1;
 		//Finally we need to apply U_T inverse
 		//U_T inverse changes the redundant elements - it makes them equal to T transpose times the skeleton elements + the redundant elements
 	 		ApplySweepMatrix(current_node->T, x, current_node->box.skel_range, current_node->box.redundant_range, true);
 	 		ApplySweepMatrix(current_node->L, x, current_node->box.redundant_range, current_node->box.skelnear_range,false);
-	 		current_node->L*=-1;
-			current_node->T*=-1;
+	 		
+	 		current_node->L *= -1;
+			current_node->T *= -1;
 		}
 	}
 	//This can go through the tree in any order, is parallelizable 
@@ -310,11 +296,7 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 		QuadTreeLevel* current_level = tree.levels[level];
 		for (QuadTreeNode* current_node : current_level->nodes) {
 			if(current_node->box.redundant_range.size()==0) continue;
-
-			ie_Mat red_mat = current_node->D_r;
-			//red_mat.inverse();
-	
-			ApplyDiagInvMatrix(red_mat, x, current_node->box.redundant_range);
+			ApplyDiagInvMatrix(current_node->D_r, x, current_node->box.redundant_range);
 		}
 	}
 
@@ -324,7 +306,6 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	// We need all of the skeleton indices. This is just the negation of [0,b.size()] and the redundant DoFs
 	// with that in mind...
 	std::vector<unsigned int> allskel = tree.root->box.box_range;
-	
 	ie_Mat allskel_mat(allskel.size(), allskel.size());
 	get_all_schur_updates(allskel_mat, allskel, tree.root);
 
@@ -343,14 +324,13 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 	// }
 	//allskel_mat.inverse();
 	ApplyDiagInvMatrix(allskel_mat, x, allskel);
-	
 	for(int level = 0; level < lvls; level++){
 		QuadTreeLevel* current_level = tree.levels[level];
 		for(int n = current_level->nodes.size() - 1; n >= 0; n--){
 			QuadTreeNode* current_node = current_level->nodes[n];
 		
-			current_node->U*=-1;
-			current_node->T*=-1;
+			current_node->U *= -1;
+			current_node->T *= -1;
 	//First we need to apply L_T inverse
 		// //L_T inverse changes the skel elements - it makes them equal to T times the redundant elements + the skeleton elements. 
 			// //Next we need to apply U inverse
@@ -358,10 +338,10 @@ void Skelfac::Solve( ie_Mat& K, QuadTree& tree, ie_Mat& x, ie_Mat& b){
 			ApplySweepMatrix(current_node->U, x, current_node->box.skelnear_range, current_node->box.redundant_range, false);	
 			ApplySweepMatrix(current_node->T, x, current_node->box.redundant_range, current_node->box.skel_range, false);
 		
-			current_node->U*=-1;
-			current_node->T*=-1;
+			current_node->U *= -1;
+			current_node->T *= -1;
 	 	}
-	}		
+	}	
 }
 
 

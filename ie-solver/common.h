@@ -153,21 +153,21 @@ struct ie_Mat{
 
 	void resize(unsigned int h, unsigned int w);
 
-	void copy(ie_Mat& copy);
+	void copy(ie_Mat& copy) const;
 
 	void rand_vec(unsigned  dofs);
 	
-	double stokes_kernel(unsigned int i, unsigned int j);
-	double laplace_kernel(unsigned int i, unsigned int j);
+	double stokes_kernel(unsigned int i, unsigned int j) const;
+	double laplace_kernel(unsigned int i, unsigned int j) const;
 
-	double get(unsigned int i, unsigned int j);
+	double get(unsigned int i, unsigned int j) const;
 	void set(unsigned int i, unsigned int j, double a);
 	void addset(unsigned int i, unsigned int j, double a);
 
 	void set_submatrix(std::vector<unsigned int> I_, std::vector<unsigned int> 
 		J_, ie_Mat& A);
 
-	void transpose(ie_Mat& A){
+	void transpose(ie_Mat& A) const {
 		if(height_ != A.width_ || width_ != A.height_){
 			if(A.mat) delete[] A.mat;
 			A.lda_    = width_;
@@ -192,23 +192,25 @@ struct ie_Mat{
 		return sqrt(sum);
 	}
 
-	unsigned int height(){
+	unsigned int height() const{
 		return height_;
 	}
-	unsigned int width(){
+	unsigned int width() const{
 		return width_;
 	}
 
 	ie_Mat& operator-=(const ie_Mat& o);
 	ie_Mat& operator+=(const ie_Mat& o);
 	ie_Mat& operator*=(const double o);
-	ie_Mat& operator()(std::vector<unsigned int> I_, 
+	ie_Mat operator()(std::vector<unsigned int> I_, 
 		std::vector<unsigned int> J_);
-	void operator=(const ie_Mat& copy);
+	ie_Mat& operator=(const ie_Mat& copy);
+
+
 
 	void inverse();
-	void left_multiply_inverse(ie_Mat& K, ie_Mat& U);
-	void right_multiply_inverse(ie_Mat& K, ie_Mat& L);
+	void left_multiply_inverse(const ie_Mat& K, ie_Mat& U);
+	void right_multiply_inverse(const ie_Mat& K, ie_Mat& L);
 	int id(std::vector<unsigned int>& p, ie_Mat& Z, double tol);
 
 	void print();
@@ -230,7 +232,7 @@ public:
 
 
 	}
-	static void ie_gemm(int trans0, int trans1, double alpha, ie_Mat& A, ie_Mat& B, double beta, ie_Mat& C){
+	static void ie_gemm(int trans0, int trans1, double alpha, const ie_Mat& A, const ie_Mat& B, double beta, ie_Mat& C){
 	//assumption is that b is the right size
 //	please fix this stupid if/else nonsense
 		if(trans0){
