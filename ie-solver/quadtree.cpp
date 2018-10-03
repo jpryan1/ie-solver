@@ -4,7 +4,8 @@ namespace ie_solver{
 
 int QuadTreeNode::id_count = 0;
 
-void QuadTree::initialize_tree(std::vector<double> points, bool is_stokes) {
+void QuadTree::initialize_tree(const std::vector<double>& points, 
+	bool is_stokes) {
 		
 	is_stokes_ = is_stokes;
 
@@ -45,14 +46,15 @@ void QuadTree::initialize_tree(std::vector<double> points, bool is_stokes) {
 
 	pts.resize(points.size());
 	memcpy(&(pts[0]), &(points[0]), sizeof(double)*points.size());
-	//all near and far ranges should be taken care of by this guy
+	// all near and far ranges should be taken care of by this guy
 	for(unsigned int i=0; i<points.size(); i+=2){
 		recursive_add(this->root, points[i], points[i+1], i/2);
 	}
 
-	//This is a naive method and should probably be made smarter
+	// This is a naive method and should probably be made smarter
 
-	//After the quadtree is made, we go through the points and check if they should be in the near field of EVERY node
+	// After the quadtree is made, we go through the points and check if they 
+	// should be in the near field of EVERY node
 
 
 	// for(int i=0; i<points.size(); i+=2){
@@ -105,8 +107,9 @@ void QuadTree::initialize_tree(std::vector<double> points, bool is_stokes) {
 				QuadTreeNode* node_b = current_level->nodes[l];
 
 				double dist =  sqrt(pow(node_a->corners[0]-node_b->corners[0],2) 
-								   +pow(node_a->corners[1]-node_b->corners[1],2));	
-				//just need to check if the distance of the BL corners is <=2sqrt(2)
+					+ pow(node_a->corners[1]-node_b->corners[1],2));	
+				// just need to check if the distance of the BL corners 
+				// is <=2sqrt(2)
 				if(  dist < node_a->side*sqrt(2)+1e-5){
 					node_a->neighbors.push_back(node_b);
 					node_b->neighbors.push_back(node_a);
@@ -130,32 +133,8 @@ void QuadTree::initialize_tree(std::vector<double> points, bool is_stokes) {
 }
 
 
-void QuadTree::add_index(std::vector<unsigned int>& r, unsigned int ind){
-
-	if(is_stokes_){
-		r.push_back(2*ind);
-		r.push_back(2*ind+1);
-	}else{
-		r.push_back(ind);
-	}
-}
-
-
-int QuadTree::which_field(double x, double y, QuadTreeNode* node){
-	double bl_x = node->corners[0];
-	double bl_y = node->corners[1];
-	double side = node->corners[3]-node->corners[1];
-	if(x>= bl_x && x < bl_x+side && y>= bl_y && y< bl_y+side){
-		return 0;//inside box
-	} 
-	if(x>= bl_x-side && x < bl_x+2*side && y>= bl_y-side && y< bl_y+2*side){
-		return 1;//near field
-	}
-	 return 2;//far field
-}
-
-
-void QuadTree::recursive_add(QuadTreeNode* node, double x, double y, unsigned int mat_ind){
+void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
+	unsigned int mat_ind){
 	
 	add_index(node->box.box_range, mat_ind);
 	
@@ -288,7 +267,8 @@ void QuadTree::node_subdivide(QuadTreeNode* node){
 		//theres a non-trivial difference between the stokes
 		// and laplace case here, so we split this up
 		if(is_stokes_){
-			if(ind%2==1) continue; //because in stokes case, two "dof"s correspond to one point
+			if(ind%2==1) continue;
+			 //because in stokes case, two "dof"s correspond to one point
 			double x = pts[ind];
 			double y = pts[ind+1];
 		
@@ -339,61 +319,87 @@ void QuadTree::node_subdivide(QuadTreeNode* node){
 	}
 }
 
-//TODO logging here
-void QuadTree::print(){
-	// std::cout<<"printing points first"<<std::endl;
-	// for(int i=0; i<pts.size(); i+=2){
 
-	// 	std::cout<<(i/2)<<": "<<pts[i]<<" "<<pts[i+1]<<std::endl;
-	// }
-	// std::cout<<"Done printing points"<<std::endl;
-	// rec_print(root);
+void QuadTree::add_index(std::vector<unsigned int>& r, unsigned int ind){
 
-
-	// printf("Now printing levels\n");
-	// for(int i=0; i<levels.size(); i++){
-	// 	QuadTreeLevel* current_level = levels[i];
-	// 	printf("\nLevel %d\n", i);
-	// 	for(int j=0; j<current_level->nodes.size(); j++){
-	// 		QuadTreeNode* current_node = current_level->nodes[j];
-	// 		for(int k=0; k<current_node->box.box_range.size(); k++){
-	// 			std::cout<<current_node->box.box_range[k]<<" ";
-	// 		}
-	// 	}
-	// }
+	if(is_stokes_){
+		r.push_back(2*ind);
+		r.push_back(2*ind+1);
+	}else{
+		r.push_back(ind);
+	}
 }
 
 
-//TODO logging here
-void QuadTree::rec_print(QuadTreeNode* n){
-
-	// //printf("Current node has box with %d dofs\n", n->box.box_range.size());
-	// printf("Corners are ");
-	// for(int i=0; i<8; i+=2){
-	// 	std::cout<<n->corners[i]<<" "<<n->corners[i+1]<<"   ";
-	// }std::cout<<std::endl;
-
-
-	// std::cout<<"Box"<<std::endl;
-	// for(unsigned int i=0; i<n->box.box_range.size(); i++){
-	// 	std::cout<<n->box.box_range[i]<<" ";
-	// }
-	// std::cout<<"\n"<<"Near"<<std::endl;
-	// for(unsigned int i=0; i<n->box.near_range.size(); i++){
-	// 	std::cout<<n->box.near_range[i]<<" ";
-	// }std::cout<<std::endl;
-	// if(n->bl){
-	// 	printf("Node has children!\n");
-	// 	printf("bl...\n");
-	// 	rec_print(n->bl);
-	// 	printf("tl...\n");
-	// 	rec_print(n->tl);
-	// 	printf("tr...\n");
-	// 	rec_print(n->tr);
-	// 	printf("br...\n");
-	// 	rec_print(n->br);
-	// }printf("Going up!\n");
-
+int QuadTree::which_field(double x, double y, QuadTreeNode* node){
+	double bl_x = node->corners[0];
+	double bl_y = node->corners[1];
+	double side = node->corners[3]-node->corners[1];
+	if(x>= bl_x && x < bl_x+side && y>= bl_y && y< bl_y+side){
+		return 0;//inside box
+	} 
+	if(x>= bl_x-side && x < bl_x+2*side && y>= bl_y-side && y< bl_y+2*side){
+		return 1;//near field
+	}
+	 return 2;//far field
 }
+
+
+// //TODO logging here
+// void QuadTree::print(){
+// 	// std::cout<<"printing points first"<<std::endl;
+// 	// for(int i=0; i<pts.size(); i+=2){
+
+// 	// 	std::cout<<(i/2)<<": "<<pts[i]<<" "<<pts[i+1]<<std::endl;
+// 	// }
+// 	// std::cout<<"Done printing points"<<std::endl;
+// 	// rec_print(root);
+
+
+// 	// printf("Now printing levels\n");
+// 	// for(int i=0; i<levels.size(); i++){
+// 	// 	QuadTreeLevel* current_level = levels[i];
+// 	// 	printf("\nLevel %d\n", i);
+// 	// 	for(int j=0; j<current_level->nodes.size(); j++){
+// 	// 		QuadTreeNode* current_node = current_level->nodes[j];
+// 	// 		for(int k=0; k<current_node->box.box_range.size(); k++){
+// 	// 			std::cout<<current_node->box.box_range[k]<<" ";
+// 	// 		}
+// 	// 	}
+// 	// }
+// }
+
+
+// //TODO logging here
+// void QuadTree::rec_print(QuadTreeNode* n){
+
+// 	// //printf("Current node has box with %d dofs\n", n->box.box_range.size());
+// 	// printf("Corners are ");
+// 	// for(int i=0; i<8; i+=2){
+// 	// 	std::cout<<n->corners[i]<<" "<<n->corners[i+1]<<"   ";
+// 	// }std::cout<<std::endl;
+
+
+// 	// std::cout<<"Box"<<std::endl;
+// 	// for(unsigned int i=0; i<n->box.box_range.size(); i++){
+// 	// 	std::cout<<n->box.box_range[i]<<" ";
+// 	// }
+// 	// std::cout<<"\n"<<"Near"<<std::endl;
+// 	// for(unsigned int i=0; i<n->box.near_range.size(); i++){
+// 	// 	std::cout<<n->box.near_range[i]<<" ";
+// 	// }std::cout<<std::endl;
+// 	// if(n->bl){
+// 	// 	printf("Node has children!\n");
+// 	// 	printf("bl...\n");
+// 	// 	rec_print(n->bl);
+// 	// 	printf("tl...\n");
+// 	// 	rec_print(n->tl);
+// 	// 	printf("tr...\n");
+// 	// 	rec_print(n->tr);
+// 	// 	printf("br...\n");
+// 	// 	rec_print(n->br);
+// 	// }printf("Going up!\n");
+
+// }
 
 } // namespace ie_solver
