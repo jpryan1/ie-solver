@@ -16,16 +16,8 @@ LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::WARNING_;
 
 // TODO underscores on member variables
 
-// TODO isn't this a common function? why not put it there?
-double vec_norm(ie_Mat& vec){
-	double sum=0;
-	for(unsigned int i=0; i<vec.height(); i++){
-		sum += pow(vec.get(i, 0),2);
-	}
-	return sqrt(sum);
-}
-
-void get_circle_stokes_solution(double min, double max, ie_Mat& domain, int (*out_of_shape)(Vec2& a)){
+void get_circle_stokes_solution(double min, double max, ie_Mat& domain, 
+	int (*out_of_shape)(Vec2& a)){
 	//min and max describe the box inside which our sample is taken. 
 
 	// double total_err = 0;
@@ -51,17 +43,14 @@ void get_circle_stokes_solution(double min, double max, ie_Mat& domain, int (*ou
 		// double r = sqrt(x0*x0+y0*y0);
 
 		domain.set(2*i  , 0, -4*y0/(1));
-		domain.set(2*i+1, 0,  4*x0/(1));
-		
-	}
-	
+		domain.set(2*i+1, 0,  4*x0/(1));	
+	}	
 }
 
 
 void boundary_integral_solve(int N, double id_tol, void (*make_shape) 
 	(int, std::vector<double>&, std::vector<double>&, std::vector<double>&, 
-		std::vector<double>&), int (*out_of_shape)(Vec2& a), bool is_stokes, 
-	int verbosity){
+		std::vector<double>&), int (*out_of_shape)(Vec2& a), bool is_stokes){
 
 	// TODO replace Clock with more specialized timing module, do printing of 
 	// stats at very end
@@ -82,7 +71,6 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 	quadtree.initialize_tree(points, is_stokes); 
 
 	Skelfac skelfac(id_tol, points, normals, weights, is_stokes);
-	skelfac.verbosity = verbosity;
 	// TODO why 1,1?
 	ie_Mat K(1,1);
 	K.is_stokes = is_stokes;
@@ -109,15 +97,18 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 			get_circle_stokes_solution(quadtree.min, quadtree.max, true_domain, 
 				out_of_shape);
 		}else{
-	 		init.DomainSolution(true_domain, TEST_SIZE, quadtree.min, quadtree.max, out_of_shape);
+	 		init.DomainSolution(true_domain, TEST_SIZE, quadtree.min, 
+	 			quadtree.max, out_of_shape);
 		}
 	}
 
 	ie_Mat f(dim*dofs, 1);
-	// TODO get rid of these damn if(is_stokes) statements, push them to the functions
+	// TODO get rid of these damn if(is_stokes) statements, push them to the 
+	// functions
  	if(is_stokes){
- 		init.Stokes_InitializeBoundary(f, normals); //notice here we are passing the normals 
- 		//since the flow will just be unit tangent to the boundary. 
+ 		init.Stokes_InitializeBoundary(f, normals); 
+ 		// notice here we are passing the normals since the flow will just be 
+ 		// unit tangent to the boundary. 
  	}else{
  		init.InitializeBoundary(f, points);
  	}
@@ -144,7 +135,7 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 	
 	if(!timing){
 		result_skel_r -= result_r;
-		double smver = vec_norm(result_skel_r)/vec_norm(result_r);
+		double smver = result_skel_r.norm2()/result_r.norm2();
 		printf("Sparse Mat Vec Error: %.10f \n", smver);
 	}
 
@@ -157,7 +148,7 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 		result_f = ie_Mat(dim*dofs,1);
 		Matmul::ie_gemv(NORMAL_, 1., K_copy, phi, 0., result_f);
 		result_f -= f;
-		double lser = vec_norm(result_f)/vec_norm(f);
+		double lser = result_f.norm2()/f.norm2();
 		printf("Solve Error: %.10f\n", lser);
 
 	//	STEP 5 - BIE SOLVE AND OUTPUT
@@ -180,7 +171,7 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 		}
 		// STEP 6 - CHECK AGAINST TRUE ANSWER TO PHYSICAL PROBLEM
 		 domain -= true_domain;
-		 double der = vec_norm(domain)/vec_norm(true_domain);
+		 double der = domain.norm2()/true_domain.norm2();
 		 printf("Error in Solution: %.10f\n", der);
 	}
 }
@@ -190,8 +181,6 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 
 int main(int argc, char** argv){
 	
-	// TODO incorporate logging struct instead of using verbosity variable.
-	int verbosity = 0;
 	// TODO this should obviously be a command line arg
 	bool is_stokes = false;
 	double id_tol = DEFAULT_ID_TOL;
@@ -202,7 +191,7 @@ int main(int argc, char** argv){
 
 	for(int i=1; i<5; i++){
 		ie_solver::boundary_integral_solve(num_discretization_points*i, id_tol, 
-			ie_solver::circle, ie_solver::out_of_circle, is_stokes, verbosity);
+			ie_solver::circle, ie_solver::out_of_circle, is_stokes);
 	}
 	return 0;
 }

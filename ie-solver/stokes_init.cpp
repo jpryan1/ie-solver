@@ -8,10 +8,10 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 										std::vector<double>& weights){
 
 	double avg = 0;
-	for(int i=0; i<weights.size(); i++) avg += weights[i];
+	for(unsigned int i=0; i<weights.size(); i++) avg += weights[i];
 	avg /= weights.size();
 	
-	int Q = floor(sqrt(K.height()));
+	// int Q = floor(sqrt(K.height()));
 	double alpha = avg/2.0;
 	double beta = alpha*alpha;
 	double singular_00= 8*beta + 2*beta*log(1/(2*beta)) - beta*M_PI;
@@ -70,11 +70,11 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 //DOUBLE LAYER POTENTIAL BELOW
 	double scale = 1.0 / (M_PI);
 
-	for(int i=0; i<points.size(); i+=2){
+	for(unsigned int i=0; i<points.size(); i+=2){
 	//	omp_set_num_threads(4);
 	//	#pragma omp parallel for 	
 	
-		for(int j=0; j<points.size(); j+=2){
+		for(unsigned int j=0; j<points.size(); j+=2){
 			
 			int ind_i = i/2;
 			
@@ -122,7 +122,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 	//columns for phi (aka dofs), rows for spatial domain
 	
 
-	int dofs = points.size()/2;
+	// int dofs = points.size()/2;
 	double scale = 1.0 / (M_PI);
 	omp_set_num_threads(4);
 
@@ -136,7 +136,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 		double x1 = i%test_size;
 		x1 = min + (x1*(max-min))/test_size;
 		Vec2 x(x0, x1);
-		for(int j=0; j<points.size(); j+=2){
+		for(unsigned int j=0; j<points.size(); j+=2){
 			int ind_j = j/2;
 			
 			Vec2 y(points[j], points[j+1]);
@@ -178,11 +178,11 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 
 void Initialization::Stokes_InitializeBoundary(ie_Mat& f, std::vector<double>& normals){
 	assert(f.height()==normals.size());
-	for(int i=0; i<f.height()/2; i+=2){
+	for(unsigned int i=0; i<f.height()/2; i+=2){
 		f.set(i,   0, 1);
 		f.set(i+1, 0, 0);
 	}
-	for(int i=f.height()/2; i<f.height(); i+=2){
+	for(unsigned int i=f.height()/2; i<f.height(); i+=2){
 		f.set(i,   0, 0);
 		f.set(i+1, 0, 0);
 	}

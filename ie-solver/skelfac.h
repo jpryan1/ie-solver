@@ -15,67 +15,62 @@ class Skelfac {
 
 	public:
 		Skelfac(){}
-		Skelfac(double id_tol, std::vector<double> points, 
-			std::vector<double> normals, std::vector<double> weights, bool is_stokes) {
-			this->id_tol = id_tol;
-			this->points = points;
-			this->normals = normals;
-			this->weights = weights;
-			is_stokes_ = is_stokes;
-		}
+		Skelfac(double id_tol, const std::vector<double> points, 
+			const std::vector<double> normals, 
+			const std::vector<double> weights, bool is_stokes);
 		~Skelfac(){}
 
 		// The actual work functions
-		void GetXMatrices(ie_Mat&, ie_Mat&, ie_Mat&, std::vector<unsigned int>&, 
-			std::vector<unsigned int>&, std::vector<unsigned int>&);
-		void SchurUpdate(ie_Mat&, ie_Mat&, ie_Mat&, ie_Mat&, 
+		void GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat&,
+		const std::vector<unsigned int>& r, const std::vector<unsigned int>& s,
+		const std::vector<unsigned int>& n);
+		void SchurUpdate(const ie_Mat& K, const ie_Mat& Z, ie_Mat& L, ie_Mat& U, 
 			QuadTreeNode* node);
-		int InterpolativeDecomposition(ie_Mat&, ie_Mat& Z, QuadTreeNode*);
+		int InterpolativeDecomposition(const ie_Mat& K, ie_Mat& Z, 
+			QuadTreeNode* node);
 		
-		void get_descendents_updates(ie_Mat&, std::vector<unsigned int>&, 
-			QuadTreeNode*);
-		void get_all_schur_updates(  ie_Mat&, std::vector<unsigned int>&, 
-			QuadTreeNode*);
-		void get_update( ie_Mat&, std::vector<unsigned int>&, QuadTreeNode*);
+		void get_all_schur_updates( ie_Mat& updates, 
+			const std::vector<unsigned int>& BN, const QuadTreeNode*);
+		void get_descendents_updates(ie_Mat& updates, 
+			const std::vector<unsigned int>& BN, const QuadTreeNode* node);
+		void get_update( ie_Mat& updates, const std::vector<unsigned int>& BN, 
+			const QuadTreeNode* node);
 			
-		void ApplySweepMatrix(ie_Mat&, ie_Mat&, std::vector<unsigned int>, 
-			std::vector<unsigned int>, bool);
-	    void ApplyDiagMatrix(ie_Mat& , ie_Mat&, std::vector<unsigned int>);
-		void ApplyDiagInvMatrix(ie_Mat& , ie_Mat&, std::vector<unsigned int>);
-		void SparseMatVec(ie_Mat&, QuadTree&, ie_Mat&, ie_Mat&);
-	   
-		void Solve(ie_Mat& F, QuadTree& tree, ie_Mat& x, ie_Mat& b);
-	    void Skeletonize(ie_Mat& F, QuadTree& tree);
-	    void Conjugate_Gradient(ie_Mat& F, QuadTree& tree, ie_Mat& phi, ie_Mat& f);
+		void ApplySweepMatrix(const ie_Mat& mat, ie_Mat& vec, 
+			const std::vector<unsigned int>& a, 
+			const std::vector<unsigned int>& b, bool transpose);
+	    void ApplyDiagMatrix(const ie_Mat& mat, ie_Mat& vec, 
+			const std::vector<unsigned int>& range);
+		void ApplyDiagInvMatrix(const ie_Mat& mat, ie_Mat& vec, 
+			const std::vector<unsigned int>& range);
+
+		void Skeletonize(const ie_Mat& K, QuadTree& tree);
+
+		void SparseMatVec(const ie_Mat& K, QuadTree& tree, const ie_Mat& x, 
+			ie_Mat& b);
+		void Solve(const ie_Mat& K, QuadTree& tree, ie_Mat& x, const ie_Mat& b);
+
+	    // void Conjugate_Gradient(ie_Mat& F, QuadTree& tree, ie_Mat& phi, 
+	    // 	ie_Mat& f);
 		void remove_inactive_dofs(QuadTreeNode*);
+		// TODO when generalizing, let someone pass these functions in initing
+		// skelfac
 		void make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r, 
-			std::vector<unsigned int>& range);
+			const std::vector<unsigned int>& range);
 		void make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, 
-			double r, std::vector<unsigned int>& range);
+			double r, const std::vector<unsigned int>& range);
+
+		void set_rs_ranges(Box& box, const std::vector<unsigned int>& prm, 
+			unsigned int sk, unsigned int rd);
+		void set_skelnear_range(Box& box);
 
 		Clock set_get;
-
-    	/**
-		 * The parameters to be used in computation
-		 */
 		double id_tol = 0.001;
-		
-		/**
-		 * How much should be outputted
-		 */
-		int verbosity = 0;
-
-		std::vector<double> points, normals, weights; //necessary for proxy creation
+		std::vector<double> points, normals, weights; 
+		//necessary for proxy creation
 
         std::mutex lock;
-	private:
-		void set_rs_ranges(Box&, std::vector<unsigned int>&, unsigned int, unsigned int);
-		void set_skelnear_range(Box& box);
 		bool is_stokes_;
-		/**
-		 * Quick and easy logging function based on verbosity
-		 */
-		double gemm_time = 0;
 };
 
 } // namespace ie_solver

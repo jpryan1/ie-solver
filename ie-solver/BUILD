@@ -17,9 +17,15 @@ cc_binary(
 cc_library(
 	name = "common",
 	hdrs = ["common.h"],
-	srcs = ["common.cpp"],
-
+	srcs = ["vec2.h", 
+			"log.h", 
+			"box.h", 
+			"clock.h",
+			"matmul.cpp",
+			"ie_mat.cpp", 
+		],
 )
+
 
 cc_library(
 	name = "initialization",

@@ -10,14 +10,10 @@
 namespace ie_solver{
 
 struct QuadTreeNode{
-
 	int id;
 	static int id_count;
 
-	QuadTreeNode* tl;
-	QuadTreeNode* tr;
-	QuadTreeNode* bl;
-	QuadTreeNode* br;
+	QuadTreeNode *tl, *tr, *bl, *br;
 	QuadTreeNode* children[4];
 
 	std::vector<QuadTreeNode*> neighbors, far_neighbors;
@@ -50,7 +46,7 @@ struct QuadTreeNode{
 		}
 	}
 };
-
+//TODO replace this with a typedef?
 struct QuadTreeLevel{
 	std::vector<QuadTreeNode*> nodes;
 };
@@ -74,16 +70,16 @@ public:
 
 	double min, max;
 
-	int which_field(double, double, QuadTreeNode* );
-
-	void initialize_tree(std::vector<double>, bool);
-	void recursive_add(QuadTreeNode*, double, double, unsigned int);
-	void node_subdivide(QuadTreeNode*);
+	void initialize_tree(const std::vector<double>& points, bool is_stokes);
+	void recursive_add(QuadTreeNode* node, double x, double y,
+		unsigned int mat_ind);
+	void node_subdivide(QuadTreeNode* node);
 	void add_index(std::vector<unsigned int>& r, unsigned int ind);
 
+	int which_field(double x, double y, QuadTreeNode* node);
 
-	void print();
-	void rec_print(QuadTreeNode*);
+	// void print();
+	// void rec_print(QuadTreeNode*);
 
 private:
 	bool is_stokes_;
