@@ -50,7 +50,7 @@ int out_of_circle(Vec2& a){
 
 	double dist = sqrt(pow(x,2)+pow(y,2));
 	 if(dist + eps> 0.25) return 1;
-	if(dist - eps < 0.1) return 1;
+	// if(dist - eps < 0.1) return 1;
 	 return 0;
 
 

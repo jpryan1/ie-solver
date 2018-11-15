@@ -400,7 +400,6 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat& L) const {
 int ie_Mat::id( std::vector<unsigned int>& p, ie_Mat& Z, double tol) const {
 	ie_Mat cpy;
 	this->copy(cpy);
-	
 	lapack_int pvt[width_];
 	memset(pvt, 0, width_*sizeof(lapack_int));
 	
@@ -444,13 +443,15 @@ int ie_Mat::id( std::vector<unsigned int>& p, ie_Mat& Z, double tol) const {
 }
 
 
-// TODO fix this mess
 void ie_Mat::print() const{
-	// for(int i=0; i<height_; i++){
-	// 	for(int j=0; j<width_; j++){
-	// 		sprintf("%.7f ",get(i,j));
-	// 	}sprintf("\n");
-	// }
+	std::string message = "\n";
+	for(unsigned int i=0; i<height_; i++){
+		for(unsigned int j=0; j<width_; j++){
+			message += std::to_string(1000*get(i,j)) + " ";
+		}
+		message += "\n";
+	}
+	LOG::INFO(message);
 }
 
 } // namespace ie_solver

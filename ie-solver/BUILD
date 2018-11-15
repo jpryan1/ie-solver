@@ -3,9 +3,10 @@ cc_binary(
 	srcs = ["ie-solver.cpp"],
 	deps = [":common",
 			":initialization",
-			":skelfac",
+			":ie_solver_tools",
 			":quadtree",
-			":circle"
+			":circle",
+			":rounded_square",
 			],
 	linkopts = ["-llapacke",
 				"-llapack",
@@ -19,7 +20,7 @@ cc_library(
 	hdrs = ["common.h"],
 	srcs = ["vec2.h", 
 			"log.h", 
-			"box.h", 
+			"interaction_lists.h", 
 			"clock.h",
 			"matmul.cpp",
 			"ie_mat.cpp", 
@@ -39,9 +40,9 @@ cc_library(
 
 
 cc_library(
-	name = "skelfac",
-	hdrs = ["skelfac.h"],
-	srcs = ["skelfac.cpp"],
+	name = "ie_solver_tools",
+	hdrs = ["ie_solver_tools.h"],
+	srcs = ["ie_solver_tools.cpp"],
 	deps = [":common",
 			":quadtree"]
 )
@@ -58,5 +59,12 @@ cc_library(
 	name = "circle",
 	hdrs = ["circle.h"],
 	srcs = ["circle.cpp"],
+	deps = [":common"]
+)
+
+cc_library(
+	name = "rounded_square",
+	hdrs = ["rounded_square.h"],
+	srcs = ["rounded_square.cpp"],
 	deps = [":common"]
 )

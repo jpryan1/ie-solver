@@ -2,12 +2,12 @@
 
 namespace ie_solver{
 
-int QuadTreeNode::id_count = 0;
+unsigned int QuadTreeNode::id_count = 0;
 
 void QuadTree::initialize_tree(const std::vector<double>& points, 
-	bool is_stokes) {
+	bool is_stokes_) {
 		
-	is_stokes_ = is_stokes;
+	is_stokes = is_stokes_;
 
 	min = points[0];
 	max = points[1];
@@ -36,7 +36,7 @@ void QuadTree::initialize_tree(const std::vector<double>& points,
 	root->corners[6] = max;
 	root->corners[7] = min;
 
-	root->side = max-min;
+	root->side_length = max-min;
 
 	QuadTreeLevel* level_one = new QuadTreeLevel();
 	level_one->nodes.push_back(root);
@@ -68,7 +68,7 @@ void QuadTree::initialize_tree(const std::vector<double>& points,
 				
 	// 			int field = which_field(x,y,current_node);
 	// 			if( field==1){
-	// 				add_index(current_node->box.near_range, i/2);
+	// 				add_index(current_node->interaction_lists.near, i/2);
 	// 			}
 	// 			else if(field==2){
 	// 				add_index(current_node->box.far_range, i/2);
@@ -83,13 +83,13 @@ void QuadTree::initialize_tree(const std::vector<double>& points,
 	// 	for(int k=0; k< current_level->nodes.size(); k++){
 
 	// 		QuadTreeNode* current_node = current_level->nodes[k];
-	// 		if(is_stokes_){
-	// 			assert(current_node->box.box_range.size()+
-	// 			current_node->box.near_range.size()+
+	// 		if(is_stokes){
+	// 			assert(current_node->interaction_lists.box.size()+
+	// 			current_node->interaction_lists.near.size()+
 	// 			current_node->box.far_range.size() == points.size());
 	// 		}else{
-	// 			assert(current_node->box.box_range.size()+
-	// 			current_node->box.near_range.size()+
+	// 			assert(current_node->interaction_lists.box.size()+
+	// 			current_node->interaction_lists.near.size()+
 	// 			current_node->box.far_range.size() == points.size()/2);
 	// 		}
 	// 	}
@@ -106,18 +106,18 @@ void QuadTree::initialize_tree(const std::vector<double>& points,
 			for(unsigned int l=k+1; l<current_level->nodes.size(); l++){
 				QuadTreeNode* node_b = current_level->nodes[l];
 
-				double dist =  sqrt(pow(node_a->corners[0]-node_b->corners[0],2) 
+				double dist = sqrt( pow(node_a->corners[0]-node_b->corners[0],2) 
 					+ pow(node_a->corners[1]-node_b->corners[1],2));	
 				// just need to check if the distance of the BL corners 
-				// is <=2sqrt(2)
-				if(  dist < node_a->side*sqrt(2)+1e-5){
+				// is <=s*sqrt(2)
+				if(  dist < node_a->side_length*sqrt(2)+1e-5){
 					node_a->neighbors.push_back(node_b);
 					node_b->neighbors.push_back(node_a);
 				}
-				else if(  dist < node_a->side*2*sqrt(2)+1e-5){
-					node_a->far_neighbors.push_back(node_b);
-					node_b->far_neighbors.push_back(node_a);
-				}
+				// else if(  dist < node_a->side_length*2*sqrt(2)+1e-5){
+				// 	node_a->far_neighbors.push_back(node_b);
+				// 	node_b->far_neighbors.push_back(node_a);
+				// }
 			}		
 		}
 	}
@@ -125,8 +125,10 @@ void QuadTree::initialize_tree(const std::vector<double>& points,
 		QuadTreeLevel* current_level = levels[j];
 		for( QuadTreeNode* node_a : current_level->nodes ){
 			for(QuadTreeNode* neighbor: node_a->neighbors){
-				neighbor->box.near_range.insert(neighbor->box.near_range.end(),
-					node_a->box.box_range.begin(), node_a->box.box_range.end());
+				neighbor->interaction_lists.near.insert(
+					neighbor->interaction_lists.near.end(), 
+					node_a->interaction_lists.box.begin(), 
+					node_a->interaction_lists.box.end());
 			}		
 		}
 	}
@@ -136,7 +138,7 @@ void QuadTree::initialize_tree(const std::vector<double>& points,
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
 	unsigned int mat_ind){
 	
-	add_index(node->box.box_range, mat_ind);
+	add_index(node->interaction_lists.box, mat_ind);
 	
 	//figure out which child
 	double midx = ((node->corners[6]-node->corners[0])/2.0 ) + node->corners[0];
@@ -163,7 +165,7 @@ void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
 
 		//do we need one? 
 		//If this node is exploding and needs children
-		if(node->is_leaf && node->box.box_range.size() > MAX_LEAF_DOFS){
+		if(node->is_leaf && node->interaction_lists.box.size() > MAX_LEAF_DOFS){
 			node_subdivide(node);
 		}
 	}
@@ -231,10 +233,10 @@ void QuadTree::node_subdivide(QuadTreeNode* node){
 	tl->level = node->level+1;
 	tr->level = node->level+1;
 
-	bl->side = node->side/2.0;
-	br->side = node->side/2.0;
-	tl->side = node->side/2.0;
-	tr->side = node->side/2.0;
+	bl->side_length = node->side_length/2.0;
+	br->side_length = node->side_length/2.0;
+	tl->side_length = node->side_length/2.0;
+	tr->side_length = node->side_length/2.0;
 
 
 
@@ -261,30 +263,30 @@ void QuadTree::node_subdivide(QuadTreeNode* node){
 	node->children[2] = tr;
 	node->children[3] = br;
 
-	for(unsigned int dof = 0; dof < node->box.box_range.size(); dof++){
+	for(unsigned int dof = 0; dof < node->interaction_lists.box.size(); dof++){
 
-		unsigned int ind = node->box.box_range[dof];
+		unsigned int ind = node->interaction_lists.box[dof];
 		//theres a non-trivial difference between the stokes
 		// and laplace case here, so we split this up
-		if(is_stokes_){
+		if(is_stokes){
 			if(ind%2==1) continue;
 			 //because in stokes case, two "dof"s correspond to one point
 			double x = pts[ind];
 			double y = pts[ind+1];
 		
 			if(x < midx && y< midy){
-				bl->box.box_range.push_back(ind);
-				bl->box.box_range.push_back(ind+1);
+				bl->interaction_lists.box.push_back(ind);
+				bl->interaction_lists.box.push_back(ind+1);
 			}
 			else if(x < midx && y>= midy){
-				tl->box.box_range.push_back(ind);
-				tl->box.box_range.push_back(ind+1);
+				tl->interaction_lists.box.push_back(ind);
+				tl->interaction_lists.box.push_back(ind+1);
 			}else if(x >= midx && y< midy){
-				br->box.box_range.push_back(ind);
-				br->box.box_range.push_back(ind+1);
+				br->interaction_lists.box.push_back(ind);
+				br->interaction_lists.box.push_back(ind+1);
 			}else{
-				tr->box.box_range.push_back(ind);
-				tr->box.box_range.push_back(ind+1);
+				tr->interaction_lists.box.push_back(ind);
+				tr->interaction_lists.box.push_back(ind+1);
 			}
 		}
 		else{
@@ -293,28 +295,28 @@ void QuadTree::node_subdivide(QuadTreeNode* node){
 	
 
 			if(x < midx && y< midy){
-				bl->box.box_range.push_back(ind);
+				bl->interaction_lists.box.push_back(ind);
 			}
 			else if(x < midx && y>= midy){
-				tl->box.box_range.push_back(ind);
+				tl->interaction_lists.box.push_back(ind);
 			}else if(x >= midx && y< midy){
-				br->box.box_range.push_back(ind);
+				br->interaction_lists.box.push_back(ind);
 			}else{
-				tr->box.box_range.push_back(ind);
+				tr->interaction_lists.box.push_back(ind);
 			}
 		}
 	}
 
-	if(bl->box.box_range.size() > MAX_LEAF_DOFS){
+	if(bl->interaction_lists.box.size() > MAX_LEAF_DOFS){
 		node_subdivide(bl);
 	}
-	if(tl->box.box_range.size() > MAX_LEAF_DOFS){
+	if(tl->interaction_lists.box.size() > MAX_LEAF_DOFS){
 		node_subdivide(tl);
 	}
-	if(tr->box.box_range.size() > MAX_LEAF_DOFS){
+	if(tr->interaction_lists.box.size() > MAX_LEAF_DOFS){
 		node_subdivide(tr);
 	}
-	if(br->box.box_range.size() > MAX_LEAF_DOFS){
+	if(br->interaction_lists.box.size() > MAX_LEAF_DOFS){
 		node_subdivide(br);
 	}
 }
@@ -322,7 +324,7 @@ void QuadTree::node_subdivide(QuadTreeNode* node){
 
 void QuadTree::add_index(std::vector<unsigned int>& r, unsigned int ind){
 
-	if(is_stokes_){
+	if(is_stokes){
 		r.push_back(2*ind);
 		r.push_back(2*ind+1);
 	}else{
@@ -334,11 +336,12 @@ void QuadTree::add_index(std::vector<unsigned int>& r, unsigned int ind){
 int QuadTree::which_field(double x, double y, QuadTreeNode* node){
 	double bl_x = node->corners[0];
 	double bl_y = node->corners[1];
-	double side = node->corners[3]-node->corners[1];
-	if(x>= bl_x && x < bl_x+side && y>= bl_y && y< bl_y+side){
+	double side_length = node->corners[3]-node->corners[1];
+	if(x>= bl_x && x < bl_x+side_length && y>= bl_y && y< bl_y+side_length){
 		return 0;//inside box
 	} 
-	if(x>= bl_x-side && x < bl_x+2*side && y>= bl_y-side && y< bl_y+2*side){
+	if(x>= bl_x-side_length && x < bl_x+2*side_length && y>= bl_y-side_length 
+		&& y< bl_y+2*side_length){
 		return 1;//near field
 	}
 	 return 2;//far field
@@ -362,8 +365,8 @@ int QuadTree::which_field(double x, double y, QuadTreeNode* node){
 // 	// 	printf("\nLevel %d\n", i);
 // 	// 	for(int j=0; j<current_level->nodes.size(); j++){
 // 	// 		QuadTreeNode* current_node = current_level->nodes[j];
-// 	// 		for(int k=0; k<current_node->box.box_range.size(); k++){
-// 	// 			std::cout<<current_node->box.box_range[k]<<" ";
+// 	// 		for(int k=0; k<current_node->interaction_lists.box.size(); k++){
+// 	// 			std::cout<<current_node->interaction_lists.box[k]<<" ";
 // 	// 		}
 // 	// 	}
 // 	// }
@@ -373,7 +376,8 @@ int QuadTree::which_field(double x, double y, QuadTreeNode* node){
 // //TODO logging here
 // void QuadTree::rec_print(QuadTreeNode* n){
 
-// 	// //printf("Current node has box with %d dofs\n", n->box.box_range.size());
+// 	// //printf("Current node has box with %d dofs\n", 
+//  // n->interaction_lists.box.size());
 // 	// printf("Corners are ");
 // 	// for(int i=0; i<8; i+=2){
 // 	// 	std::cout<<n->corners[i]<<" "<<n->corners[i+1]<<"   ";
@@ -381,12 +385,12 @@ int QuadTree::which_field(double x, double y, QuadTreeNode* node){
 
 
 // 	// std::cout<<"Box"<<std::endl;
-// 	// for(unsigned int i=0; i<n->box.box_range.size(); i++){
-// 	// 	std::cout<<n->box.box_range[i]<<" ";
+// 	// for(unsigned int i=0; i<n->interaction_lists.box.size(); i++){
+// 	// 	std::cout<<n->interaction_lists.box[i]<<" ";
 // 	// }
 // 	// std::cout<<"\n"<<"Near"<<std::endl;
-// 	// for(unsigned int i=0; i<n->box.near_range.size(); i++){
-// 	// 	std::cout<<n->box.near_range[i]<<" ";
+// 	// for(unsigned int i=0; i<n->interaction_lists.near.size(); i++){
+// 	// 	std::cout<<n->interaction_lists.near[i]<<" ";
 // 	// }std::cout<<std::endl;
 // 	// if(n->bl){
 // 	// 	printf("Node has children!\n");
