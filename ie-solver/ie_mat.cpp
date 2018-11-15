@@ -444,7 +444,7 @@ int ie_Mat::id( std::vector<unsigned int>& p, ie_Mat& Z, double tol) const {
 
 
 void ie_Mat::print() const{
-	std::string message = "\n";
+	std::string message = "\n(Printing matrix*1000)\n";
 	for(unsigned int i=0; i<height_; i++){
 		for(unsigned int j=0; j<width_; j++){
 			message += std::to_string(1000*get(i,j)) + " ";
