@@ -17,17 +17,17 @@ void IeSolverTools::GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat& Xrr,
 	const std::vector<unsigned int>& r, const std::vector<unsigned int>& s, 
 	const std::vector<unsigned int>& n) {
     
-	unsigned int rs = r.size();
-	unsigned int ss = s.size();
-	unsigned int ns = n.size();
-    ie_Mat  Xrs(rs, ss), Xsr(ss, rs),
-	Xrn(rs, ns), Xnr(ns, rs);
+	unsigned int r_size = r.size();
+	unsigned int s_size = s.size();
+	unsigned int n_size = n.size();
+    ie_Mat  Xrs(r_size, s_size), Xsr(s_size, r_size) Xrn(r_size, n_size), 
+    Xnr(n_size, r_size);
 	
 	//this is just for readability
 	Xrr = K(r,r);
 	Xrs = K(r,s);
 	Xsr = K(s,r);
-	if(ns > 0){
+	if(n_size > 0){
 		Xrn = K(r,n);
 		Xnr = K(n,r);
 	}
@@ -36,7 +36,7 @@ void IeSolverTools::GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat& Xrr,
 	Matmul::ie_gemm(TRANSPOSE, NORMAL, -1., Z, 	  K(s,s), 1., Xrs);
 	Matmul::ie_gemm(NORMAL, 	NORMAL, -1., Xrs, 	  Z, 	  1., Xrr);
 	Matmul::ie_gemm(NORMAL, 	NORMAL, -1., K(s,s), Z, 	  1., Xsr);
-	if(ns > 0){
+	if(n_size > 0){
 		Matmul::ie_gemm(TRANSPOSE, NORMAL, -1., Z, 	  K(s,n), 1., Xrn);
 		Matmul::ie_gemm(NORMAL, 	NORMAL, -1., K(n,s), Z, 	  1., Xnr);
 	}
@@ -45,7 +45,7 @@ void IeSolverTools::GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat& Xrr,
 	K.set_submatrix(r, s, Xrs);
 	//K.set_submatrix(r, r, Xrr);
 	K.set_submatrix(s, r, Xsr);
-	if(ns > 0){
+	if(n_size > 0){
 		K.set_submatrix(r, n, Xrn);
 		K.set_submatrix(n, r, Xnr);
 	}
