@@ -6,7 +6,9 @@
 namespace ie_solver{
 
 struct Vec2{
+
 	double a[2];
+	
 	Vec2(double* arr){
 		a[0] = arr[0];
 		a[1] = arr[1];

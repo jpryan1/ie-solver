@@ -6,6 +6,7 @@ namespace ie_solver{
 struct Clock{
 	double time;
 	double elapsed_;
+
 	void tic(){
 		time = omp_get_wtime();
 	}
@@ -15,7 +16,6 @@ struct Clock{
 	void elapsed(const char* s){
 		printf("%s: %f seconds elapsed\n", s, elapsed_);
 	}
-	// For main.cpp
 	void toc(const char* s){
 		printf("%s: %f seconds\n", s, (omp_get_wtime() - time));
 	}

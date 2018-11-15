@@ -1,7 +1,8 @@
 #include "rounded_square.h"
 
+namespace ie_solver{
 
-void rounded_square(std::vector<double>& points, std::vector<double>& normals, std::vector<double>& curvatures,
+void rounded_square(int N, std::vector<double>& points, std::vector<double>& normals, std::vector<double>& curvatures,
 	std::vector<double>& weights){
 	// This square will have side length 0.5 and will have BL corner 0.25, 0.25
 
@@ -10,12 +11,8 @@ void rounded_square(std::vector<double>& points, std::vector<double>& normals, s
 	// each side will have 128 discretization points, each corner will have 16 points
 
 	// radius of rounded corner is 0.05
-
-
-
-
-
-	int SCALE = 64;
+	// TODO obviously N should be the total num of points, not that/40
+	int SCALE = N;
 
 	int NUM_SIDE_POINTS = 4*SCALE;
 	int NUM_CORN_POINTS = SCALE;
@@ -165,6 +162,7 @@ void rounded_square(std::vector<double>& points, std::vector<double>& normals, s
 			weights.push_back(corner_AL);
 		}
 	}
+	LOG::WARNING("Num rounded_square points "+std::to_string(points.size()));
 
 }
 
@@ -199,3 +197,5 @@ int out_of_rounded_square(Vec2& a){
 	return 0;
 
 }
+
+} // namespace

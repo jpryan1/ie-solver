@@ -10,21 +10,19 @@
 namespace ie_solver{
 
 struct QuadTreeNode{
-	int id;
-	static int id_count;
+	
+	static unsigned int id_count;
 
+	unsigned int id, level;	
+	bool is_leaf, schur_updated = false;
+	double side_length;
+	
 	QuadTreeNode *tl, *tr, *bl, *br;
 	QuadTreeNode* children[4];
+	std::vector<QuadTreeNode*> neighbors;
 
-	std::vector<QuadTreeNode*> neighbors, far_neighbors;
-
+	InteractionLists interaction_lists;
 	ie_Mat T, L, U, D_r, schur_update;
-	Box box;
-	
-	double side;
-	unsigned int level;
-	bool is_leaf;
-	bool schur_updated = false;
 	
 	//format is {BL, TL, TR, BR}
 	double corners[8];
@@ -46,7 +44,7 @@ struct QuadTreeNode{
 		}
 	}
 };
-//TODO replace this with a typedef?
+
 struct QuadTreeLevel{
 	std::vector<QuadTreeNode*> nodes;
 };
@@ -54,6 +52,13 @@ struct QuadTreeLevel{
 class QuadTree {
 
 public:
+
+	bool is_stokes;
+	double min, max;
+	std::vector<double> pts;
+	QuadTreeNode* root;
+	std::vector<QuadTreeLevel*> levels;
+
 	~QuadTree(){
 		if(root){
 			delete root;
@@ -64,12 +69,7 @@ public:
 			}
 		}
 	}
-	QuadTreeNode* root;
-	std::vector<QuadTreeLevel*> levels;
-	std::vector<double> pts;
-
-	double min, max;
-
+	
 	void initialize_tree(const std::vector<double>& points, bool is_stokes);
 	void recursive_add(QuadTreeNode* node, double x, double y,
 		unsigned int mat_ind);
@@ -81,8 +81,6 @@ public:
 	// void print();
 	// void rec_print(QuadTreeNode*);
 
-private:
-	bool is_stokes_;
 };
 
 } // namespace ie_solver

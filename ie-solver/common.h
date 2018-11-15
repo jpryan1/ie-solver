@@ -17,10 +17,10 @@
 #include "vec2.h"
 #include "log.h"
 #include "clock.h"
-#include "box.h"
+#include "interaction_lists.h"
 
-#define NORMAL_ 0
-#define TRANSPOSE_ 1
+#define NORMAL CblasNoTrans
+#define TRANSPOSE CblasTrans
 
 namespace ie_solver{
 
@@ -28,14 +28,10 @@ namespace ie_solver{
 struct ie_Mat{
 
 	// storage is column major, so by default lda is the height.
-	// TODO get rid of ugly std::vectors?
 	double *mat;
 	unsigned int lda_, height_, width_;
 	bool is_stokes, is_dynamic;
-	const std::vector<double>* points;
-	const std::vector<double>* normals;
-	const std::vector<double>* curvatures;
-	const std::vector<double>* weights;
+	const std::vector<double> *points, *normals, *curvatures, *weights;
 
 	double diag_00, diag_11, diag_01;
 	double scale = 1.0/(2.0*M_PI);
@@ -85,10 +81,10 @@ struct ie_Mat{
 
 
 struct Matmul{
-	static void ie_gemv(int trans0, double alpha, const ie_Mat& A, 
+	static void ie_gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A, 
 		const ie_Mat& x, double beta, ie_Mat& b);
-	static void ie_gemm(int trans0, int trans1, double alpha, const ie_Mat& A, 
-		const ie_Mat& B, double beta, ie_Mat& C);
+	static void ie_gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1, 
+		double alpha, const ie_Mat& A, const ie_Mat& B, double beta, ie_Mat& C);
 };
 
 } // namespace ie_solver

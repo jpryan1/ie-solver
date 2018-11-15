@@ -2,17 +2,18 @@
 
 #include "common.h"
 #include "initialization.h"
-#include "skelfac.h"
+#include "ie_solver_tools.h"
 #include "quadtree.h"
 #include "circle.h"
+#include "rounded_square.h"
 
-#define DEFAULT_NUM_DISCRETIZATION_POINTS 128
+#define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
 #define DEFAULT_ID_TOL 1e-10
 #define TEST_SIZE 50
 
 namespace ie_solver{
 
-LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::WARNING_;
+LOG::LOG_LEVEL LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
 
 // TODO underscores on member variables
 
@@ -58,21 +59,26 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 	bool timing = false;
 
 	// TODO insert comment here explaining why this is necessary
-	if(!timing && N>10000){
+	if(!timing && N > 10000){
 		printf("Turn down N or disable accuracy checking please\n");
 		return;
 	}
 
+	clock.tic();
 	std::vector<double> points, normals, curvatures, weights;
 	make_shape(N, points, normals, curvatures, weights);
 	int dofs = points.size() / 2;
+	clock.toc("Made shape");
 
+	clock.tic();
 	QuadTree quadtree;
 	quadtree.initialize_tree(points, is_stokes); 
+	clock.toc("Initialized tree");
 
-	Skelfac skelfac(id_tol, points, normals, weights, is_stokes);
-	// TODO why 1,1?
-	ie_Mat K(1,1);
+	// Consider making init instead of constructor for readability
+	IeSolverTools ie_solver_tools(id_tol, points, normals, weights, is_stokes);
+
+	ie_Mat K;
 	K.is_stokes = is_stokes;
 	K.is_dynamic = true;
 	K.load(&points, &normals, &curvatures, &weights);
@@ -80,7 +86,7 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 	ie_Mat K_copy, K_domain, true_domain;
 	Initialization init;
 		
-
+	clock.tic();
 	// Dimension of the solution:
 	int dim = is_stokes ? 2 : 1;
 	if(!timing){
@@ -101,10 +107,11 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 	 			quadtree.max, out_of_shape);
 		}
 	}
-
+	clock.toc("Initialized kernel, domain kernel, solution");
 	ie_Mat f(dim*dofs, 1);
 	// TODO get rid of these damn if(is_stokes) statements, push them to the 
 	// functions
+	clock.tic();
  	if(is_stokes){
  		init.Stokes_InitializeBoundary(f, normals); 
  		// notice here we are passing the normals since the flow will just be 
@@ -112,6 +119,9 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
  	}else{
  		init.InitializeBoundary(f, points);
  	}
+ 	clock.toc("Initialized boundary");
+
+
  	ie_Mat rand_vec(dim*dofs,1);
 	rand_vec.rand_vec(dim*dofs);
 
@@ -119,19 +129,19 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 	//	STEP 1 - DENSE MATVEC (if not timing)
 	if(!timing){
 		result_r = ie_Mat(dim*dofs,1);
-		Matmul::ie_gemv(NORMAL_, 1., K_copy, rand_vec, 0.0, result_r);
+		Matmul::ie_gemv(NORMAL, 1., K_copy, rand_vec, 0.0, result_r);
 	}
 
 	//	STEP 2 - SKELETONIZE TIMING
 	clock.tic();
-	skelfac.Skeletonize(K, quadtree);
+	ie_solver_tools.Skeletonize(K, quadtree);
 	clock.toc("Factor");
 
 	//	STEP 3 - SPARSE MATVEC TIMING AND ERROR CHECK
- 	clock.tic();
+ 	//clock.tic();
  	ie_Mat result_skel_r(rand_vec.height(), 1);
-	skelfac.SparseMatVec(K, quadtree, rand_vec, result_skel_r);
-	clock.toc("Sparse Mat Vec");
+	ie_solver_tools.SparseMatVec(K, quadtree, rand_vec, result_skel_r);
+	//clock.toc("Sparse Mat Vec");
 	
 	if(!timing){
 		result_skel_r -= result_r;
@@ -142,18 +152,18 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 	//	STEP 4 - LINEAR SOLVE AND ERROR CHECK
  	ie_Mat phi(dim*dofs, 1);
  	clock.tic();
-	skelfac.Solve(K, quadtree, phi, f);
+	ie_solver_tools.Solve(K, quadtree, phi, f);
 	clock.toc("Solve");
 	if(!timing){
 		result_f = ie_Mat(dim*dofs,1);
-		Matmul::ie_gemv(NORMAL_, 1., K_copy, phi, 0., result_f);
+		Matmul::ie_gemv(NORMAL, 1., K_copy, phi, 0., result_f);
 		result_f -= f;
 		double lser = result_f.norm2()/f.norm2();
 		printf("Solve Error: %.10f\n", lser);
 
 	//	STEP 5 - BIE SOLVE AND OUTPUT
 		ie_Mat domain(dim*TEST_SIZE*TEST_SIZE, 1);
-		Matmul::ie_gemv(NORMAL_, 1., K_domain, phi, 0., domain);
+		Matmul::ie_gemv(NORMAL, 1., K_domain, phi, 0., domain);
 
 		std::ofstream output;
 		// TODO this filename should depend on what pde we're solving
@@ -172,7 +182,9 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 		// STEP 6 - CHECK AGAINST TRUE ANSWER TO PHYSICAL PROBLEM
 		 domain -= true_domain;
 		 double der = domain.norm2()/true_domain.norm2();
-		 printf("Error in Solution: %.10f\n", der);
+		 // TODO error and timing stats should be outputted to files, plotting 
+		 // utilities made
+		 // printf("Error in Solution: %.10f\n", der);
 	}
 }
 
@@ -182,17 +194,17 @@ void boundary_integral_solve(int N, double id_tol, void (*make_shape)
 int main(int argc, char** argv){
 	
 	// TODO this should obviously be a command line arg
-	bool is_stokes = false;
+	bool is_stokes = true;
 	double id_tol = DEFAULT_ID_TOL;
 	int num_discretization_points = DEFAULT_NUM_DISCRETIZATION_POINTS;
 	// TODO allow for command line args for setting parameters
 
-	ie_solver::LOG::INFO("Testing logging");
+	ie_solver::LOG::INFO("num_discretization_points: " 
+		+ std::to_string(num_discretization_points));
 
-	for(int i=1; i<5; i++){
-		ie_solver::boundary_integral_solve(num_discretization_points*i, id_tol, 
-			ie_solver::circle, ie_solver::out_of_circle, is_stokes);
-	}
+	ie_solver::boundary_integral_solve(num_discretization_points, id_tol, 
+		ie_solver::circle, ie_solver::out_of_circle, is_stokes);
+	
 	return 0;
 }
 
