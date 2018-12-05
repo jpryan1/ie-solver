@@ -1,4 +1,5 @@
 #include "quadtree.h"
+#include <fstream>
 
 namespace ie_solver{
 
@@ -6,39 +7,42 @@ unsigned int QuadTreeNode::id_count = 0;
 
 void QuadTree::initialize_tree(const std::vector<double>& points, 
 	bool is_stokes_) {
-		
+	
+	assert(points.size() > 0 && "Number of points to init tree cannot be 0.");
+	// TODO later we can assert that the points are a multiple of dimension
+
 	is_stokes = is_stokes_;
 
 	min = points[0];
-	max = points[1];
+	max = points[0];
 	for( double point : points ){
 		if(point < min) min = point;
 		if(point > max) max = point;
 	}
-
 	//this is a tad silly
-	min -= (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
-	max += (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+	double tree_min = min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+	double tree_max = max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
 
 	root = new QuadTreeNode();
 	root->level = 0;
 	//Root is the box [0,1]x[0,1]
 	//BL
-	root->corners[0] = min;
-	root->corners[1] = min;
+	root->corners[0] = tree_min;
+	root->corners[1] = tree_min;
 	//TL
-	root->corners[2] = min;
-	root->corners[3] = max;
+	root->corners[2] = tree_min;
+	root->corners[3] = tree_max;
 	//TR
-	root->corners[4] = max;
-	root->corners[5] = max;
+	root->corners[4] = tree_max;
+	root->corners[5] = tree_max;
 	//BR
-	root->corners[6] = max;
-	root->corners[7] = min;
+	root->corners[6] = tree_max;
+	root->corners[7] = tree_min;
 
-	root->side_length = max-min;
+	root->side_length = tree_max-tree_min;
 
 	QuadTreeLevel* level_one = new QuadTreeLevel();
+
 	level_one->nodes.push_back(root);
 	levels.push_back(level_one);
 
@@ -138,6 +142,8 @@ void QuadTree::initialize_tree(const std::vector<double>& points,
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
 	unsigned int mat_ind){
 	
+	assert(node != nullptr && "recursive_add fails on null node.");
+
 	add_index(node->interaction_lists.box, mat_ind);
 	
 	//figure out which child
@@ -176,6 +182,7 @@ void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
 // 3) gives these children their corners
 void QuadTree::node_subdivide(QuadTreeNode* node){
 
+	assert(node != nullptr && "node_subdivide fails on null node.");
 	node->is_leaf = false;
 			
 	QuadTreeNode *bl, *br, *tl, *tr;
@@ -334,6 +341,8 @@ void QuadTree::add_index(std::vector<unsigned int>& r, unsigned int ind){
 
 
 int QuadTree::which_field(double x, double y, QuadTreeNode* node){
+	assert( node != nullptr && "which_field fails on null node.");
+
 	double bl_x = node->corners[0];
 	double bl_y = node->corners[1];
 	double side_length = node->corners[3]-node->corners[1];
@@ -348,62 +357,37 @@ int QuadTree::which_field(double x, double y, QuadTreeNode* node){
 }
 
 
-// //TODO logging here
-// void QuadTree::print(){
-// 	// std::cout<<"printing points first"<<std::endl;
-// 	// for(int i=0; i<pts.size(); i+=2){
+void QuadTree::write_quadtree_to_file(){
 
-// 	// 	std::cout<<(i/2)<<": "<<pts[i]<<" "<<pts[i+1]<<std::endl;
-// 	// }
-// 	// std::cout<<"Done printing points"<<std::endl;
-// 	// rec_print(root);
+	std::ofstream output;
+	output.open("output/data/ie_solver_tree.txt");
+	if(output.is_open()){
+		for(QuadTreeLevel* level : levels){
+			for(QuadTreeNode* node : level->nodes){
+				if(node->is_leaf){
+					output << node->corners[0] << "," << node->corners[1] 
+						<< "," << node->side_length << std::endl;
+				}
+			}
+		}
+		output.close();
+	}else{
+		LOG::ERROR("Failed to open output file!");
+	}
+}
 
+void QuadTree::reset(){
+	if(root){
+		delete root;
+	}
+	for(QuadTreeLevel* level : levels){
+		if(level){
+			delete level;
+		}
+	}
+	levels.clear();
+	initialize_tree(pts, is_stokes);	
+}
 
-// 	// printf("Now printing levels\n");
-// 	// for(int i=0; i<levels.size(); i++){
-// 	// 	QuadTreeLevel* current_level = levels[i];
-// 	// 	printf("\nLevel %d\n", i);
-// 	// 	for(int j=0; j<current_level->nodes.size(); j++){
-// 	// 		QuadTreeNode* current_node = current_level->nodes[j];
-// 	// 		for(int k=0; k<current_node->interaction_lists.box.size(); k++){
-// 	// 			std::cout<<current_node->interaction_lists.box[k]<<" ";
-// 	// 		}
-// 	// 	}
-// 	// }
-// }
-
-
-// //TODO logging here
-// void QuadTree::rec_print(QuadTreeNode* n){
-
-// 	// //printf("Current node has box with %d dofs\n", 
-//  // n->interaction_lists.box.size());
-// 	// printf("Corners are ");
-// 	// for(int i=0; i<8; i+=2){
-// 	// 	std::cout<<n->corners[i]<<" "<<n->corners[i+1]<<"   ";
-// 	// }std::cout<<std::endl;
-
-
-// 	// std::cout<<"Box"<<std::endl;
-// 	// for(unsigned int i=0; i<n->interaction_lists.box.size(); i++){
-// 	// 	std::cout<<n->interaction_lists.box[i]<<" ";
-// 	// }
-// 	// std::cout<<"\n"<<"Near"<<std::endl;
-// 	// for(unsigned int i=0; i<n->interaction_lists.near.size(); i++){
-// 	// 	std::cout<<n->interaction_lists.near[i]<<" ";
-// 	// }std::cout<<std::endl;
-// 	// if(n->bl){
-// 	// 	printf("Node has children!\n");
-// 	// 	printf("bl...\n");
-// 	// 	rec_print(n->bl);
-// 	// 	printf("tl...\n");
-// 	// 	rec_print(n->tl);
-// 	// 	printf("tr...\n");
-// 	// 	rec_print(n->tr);
-// 	// 	printf("br...\n");
-// 	// 	rec_print(n->br);
-// 	// }printf("Going up!\n");
-
-// }
 
 } // namespace ie_solver

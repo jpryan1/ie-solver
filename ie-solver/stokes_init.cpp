@@ -4,9 +4,17 @@ namespace ie_solver{
 //TODO - subclasses for different PDES
 
 void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& points,
-										std::vector<double>& normals, std::vector<double>& curvatures,
+										std::vector<double>& normals, 
+										std::vector<double>& curvatures,
 										std::vector<double>& weights){
 
+
+	assert(points.size() == normals.size() && 
+		"Points and normals must have same size in Stokes init.");
+	assert(curvatures.size() == weights.size() && 
+		"Curvatures and weights must have same size in Stokes init.");
+	assert(points.size() == 2*weights.size() &&
+		"In dimension two, points must be 2*size of weights in stokes init.");
 	double avg = 0;
 	for(unsigned int i=0; i<weights.size(); i++) avg += weights[i];
 	avg /= weights.size();
@@ -117,11 +125,16 @@ void Initialization::Stokes_InitializeKernel(ie_Mat& K, std::vector<double>& poi
 
 void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double>& points,
 										std::vector<double>& normals, 
-										std::vector<double>& weights, double min, double max, int test_size,
+										std::vector<double>& weights, 
+										std::vector<double>& domain_points, int test_size,
 										int (*out_of_domain)(Vec2& a)){
 	//columns for phi (aka dofs), rows for spatial domain
 	
-
+	assert(points.size() == normals.size() && 
+		"Points and normals must have same size in Stokes domain init.");
+	assert(points.size() == 2*weights.size() &&
+		"In dimension 2, pts must be 2*size of weights in stokes domain init.");
+	
 	// int dofs = points.size()/2;
 	double scale = 1.0 / (M_PI);
 	omp_set_num_threads(4);
@@ -131,11 +144,8 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 	//#pragma omp parallel for 
 
 	for(int i=0; i<test_size*test_size; i++){
-		double x0 = i/test_size;
-		x0 = min + (x0*(max-min))/test_size;
-		double x1 = i%test_size;
-		x1 = min + (x1*(max-min))/test_size;
-		Vec2 x(x0, x1);
+		Vec2 x(domain_points[2*i], domain_points[2*i+1]);
+		
 		for(unsigned int j=0; j<points.size(); j+=2){
 			int ind_j = j/2;
 			
@@ -176,7 +186,8 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 }
 
 
-void Initialization::Stokes_InitializeBoundary(ie_Mat& f, std::vector<double>& normals){
+void Initialization::Stokes_InitializeBoundary(ie_Mat& f, 
+	std::vector<double>& normals){
 	assert(f.height()==normals.size());
 	for(unsigned int i=0; i<f.height()/2; i+=2){
 		f.set(i,   0, 1);

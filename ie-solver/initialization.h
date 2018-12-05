@@ -14,7 +14,7 @@ struct Initialization{
 	void InitializeKernel(ie_Mat& K, std::vector<double>&, std::vector<double>&, std::vector<double>&,
 		std::vector<double>&, bool);
 	void InitializeDomainKernel(ie_Mat& K, std::vector<double>&, std::vector<double>&,
-		std::vector<double>&, double, double, int, int (*out_of_domain)(Vec2& a), bool);
+		std::vector<double>&, std::vector<double>&, int, int (*out_of_domain)(Vec2& a), bool);
 
 	void InitializeBoundary(ie_Mat& f, std::vector<double>& points);
 	void DomainSolution(ie_Mat& K, int, double, double, int (*out_of_domain)(Vec2& a));
@@ -22,7 +22,7 @@ struct Initialization{
 	void Stokes_InitializeKernel(ie_Mat& K, std::vector<double>&, std::vector<double>&, std::vector<double>&,
 		std::vector<double>&);
 	void Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double>&, std::vector<double>&,
-		std::vector<double>&, double, double, int, int (*out_of_domain)(Vec2& a));
+		std::vector<double>&, std::vector<double>&, int, int (*out_of_domain)(Vec2& a));
 
 	void Stokes_InitializeBoundary(ie_Mat& f, std::vector<double>& points);
 	

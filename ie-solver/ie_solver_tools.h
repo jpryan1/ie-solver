@@ -67,9 +67,9 @@ class IeSolverTools {
 		// TODO when generalizing, let someone pass these functions in initing
 		// IeSolverTools
 		void make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r, 
-			const std::vector<unsigned int>& range);
+			const std::vector<unsigned int>& box_indices);
 		void make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, 
-			double r, const std::vector<unsigned int>& range);
+			double r, const std::vector<unsigned int>& box_indices);
 
 		void set_rs_ranges(InteractionLists& interaction_lists, const std::vector<unsigned int>& prm, 
 			unsigned int sk, unsigned int rd);

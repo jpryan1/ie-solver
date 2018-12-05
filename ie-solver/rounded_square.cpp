@@ -2,7 +2,8 @@
 
 namespace ie_solver{
 
-void rounded_square(int N, std::vector<double>& points, std::vector<double>& normals, std::vector<double>& curvatures,
+void rounded_square(int N, std::vector<double>& points, 
+	std::vector<double>& normals, std::vector<double>& curvatures,
 	std::vector<double>& weights){
 	// This square will have side length 0.5 and will have BL corner 0.25, 0.25
 
@@ -21,7 +22,6 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 	double corner_AL = 0.05*M_PI/(2*NUM_CORN_POINTS-2);
 	// bottom side
 
-	
 	for(int i=1; i<NUM_SIDE_POINTS+1; i++){
 		points.push_back(0.1+(i/(NUM_SIDE_POINTS+1.0))*0.8);
 		points.push_back(0.05);
@@ -43,7 +43,6 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 
 		curvatures.push_back(0);
 
-
 		weights.push_back(side_AL);
 	}
 	// top side
@@ -54,9 +53,7 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 		normals.push_back(0);
 		normals.push_back(1);
 
-
 		curvatures.push_back(0);
-
 
 		weights.push_back(side_AL);
 	}
@@ -68,14 +65,10 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 		normals.push_back(-1);
 		normals.push_back(0);
 
-
 		curvatures.push_back(0);
-
 
 		weights.push_back(side_AL);
 	}
-
-
 
 	//bottom left corner
 	for(int i=0; i<NUM_CORN_POINTS; i++){
@@ -89,8 +82,6 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 		normals.push_back(sin(ang));
 
 		curvatures.push_back(1/(0.05));
-
-
 
 		if(i==0 || i==(NUM_CORN_POINTS)-1){
 			weights.push_back(0.5*(side_AL+corner_AL));
@@ -107,14 +98,12 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 		double ang = (3.0*M_PI/2.0)+t;
 		points.push_back(0.9+0.05*cos(ang));
 		points.push_back(0.1+0.05*sin(ang));
-	
 
 		normals.push_back(cos(ang));
 		normals.push_back(sin(ang));
 
 		curvatures.push_back(1/(0.05));
 	
-
 		if(i==0 || i==(NUM_CORN_POINTS)-1){
 			weights.push_back(0.5*(side_AL+corner_AL));
 		}else{
@@ -133,7 +122,6 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 		normals.push_back(sin(ang));
 
 		curvatures.push_back(1/(0.05));
-
 
 		if(i==0 || i==(NUM_CORN_POINTS)-1){
 
@@ -155,7 +143,6 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 
 		curvatures.push_back(1/(0.05));
 
-
 		if(i==0 || i==(NUM_CORN_POINTS)-1){
 			weights.push_back(0.5*(side_AL+corner_AL));
 		}else{
@@ -163,18 +150,13 @@ void rounded_square(int N, std::vector<double>& points, std::vector<double>& nor
 		}
 	}
 	LOG::WARNING("Num rounded_square points "+std::to_string(points.size()));
-
 }
-
-
-
 
 
 int out_of_rounded_square(Vec2& a){
 	double* v = a.a;
 
-
-	double eps = 1e-1;
+	double eps = 1e-2;
 
 	if(fabs(v[0] - 0.5)>0.45 - eps || fabs(v[1] - 0.5)>0.45 - eps){
 		return 1;
@@ -195,7 +177,6 @@ int out_of_rounded_square(Vec2& a){
 	min = fmin(min, (br-a).norm());
 	if(min + eps>0.05) return 1;
 	return 0;
-
 }
 
 } // namespace

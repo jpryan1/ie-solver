@@ -5,7 +5,9 @@ namespace ie_solver{
 IeSolverTools::IeSolverTools(double id_tol, const std::vector<double> points, 
 	const std::vector<double> normals, const std::vector<double> weights, 
 	bool is_stokes_) {
-
+	assert(id_tol > 0 && "id_tol must be greater than one to init tools.");
+	assert(points.size()*normals.size()*weights.size() > 0 && 
+		"Vectors for tools init must be populated.");
 	this->id_tol = id_tol;
 	this->points = points;
 	this->normals = normals;
@@ -16,11 +18,14 @@ IeSolverTools::IeSolverTools(double id_tol, const std::vector<double> points,
 void IeSolverTools::GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat& Xrr, 
 	const std::vector<unsigned int>& r, const std::vector<unsigned int>& s, 
 	const std::vector<unsigned int>& n) {
-    
+   
+    assert(r.size()*s.size() > 0 && 
+    	"For GetXMatrices, there must be redundant and skel dofs.");
+
 	unsigned int r_size = r.size();
 	unsigned int s_size = s.size();
 	unsigned int n_size = n.size();
-    ie_Mat  Xrs(r_size, s_size), Xsr(s_size, r_size) Xrn(r_size, n_size), 
+    ie_Mat  Xrs(r_size, s_size), Xsr(s_size, r_size), Xrn(r_size, n_size), 
     Xnr(n_size, r_size);
 	
 	//this is just for readability
@@ -43,7 +48,6 @@ void IeSolverTools::GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat& Xrr,
 
 	set_get.tic();
 	K.set_submatrix(r, s, Xrs);
-	//K.set_submatrix(r, r, Xrr);
 	K.set_submatrix(s, r, Xsr);
 	if(n_size > 0){
 		K.set_submatrix(r, n, Xrn);
@@ -61,6 +65,12 @@ void IeSolverTools::GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat& Xrr,
 // blocks will be eliminated anyways. This should be worked out on a whiteboard
 void IeSolverTools::SchurUpdate(const ie_Mat& K, const ie_Mat& Z, ie_Mat& L, 
 	ie_Mat& U, QuadTreeNode* node) {
+	assert(node != nullptr && "SchurUpdate fails on null node.");
+	assert(Z.height()*Z.width() > 0 &&
+		"Z must have positive dimensions in SchurUpdate.");
+	assert(node->interaction_lists.box.size() > 0 &&
+		"Num of DOFs must be positive in SchurUpdate.");
+
     //height of Z is number of skeleton columns
 	unsigned int num_redundant = Z.width();
 	unsigned int num_skel 	  = Z.height();
@@ -119,6 +129,9 @@ void IeSolverTools::SchurUpdate(const ie_Mat& K, const ie_Mat& Z, ie_Mat& L,
 
 int IeSolverTools::InterpolativeDecomposition(const ie_Mat& K, ie_Mat& Z, 
 	QuadTreeNode* node) {
+	assert(node != nullptr && "InterpolativeDecomposition fails on null node.");
+	assert(node->interaction_lists.box.size() > 0 &&
+		"Num of DOFs must be positive in InterpolativeDecomposition.");
 
 	double cntr_x = node->corners[0] + node->side_length/2.0;
 	double cntr_y = node->corners[1] + node->side_length/2.0;
@@ -147,21 +160,24 @@ int IeSolverTools::InterpolativeDecomposition(const ie_Mat& K, ie_Mat& Z,
 
 void IeSolverTools::get_all_schur_updates(ie_Mat& updates, 
 	const std::vector<unsigned int>& BN, const QuadTreeNode* node){
+	assert(node != nullptr && "get_all_schur_updates fails on null node.");
+	assert(BN.size() > 0 && "get_all_schur_updates needs positive num of DOFs");
+
 	if(!node->is_leaf) get_descendents_updates(updates, BN, node);
+	
 	for(QuadTreeNode* neighbor : node->neighbors){
 		if(neighbor->schur_updated) get_update(updates, BN, neighbor);
 		if(!neighbor->is_leaf) get_descendents_updates(updates, BN, neighbor);
 	}
-	// TODO make sure the following is actually supposed to be commented out
-	// for(QuadTreeNode* neighbor : node->far_neighbors){
-	// 	if(neighbor->schur_updated) get_update(updates, BN, neighbor);
-	// 	if(!neighbor->is_leaf) get_descendents_updates(updates, BN, neighbor);
-	// }
 }
 	
 
 void IeSolverTools::get_descendents_updates(ie_Mat& updates, 
 	const std::vector<unsigned int>& BN, const QuadTreeNode* node){
+	assert(node != nullptr && "get_descendents_updates fails on null node.");
+	assert(!node->is_leaf && 
+		"get_descendents_updates must be called on non-leaf.");
+
 	//by assumption, node is not a leaf	
 	for(QuadTreeNode* child : node->children){
 		if(child->schur_updated) get_update(updates, BN, child);
@@ -170,8 +186,8 @@ void IeSolverTools::get_descendents_updates(ie_Mat& updates,
 }
 
 
-void IeSolverTools::get_update(ie_Mat& update, const std::vector<unsigned int>& BN, 
-	const QuadTreeNode* node){
+void IeSolverTools::get_update(ie_Mat& update, 
+	const std::vector<unsigned int>& BN, const QuadTreeNode* node){
 	// node needs to check all its dofs against BN, enter interactions into 
 	// corresponding locations
 	// node only updated its own BN dofs, and the redundant ones are no longer 
@@ -257,6 +273,11 @@ void IeSolverTools::Skeletonize(const ie_Mat& K, QuadTree& tree){
 		for(unsigned int n = 0; n<current_level->nodes.size(); n++){
 			QuadTreeNode* current_node = current_level->nodes[n];
 			
+			// This is only relevant if we are updating
+			if(current_node->schur_updated){
+				continue;
+			}
+
 			//First, get rid of inactive dofs
 			remove_inactive_dofs(current_node);
 
@@ -268,7 +289,6 @@ void IeSolverTools::Skeletonize(const ie_Mat& K, QuadTree& tree){
 			int redundants = InterpolativeDecomposition(K, current_node->T, 
 				current_node);
 			if(redundants == 0) continue;
-
 			SchurUpdate(K, current_node->T, current_node->L, current_node->U, 
 				current_node);
 		}
@@ -485,7 +505,7 @@ void IeSolverTools::remove_inactive_dofs(QuadTreeNode* node){
 
 
 void IeSolverTools::make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, 
-	double r, const std::vector<unsigned int>& range){
+	double r, const std::vector<unsigned int>& box_indices){
 	
 	//each row is a pxy point, cols are box dofs
 
@@ -495,22 +515,22 @@ void IeSolverTools::make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y,
 		
 		double ang = 2*M_PI*i*0.01;
 		Vec2 p(cntr_x+r*cos(ang), cntr_y+r*sin(ang));
-		for(unsigned int j_=0; j_<range.size(); j_++){
-			unsigned int j = 2*range[j_];
-			Vec2 q(points[j], points[j+1]);
+		for(unsigned int j=0; j < box_indices.size(); j++){
+			unsigned int box_index = box_indices[j];
+			Vec2 q(points[2*box_index], points[2*box_index+1]);
 
 			Vec2 r = p-q;
-			Vec2 n(normals[j], normals[j+1]);
+			Vec2 n(normals[2*box_index], normals[2*box_index+1]);
 
-			double potential = -weights[j/2]*scale*(r.dot(n))/(r.dot(r));
-			pxy.set(i, j_, potential);
+			double potential = -weights[box_index]*scale*(r.dot(n))/(r.dot(r));
+			pxy.set(i, j, potential);
 		}
 	}
 }
 
 
 void IeSolverTools::make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, 
-	double r, const std::vector<unsigned int>& range){
+	double r, const std::vector<unsigned int>& box_indices){
 
 	double scale = 1.0 / (M_PI);
 
@@ -519,25 +539,26 @@ void IeSolverTools::make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cnt
 		double ang = 2*M_PI*i*0.01;
 		Vec2 p(cntr_x + r*cos(ang), cntr_y + r*sin(ang));
 
-		for(unsigned int j_=0; j_<range.size(); j_++){
-			unsigned int j = range[j_];
-			Vec2 q(points[j], points[j+1]);
+		for(unsigned int j=0; j < box_indices.size(); j++){
+			unsigned int box_index = box_indices[j];
+			Vec2 q(points[2*box_index], points[2*box_index+1]);
 
 			Vec2 r = p-q;
-			Vec2 n(normals[j], normals[j+1]);
+			Vec2 n(normals[2*box_index], normals[2*box_index+1]);
 			double r0 = r.a[0];
 			double r1 = r.a[1];
 			
-			double potential = weights[j/2]*scale*(r.dot(n))/(pow(r.dot(r),2));
+			double potential = weights[box_index] * scale * 
+				(r.dot(n)) / (pow(r.dot(r),2));
 		
-			if( j % 2 == 0 ){
-				pxy.set(i  , j_, potential*r0*r0);
-				pxy.set(i+1, j_, potential*r0*r1);
+			if( box_index % 2 == 0 ){
+				pxy.set(i  , j, potential*r0*r0);
+				pxy.set(i+1, j, potential*r0*r1);
 
 
 			}else{
-				pxy.set(i  , j_, potential*r0*r1);
-				pxy.set(i+1, j_, potential*r1*r1);
+				pxy.set(i  , j, potential*r0*r1);
+				pxy.set(i+1, j, potential*r1*r1);
 			}
 		}
 	}

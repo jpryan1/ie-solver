@@ -68,8 +68,12 @@ public:
 				delete level;
 			}
 		}
+		levels.clear();
+
 	}
 	
+	void reset();
+
 	void initialize_tree(const std::vector<double>& points, bool is_stokes);
 	void recursive_add(QuadTreeNode* node, double x, double y,
 		unsigned int mat_ind);
@@ -77,6 +81,8 @@ public:
 	void add_index(std::vector<unsigned int>& r, unsigned int ind);
 
 	int which_field(double x, double y, QuadTreeNode* node);
+
+	void write_quadtree_to_file();
 
 	// void print();
 	// void rec_print(QuadTreeNode*);
