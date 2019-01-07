@@ -1,11 +1,14 @@
-#include "common.h"
+#include "ie_mat.h"
+#include <string.h>
+#include <lapacke.h>
+#include "log.h"
+#include <cassert>
 
 namespace ie_solver{
 
 
 ie_Mat::ie_Mat(){
-	is_dynamic   = false;
-	is_stokes = false;
+
 	mat       = NULL;
 	lda_      = 0;
 	height_   = 0;
@@ -18,8 +21,7 @@ ie_Mat::~ie_Mat(){
 }
 
 ie_Mat::ie_Mat(unsigned int h, unsigned int w){
-	is_dynamic   = false;
-	is_stokes = false;
+
 	lda_      = h;
 	height_   = h;
 	width_    = w;
@@ -29,7 +31,6 @@ ie_Mat::ie_Mat(unsigned int h, unsigned int w){
 
 
 ie_Mat& ie_Mat::operator=(const ie_Mat& copy){
-	assert(!is_dynamic);
 	
 	if(height_ != copy.height_ || width_ != copy.width_ || lda_ != copy.lda_){
 		if(mat) delete[] mat;
@@ -74,13 +75,7 @@ void ie_Mat::copy(ie_Mat& copy) const{
 
 
 double ie_Mat::get(unsigned int i, unsigned int j) const{
-	if(is_dynamic){
-		if(is_stokes){
-			return stokes_kernel(i,j);
-		}else{
-			return laplace_kernel(i,j);
-		}
-	}
+
 	assert(i < height_ && j < width_ && mat !=NULL);
 	
 	return mat[i + lda_*j];
@@ -89,13 +84,12 @@ double ie_Mat::get(unsigned int i, unsigned int j) const{
 
 void ie_Mat::set(unsigned int i, unsigned int j, double a){
 	
-	assert(!is_dynamic && i < height_ && j < width_ && mat !=NULL);
+	assert(i < height_ && j < width_ && mat !=NULL);
 	mat[i + lda_*j] = a;
 }
 
 
 void ie_Mat::addset(unsigned int i, unsigned int j, double a){
-	assert(!is_dynamic);
 	assert(i < height_ && j < width_ && mat !=NULL);
 	mat[i + lda_*j] += a;
 }
@@ -103,10 +97,20 @@ void ie_Mat::addset(unsigned int i, unsigned int j, double a){
 
 void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_, 
 	const std::vector<unsigned int>& J_, ie_Mat& A){
-	assert(I_.size() == A.height_ && J_.size() == A.width_ && !is_dynamic);
+	assert(I_.size() == A.height_ && J_.size() == A.width_);
 	for(unsigned int i = 0; i < I_.size(); i++){
 		for(unsigned int j = 0; j < J_.size(); j++){
 			set(I_[i], J_[j], A.get(i,j));
+		}
+	}
+}
+
+void ie_Mat::set_submatrix(int row_s, int row_e, int col_s, int col_e,
+	ie_Mat& A){
+	
+	for(unsigned int i = row_s; i < row_e; i++){
+		for(unsigned int j = col_s; j < col_e; j++){
+			set( i, j, A.get(i-row_s, j-col_s));
 		}
 	}
 }
@@ -139,7 +143,7 @@ unsigned int ie_Mat::width() const {
 
 
 ie_Mat& ie_Mat::operator-=(const ie_Mat& o){
-	assert(o.height_ == height_ && o.width_ == width_ && !is_dynamic);
+	assert(o.height_ == height_ && o.width_ == width_);
 
 	for(unsigned int i=0; i<height_; i++){
 		for(unsigned int j=0; j<width_; j++){
@@ -152,7 +156,7 @@ ie_Mat& ie_Mat::operator-=(const ie_Mat& o){
 
 ie_Mat& ie_Mat::operator+=(const ie_Mat& o){
 
-	assert(o.height_== height_ && o.width_== width_ && !is_dynamic);
+	assert(o.height_== height_ && o.width_== width_ );
 	for(unsigned int i = 0; i < height_; i++){
 		for(unsigned int j = 0; j < width_; j++){
 			 mat[i + lda_*j] =  mat[i + lda_*j] + o. mat[i + lda_*j];
@@ -163,7 +167,6 @@ ie_Mat& ie_Mat::operator+=(const ie_Mat& o){
 
 
 ie_Mat& ie_Mat::operator*=(double o){
-	assert(!is_dynamic);
 	for(unsigned int i = 0; i < height_; i++){
 		for(unsigned int j = 0; j < width_; j++){
 			 mat[i + lda_*j] =  mat[i + lda_*j] *o;
@@ -200,37 +203,6 @@ double ie_Mat::norm2() const{
 }
 
 
-// This function stores the DoF data,  and calculates the diagonals of the mat
-void ie_Mat::load(const std::vector<double>* p, const std::vector<double>* n, 
-	const std::vector<double>* c, const std::vector<double>* w){
-	assert(is_dynamic);
-	points     = p;
-	normals    = n;
-	curvatures = c;
-	weights    = w;
-
-	if(is_stokes){
-		scale = 1/(M_PI);
-	}else{
-		scale = 1/(2*M_PI);
-	}
-
-	if(is_stokes){
-		double avg = 0;
-		for(double weight : *weights){
-			avg += weight;
-		}
-		avg /= weights->size();
-
-		double alpha = avg/2.0;
-		double beta  = alpha*alpha;
-		diag_00 = 8 * beta + 2 * beta * log(1/(2*beta)) - beta*M_PI;
-		diag_01 = 0;
-		diag_11 = diag_00;
-	
-		//printf("Diagonals are %f\n", diag_00);
-	}	
-}
 
 
 void ie_Mat::rand_vec(unsigned int dofs){
@@ -245,99 +217,6 @@ void ie_Mat::rand_vec(unsigned int dofs){
 	for(unsigned int i=0; i<dofs; i++){
 		mat[i] = rand()/(0.0+RAND_MAX);
 	}
-}
-
-
-double ie_Mat::stokes_kernel(unsigned int i, unsigned int j) const {
-	// So this is much more awkwardly written than the function in 
-	// stokes_init.cpp that just writes the entire matrix at once, but the cost 
-	// of writing the whole matrix is just stupid. So we power through this 
-	// function
-	// below commented is single layer
-	// // We first need to ascertain which DoFs are relevant here. 
-	// int dof_i = i/2;
-	// int dof_j = j/2;
-	// // If the DoFs are the same, follow the singular procedure
-
-	// if(dof_i==dof_j){
-	// 	if(i!=j) return scale*diag_01;
-	// 	return scale*diag_00;
-	// }
-	// // If they are different, figure out which of the three tensor components
-	// // is desired, then return it. 
-
-	// Vec2 x((*points)[2*dof_i], (*points)[2*dof_i+1]);
-	// Vec2 y((*points)[2*dof_j], (*points)[2*dof_j+1]);
-	// Vec2 r = x-y;  
-
-	// double r0 = r.a[0];
-	// double r1 = r.a[1];
-	
-	// if(i%2==0 && j%2==0){
-	// 	return (*weights)[dof_j]*scale*(log(1.0/r.norm()) + (r0*r0/r.dot(r)));
-	// }
-	// else if(i%2==1 && j%2==1){
-	// 	return (*weights)[dof_j]*scale*(log(1.0/r.norm()) + (r1*r1/r.dot(r)));
-	// }
-	// else{
-	// 	return (*weights)[dof_j]*scale*(                    (r1*r0/r.dot(r)));
-	// }
-
-	int dof_i = i/2;
-	int dof_j = j/2;
-	
-	if(dof_i==dof_j){
-
-		double t0 = -(*normals)[2*dof_i+1];
-		double t1 =  (*normals)[2*dof_i];
-
-		if(i%2==0 && j%2==0){
-			return -0.5 - 
-			0.5*(*curvatures)[dof_i]*(*weights)[dof_i]*scale*t0*t0;
-		}
-		else if(i%2==1 && j%2==1){
-			return -0.5 - 
-			0.5*(*curvatures)[dof_i]*(*weights)[dof_i]*scale*t1*t1;
-		}
-		else{
-			return -0.5 * (*curvatures)[dof_i]*(*weights)[dof_i]*scale*t0*t1;
-		}
-	}
-
-	Vec2 x((*points)[2*dof_i], (*points)[2*dof_i+1]);
-	Vec2 y((*points)[2*dof_j], (*points)[2*dof_j+1]);
-	Vec2 r = x-y;  
-
-	double r0 = r.a[0];
-	double r1 = r.a[1];
-	Vec2 n((*normals)[2*dof_j], (*normals)[2*dof_j+1]);
-	double potential = (*weights)[dof_j]*scale*(r.dot(n))/(pow(r.dot(r),2));
-		
-	if(i%2==0 && j%2==0){
-		return potential*r0*r0;
-	}
-	else if(i%2==1 && j%2==1){
-		return  potential*r1*r1;
-	}
-	else{
-		return potential*r0*r1;
-	}
-}
-
-double ie_Mat::laplace_kernel(unsigned int i, unsigned int j) const {
-	
-	if(i==j){
-		return 0.5 + 0.5*(*curvatures)[i]*(*weights)[i]*scale;
-	 }
-	
-	Vec2 x((*points)[2*i], (*points)[2*i+1]);
-	Vec2 y((*points)[2*j], (*points)[2*j+1]);
-	Vec2 r = x-y;  
-
-	Vec2 n((*normals)[2*j], (*normals)[2*j+1]);
-	double potential = -(*weights)[j]*scale*(r.dot(n))/(r.dot(r));
-	
-	return potential;
 }
 
 
@@ -453,5 +332,38 @@ void ie_Mat::print() const{
 	}
 	LOG::INFO(message);
 }
+
+
+void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A, 
+	const ie_Mat& x, double beta, ie_Mat& b){
+	assert(A.height()*A.width()*x.height()*x.width() !=0 && 
+		"gemv needs positive dimensions only.");
+	assert(x.width() == 1 && "gemv only works on a column vector.");
+	assert(A.mat != nullptr && "gemv fails on null A mat.");
+	assert(x.mat != nullptr && "gemv fails on null x mat.");
+	assert(b.mat != nullptr && "gemv fails on null b mat.");
+
+
+	cblas_dgemv(CblasColMajor, trans0, A.height(), A.width(), alpha, A.mat, 
+		A.lda_, x.mat, 1, beta, b.mat, 1);
+}
+
+void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1, 
+	double alpha, const ie_Mat& A, const ie_Mat& B, double beta, ie_Mat& C){
+	assert(A.height()*B.height()*A.width()*B.width()!=0 &&
+		"gemm needs positive dimensions only.");
+	assert(A.mat != nullptr && "gemm fails on null A mat.");
+	assert(B.mat != nullptr && "gemm fails on null B mat.");
+	assert(C.mat != nullptr && "gemm fails on null C mat.");
+	assert(A.mat != nullptr && "gemm fails on null A mat.");
+	assert(B.mat != nullptr && "gemm fails on null B mat.");
+	assert(C.mat != nullptr && "gemm fails on null C mat.");
+
+	unsigned int k = (trans0 == CblasTrans) ? A.height() : A.width();
+	cblas_dgemm(CblasColMajor, trans0, trans1, C.height(), C.width(), 
+		k, alpha, A.mat, A.height(), B.mat, B.height(), beta, C.mat, 
+		C.height());
+}
+
 
 } // namespace ie_solver

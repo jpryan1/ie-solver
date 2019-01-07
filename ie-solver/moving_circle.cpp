@@ -1,17 +1,16 @@
-#include "rounded_square.h"
+#include "moving_circle.h"
 #include <cmath>
 
 namespace ie_solver{
 
-void RoundedSquare::initialize(int N){
+void MovingCircle::initialize(int N){
 	// This square will have side length 0.5 and will have BL corner 0.25, 0.25
 
 	// Sides will go from 0.3 to 0.7, rounded corners will have the rest
 
-	// each side will have 128 discretization points, each corner will have 16 points
-
 	// radius of rounded corner is 0.05
 	// TODO obviously N should be the total num of points, not that/40
+	
 	int SCALE = 20*(N/20); // Now SCALE is a multiple of 20 (?)
 
 
@@ -138,6 +137,30 @@ void RoundedSquare::initialize(int N){
 		weights.push_back(side_AL);
 	}
 
+	// inner bottom left corner
+	for(int i=0; i<NUM_CORN_POINTS; i++){
+
+		double t = i*M_PI / (2*NUM_CORN_POINTS-2.0); //This ranges from 0 to pi/2, inclusive
+		double ang = M_PI+t;
+		points.push_back(0.1+0.05*cos(ang));
+		points.push_back(0.1+0.05*sin(ang));
+
+		normals.push_back(cos(ang));
+		normals.push_back(sin(ang));
+
+		curvatures.push_back(1/(0.05));
+
+		if(i==0 || i==(NUM_CORN_POINTS)-1){
+			weights.push_back(0.5*(side_AL+corner_AL));
+		}else{
+			weights.push_back(corner_AL);
+		}
+	}
+
+
+
+
+
 	//bottom left corner
 	for(int i=0; i<NUM_CORN_POINTS; i++){
 
@@ -158,16 +181,18 @@ void RoundedSquare::initialize(int N){
 		}
 	}
 
+
 }
 
 
-bool RoundedSquare::is_in_domain(Vec2& a){
+bool MovingCircle::is_in_domain(Vec2& a){
+
 	double* v = a.a;
 
 	double eps = 1e-2;
 
-	if( fabs(v[0] - 0.5) > 0.45 - eps 
-		|| fabs(v[1] - 0.5) > 0.45 - eps){
+
+	if(fabs(v[0] - 0.5)>0.45 - eps || fabs(v[1] - 0.5)>0.45 - eps){
 		return false;
 	}
 

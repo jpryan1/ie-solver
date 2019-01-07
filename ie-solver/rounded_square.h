@@ -1,15 +1,20 @@
-#ifndef _ROUNDEDSQUARE_H_
-#define _ROUNDEDSQUARE_H_
+#ifndef _ROUNDED_SQUARE_H_
+#define _ROUNDED_SQUARE_H_
 
-#include "common.h"
+
+#include "boundary.h"
 
 namespace ie_solver{
 
-void rounded_square(int N, std::vector<double>& points, std::vector<double>& normals, std::vector<double>& curvatures,
-	std::vector<double>& weights);
+class RoundedSquare : public Boundary {
+	public:
 
-int out_of_rounded_square(Vec2& a);
+		void initialize(int N);
 
-} // namespace
+		bool is_in_domain(Vec2& a);
+
+};
+
+} // namespace ie_solver
 
 #endif
