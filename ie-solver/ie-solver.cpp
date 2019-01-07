@@ -44,17 +44,12 @@ void boundary_integral_solve(const ie_solver_config& config,
 	}
 
 	// Consider making init instead of constructor for readability
-	// TODO why do the tools AND the tree need the points and normals and 
-	// weights again?
 	bool strong_admissibility = 
 		(config.admissibility == ie_solver_config::STRONG);
 	IeSolverTools ie_solver_tools(id_tol, strong_admissibility, is_stokes);
 
 	Kernel kernel;
 
-	// TODO of CRITICAL importance - this is probably where there is a big bug!
-	// K should just have access to the boundary, so that when quadtree changes
-	// points, K feels it!
 	kernel.load(config.boundary.get(), is_stokes);
 
 	// Now we calculate the solution to the PDE inside the domain by setting

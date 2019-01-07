@@ -16,8 +16,6 @@ struct ie_Mat{
 	double *mat;
 	unsigned int lda_, height_, width_;
 
-	// TODO GET RID OF THIS, ONLY BOUNDARY SHOULD HOLD VECS FOR SIMPLICITY
-
 	ie_Mat();
 	~ie_Mat();
 	ie_Mat(unsigned int h, unsigned int w);
