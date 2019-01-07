@@ -1,13 +1,19 @@
 #ifndef _QUADTREE_H_
 #define _QUADTREE_H_
 
-#include "common.h"
+#include "ie_mat.h"
+#include "boundaries/boundary.h"
 
 #define MAX_LEAF_DOFS 128
 
 // TODO all headers should have variable names explicit. 
 
 namespace ie_solver{
+
+struct InteractionLists {
+	std::vector<unsigned int> original_box, active_box, redundant, skel, near, 
+		skelnear, permutation;
+};
 
 struct QuadTreeNode{
 	
@@ -18,6 +24,7 @@ struct QuadTreeNode{
 	double side_length;
 	
 	QuadTreeNode *tl, *tr, *bl, *br;
+	QuadTreeNode* parent;
 	QuadTreeNode* children[4];
 	std::vector<QuadTreeNode*> neighbors;
 
@@ -55,7 +62,7 @@ public:
 
 	bool is_stokes;
 	double min, max;
-	std::vector<double> pts;
+	Boundary* boundary;
 	QuadTreeNode* root;
 	std::vector<QuadTreeLevel*> levels;
 
@@ -74,7 +81,7 @@ public:
 	
 	void reset();
 
-	void initialize_tree(const std::vector<double>& points, bool is_stokes);
+	void initialize_tree(Boundary* boundary, bool is_stokes);
 	void recursive_add(QuadTreeNode* node, double x, double y,
 		unsigned int mat_ind);
 	void node_subdivide(QuadTreeNode* node);
@@ -83,6 +90,8 @@ public:
 	int which_field(double x, double y, QuadTreeNode* node);
 
 	void write_quadtree_to_file();
+
+	void perturb();
 
 	// void print();
 	// void rec_print(QuadTreeNode*);

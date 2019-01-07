@@ -1,4 +1,6 @@
 #include "initialization.h"
+#include <cassert>
+#include <cmath>
 
 namespace ie_solver{
 //TODO - subclasses for different PDES
@@ -127,7 +129,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 										std::vector<double>& normals, 
 										std::vector<double>& weights, 
 										std::vector<double>& domain_points, int test_size,
-										int (*out_of_domain)(Vec2& a)){
+										Boundary* boundary){
 	//columns for phi (aka dofs), rows for spatial domain
 	
 	assert(points.size() == normals.size() && 
@@ -137,7 +139,6 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 	
 	// int dofs = points.size()/2;
 	double scale = 1.0 / (M_PI);
-	omp_set_num_threads(4);
 
 	// min-=d/2;
 	// max+=d/2;
@@ -151,7 +152,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat& K, std::vector<double
 			
 			Vec2 y(points[j], points[j+1]);
 
-			if(out_of_domain(x)){
+			if(!boundary->is_in_domain(x)){
 				K.set(2*i  , 2*ind_j  , 0);
 				K.set(2*i+1, 2*ind_j  , 0);
 				K.set(2*i  , 2*ind_j+1, 0);

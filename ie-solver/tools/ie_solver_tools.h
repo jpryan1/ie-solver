@@ -1,13 +1,9 @@
 #ifndef _IE_SOLVER_TOOLS_H_
 #define _IE_SOLVER_TOOLS_H_
-#include <mutex>
-#include <omp.h>
-#include "common.h"
-#include "quadtree.h"
-#include <iostream>
-#include <cstdarg>
-#include <stdlib.h>
-#include <stdio.h>
+
+#include "ie-solver/ie_mat.h"
+#include "ie-solver/quadtree.h"
+#include "ie-solver/kernel.h"
 
 #define MIN_DOFS_TO_COMPRESS 16
 
@@ -17,29 +13,27 @@ class IeSolverTools {
 
 	public:
 
-		Clock set_get;
 		double id_tol;
-		//necessary for proxy creation
-		std::vector<double> points, normals, weights; 
-		std::mutex lock;
-		bool is_stokes;
+		bool is_stokes, strong_admissibility;
 
 		IeSolverTools(){}
-		IeSolverTools(double id_tol, const std::vector<double> points, 
-			const std::vector<double> normals, 
-			const std::vector<double> weights, bool is_stokes);
+		IeSolverTools(double id_tol, bool strong_admissibility,
+			bool is_stokes);
 		~IeSolverTools(){}
 
 		// The actual work functions
-		void GetXMatrices(ie_Mat& K, const ie_Mat& Z, ie_Mat&,
+		void get_x_matrices(ie_Mat& K, const ie_Mat& Z, ie_Mat&,
 			const std::vector<unsigned int>& r, 
 			const std::vector<unsigned int>& s,
 			const std::vector<unsigned int>& n);
 		
-		void SchurUpdate(const ie_Mat& K, const ie_Mat& Z, ie_Mat& L, ie_Mat& U, 
+		void schur_update(const Kernel& K, const ie_Mat& Z, ie_Mat& L, ie_Mat& U, 
 			QuadTreeNode* node);
-		int InterpolativeDecomposition(const ie_Mat& K, ie_Mat& Z, 
+		int interpolative_decomposition(const Kernel& K, QuadTree& tree,
 			QuadTreeNode* node);
+		void make_id_mat(const Kernel& K, ie_Mat& pxy, QuadTree& tree, 
+			QuadTreeNode* node);
+
 		
 		void get_all_schur_updates( ie_Mat& updates, 
 			const std::vector<unsigned int>& BN, const QuadTreeNode*);
@@ -48,26 +42,26 @@ class IeSolverTools {
 		void get_update( ie_Mat& updates, const std::vector<unsigned int>& BN, 
 			const QuadTreeNode* node);
 			
-		void ApplySweepMatrix(const ie_Mat& mat, ie_Mat& vec, 
+		void apply_sweep_matrix(const ie_Mat& mat, ie_Mat& vec, 
 			const std::vector<unsigned int>& a, 
 			const std::vector<unsigned int>& b, bool transpose);
-	    void ApplyDiagMatrix(const ie_Mat& mat, ie_Mat& vec, 
+	    void apply_diag_matrix(const ie_Mat& mat, ie_Mat& vec, 
 			const std::vector<unsigned int>& range);
-		void ApplyDiagInvMatrix(const ie_Mat& mat, ie_Mat& vec, 
+		void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat& vec, 
 			const std::vector<unsigned int>& range);
 
-		void Skeletonize(const ie_Mat& K, QuadTree& tree);
+		void skeletonize(const Kernel& K, QuadTree& tree);
 
-		void SparseMatVec(const ie_Mat& K, QuadTree& tree, const ie_Mat& x, 
+		void sparse_matvec(const Kernel& K, QuadTree& tree, const ie_Mat& x, 
 			ie_Mat& b);
-		void Solve(const ie_Mat& K, QuadTree& tree, ie_Mat& x, const ie_Mat& b);
+		void solve(const Kernel& K, QuadTree& tree, ie_Mat& x, const ie_Mat& b);
 
 
-		void remove_inactive_dofs(QuadTreeNode*);
+		void populate_active_box(QuadTreeNode*);
 		// TODO when generalizing, let someone pass these functions in initing
 		// IeSolverTools
 		void make_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, double r, 
-			const std::vector<unsigned int>& box_indices);
+			QuadTree& tree, const std::vector<unsigned int>& box_indices);
 		void make_stokes_proxy_mat(ie_Mat& pxy, double cntr_x, double cntr_y, 
 			double r, const std::vector<unsigned int>& box_indices);
 

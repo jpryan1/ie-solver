@@ -1,4 +1,5 @@
 #include "initialization.h"
+#include <cmath>
 
 namespace ie_solver{
 
@@ -22,7 +23,7 @@ void Initialization::InitializeKernel(ie_Mat& K, std::vector<double>& points,
 		for(int j = 0; j < dofs; j++){
 			
 			if(i==j){
-				K.set(i, j, 0.5 + 0.5*curvatures[i]*weights[i]*scale);
+				K.set(i, j, 0.5 - weights[i]*0.5*curvatures[i]*scale);
 				continue;
 			 }
 
@@ -42,13 +43,13 @@ void Initialization::InitializeDomainKernel(ie_Mat& K, std::vector<double>& poin
 										std::vector<double>& normals, 
 										std::vector<double>& weights, 
 										std::vector<double>& domain_points, int test_size,
-										int (*out_of_domain)(Vec2& a),
+										Boundary* boundary,
 										bool is_stokes){
 	// is stokes TODO
 
 	if(is_stokes){
 		Stokes_InitializeDomainKernel(K, points, normals, weights, 
-			domain_points, test_size, out_of_domain);
+			domain_points, test_size, boundary);
 		return;
 	}
 
@@ -64,7 +65,7 @@ void Initialization::InitializeDomainKernel(ie_Mat& K, std::vector<double>& poin
 			
 			Vec2 y(points[2*j], points[2*j+1]);
 
-			if(out_of_domain(x)){
+			if(!boundary->is_in_domain(x)){
 				K.set(i, j, 0);
 				continue;
 			}
@@ -80,7 +81,6 @@ void Initialization::InitializeDomainKernel(ie_Mat& K, std::vector<double>& poin
 void Initialization::DomainSolution(ie_Mat& K, int test_size, 
 					double min, double max,int (*out_of_domain)(Vec2& a)){
 	//columns for phi (aka dofs), rows for spatial domain
-	omp_set_num_threads(4);
 	// #pragma omp parallel for 	
 	for(int i = 0; i < test_size*test_size; i++){
 		double x0 = i/test_size;
@@ -104,9 +104,22 @@ void Initialization::InitializeBoundary(ie_Mat& f, std::vector<double>& points){
 	for(unsigned int i = 0; i < f.height(); i++){
 		double x0 = points[2*i]+2;
 		double y0 = points[2*i+1]+2;
-
 		double potential = log(sqrt( pow(x0,2)+pow(y0,2)))/(2*M_PI);
+		
+		// double map = (i+0.0)/f.height(); //now in (0,1)
+		// map -=0.5; // now in (-0.5, 0.5)
+		// map *=2; // now in (-1,1)
+		// double potential = exp(-1.0/(1-pow(map,2)));
+
 		f.set(i, 0, potential);
+		
+	}
+}
+
+
+void Initialization::Electric_InitializeBoundary(ie_Mat& f, std::vector<double>& points){
+	for(unsigned int i = 0; i < f.height(); i++){
+		f.set(i, 0, 1);	
 	}
 }
 
