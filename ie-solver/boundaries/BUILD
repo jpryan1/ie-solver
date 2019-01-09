@@ -4,11 +4,11 @@ cc_library(
 	name = "boundaries",
 	hdrs = ["circle.h",
 			"rounded_square.h",
-			"moving_circle.h",
+			"rounded_square_with_bump.h",
 			"boundary.h"],
 	srcs = ["circle.cpp", 
 			"rounded_square.cpp", 
-			"moving_circle.cpp"],
+			"rounded_square_with_bump.cpp"],
 	deps = ["//ie-solver:ie_mat", 
 			"//ie-solver:vec2"]
 )

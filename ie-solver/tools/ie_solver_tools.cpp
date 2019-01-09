@@ -1,5 +1,7 @@
 #include "ie_solver_tools.h"
 #include <cassert>
+#include <iostream>
+#include <cmath>
 
 namespace ie_solver{
 
@@ -16,6 +18,45 @@ IeSolverTools::IeSolverTools(double id_tol, bool strong_admissibility_,
 }
 
 
+void IeSolverTools::check_factorization_against_kernel(const Kernel& kernel, 
+	QuadTree& tree){
+	assert(tree.boundary->points.size()%2==0);
+	populate_all_active_boxes(tree);
+	unsigned int dofs = tree.boundary->points.size()/2;
+	int rand_idx = rand()%dofs;
+	ie_Mat e1(dofs, 1);
+	for(unsigned int i = 0; i < dofs; i++){
+		e1.set(i, 0, 0);
+	}
+	e1.set(rand_idx, 0, 1.0);
+	ie_Mat b(dofs, 1);
+	sparse_matvec(kernel, tree, e1, b);
+	double error = 0;
+	for(int i=0; i<dofs; i++){
+		error += pow(kernel.get(i,rand_idx) - b.get(i,0), 2);
+	}
+	std::cout<<"Total row error: "<<sqrt(error)<<std::endl;
+
+}
+
+
+void IeSolverTools::populate_all_active_boxes(QuadTree& tree){
+
+	int lvls = tree.levels.size();
+	for(int level = lvls-1; level>=0; level--){
+		QuadTreeLevel* current_level = tree.levels[level];
+		for (QuadTreeNode* current_node : current_level->nodes) {
+			if(current_node->schur_updated){
+				continue;
+			}
+			populate_active_box(current_node);
+			
+		}
+	}
+}
+
+
+
 void IeSolverTools::populate_active_box(QuadTreeNode* node){
 
 	// this function removes from the box any DoFs which have already been made 
@@ -23,6 +64,7 @@ void IeSolverTools::populate_active_box(QuadTreeNode* node){
 	// would look nicer in matlab.
 
 	// populate active_box
+	node->interaction_lists.active_box.clear();
 	if(!node->is_leaf){
 		for(QuadTreeNode* child: node->children){
 			if(child->schur_updated){

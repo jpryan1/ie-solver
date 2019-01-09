@@ -9,6 +9,8 @@
 
 namespace ie_solver{
 
+// Perhaps putting these in a class isn't best, maybe just a namespace.
+// Or maybe make everything static. 
 class IeSolverTools {
 
 	public:
@@ -27,8 +29,7 @@ class IeSolverTools {
 			const std::vector<unsigned int>& s,
 			const std::vector<unsigned int>& n);
 		
-		void schur_update(const Kernel& K, const ie_Mat& Z, ie_Mat& L, ie_Mat& U, 
-			QuadTreeNode* node);
+		void schur_update(const Kernel& K, QuadTreeNode* node);
 		int interpolative_decomposition(const Kernel& K, QuadTree& tree,
 			QuadTreeNode* node);
 		void make_id_mat(const Kernel& K, ie_Mat& pxy, QuadTree& tree, 
@@ -55,8 +56,11 @@ class IeSolverTools {
 		void sparse_matvec(const Kernel& K, QuadTree& tree, const ie_Mat& x, 
 			ie_Mat& b);
 		void solve(const Kernel& K, QuadTree& tree, ie_Mat& x, const ie_Mat& b);
-
-
+		
+		void check_factorization_against_kernel(const Kernel& kernel, 
+			QuadTree& tree);
+	
+		void populate_all_active_boxes(QuadTree& tree);
 		void populate_active_box(QuadTreeNode*);
 		// TODO when generalizing, let someone pass these functions in initing
 		// IeSolverTools

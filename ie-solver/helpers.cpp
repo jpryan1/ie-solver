@@ -206,8 +206,8 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config& config){
 				else if(!strcmp(argv[i+1], "ROUNDED_SQUARE")){
 					config.boundary.reset(new RoundedSquare());
 				}
-				else if(!strcmp(argv[i+1], "MOVING_CIRCLE")){
-					config.boundary.reset(new MovingCircle());
+				else if(!strcmp(argv[i+1], "ROUNDED_SQUARE_WITH_BUMP")){
+					config.boundary.reset(new RoundedSquareWithBump());
 				}
 				else{
 					LOG::ERROR("Unrecognized boundary: "+ std::string(argv[i+1])

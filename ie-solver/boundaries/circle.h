@@ -8,7 +8,12 @@ namespace ie_solver{
 
 class Circle : public Boundary {
 	public:
-		void initialize(int N);
+
+		enum BoundaryCondition{
+			SINGLE_ELECTRON
+		};
+
+		void initialize(int N, int bc_enum);
 		bool is_in_domain(Vec2& a);
 
 };

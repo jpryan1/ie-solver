@@ -1,20 +1,30 @@
 #include "circle.h"
+#include "ie-solver/log.h"
 #include <cmath>
 
 namespace ie_solver{
 
-void Circle::initialize(int N){
+void Circle::initialize(int N, int bc_enum){
+
+	boundary_condition = ie_Mat(N, 1);
+	if(bc_enum != BoundaryCondition::SINGLE_ELECTRON){
+		LOG::ERROR("Circle boundary can only do single electron bc currently.");
+	}
 
 	for(int i = 0; i < N; i++){
 		double ang = i*2.0*M_PI/N;
-		points.push_back(0.5 + 0.25*cos(ang));
-		points.push_back(0.5 + 0.25*sin(ang));
+		double x = 0.5 + 0.25*cos(ang);
+		double y = 0.5 + 0.25*sin(ang);
+		points.push_back(x);
+		points.push_back(y);
 		normals.push_back(cos(ang));
 		normals.push_back(sin(ang));
 		curvatures.push_back(4); // 1/r, r=0.25
 		weights.push_back(M_PI/(N*2));
-	}
 
+		double potential = log(sqrt( pow(x+2,2)+pow(y+2,2)))/(2*M_PI);
+		boundary_condition.set(i, 0, potential);
+	}
 }
 
 bool Circle::is_in_domain(Vec2& a){

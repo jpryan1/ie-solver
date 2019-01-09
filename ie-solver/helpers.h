@@ -8,7 +8,7 @@
 #include "ie-solver/boundaries/boundary.h"
 #include "ie-solver/boundaries/circle.h"
 #include "ie-solver/boundaries/rounded_square.h"
-#include "ie-solver/boundaries/moving_circle.h"
+#include "ie-solver/boundaries/rounded_square_with_bump.h"
 
 #define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
 #define DEFAULT_ID_TOL 1e-6
@@ -47,7 +47,6 @@ void get_domain_points(std::vector<double>& points, double min, double max);
 void check_laplace_solution(ie_Mat& domain, double id_tol, 
 	std::vector<double>& domain_points, Boundary* boundary);
 int parse_input_into_config(int argc, char** argv, ie_solver_config& config);
-
 
 } // namespace ie_solver
 

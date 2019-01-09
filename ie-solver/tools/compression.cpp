@@ -2,7 +2,7 @@
 #include "ie-solver/kernel.h"
 #include <iostream>
 #include <cassert>
-
+#include <cmath>
 namespace ie_solver{
 
 int IeSolverTools::interpolative_decomposition(const Kernel& kernel, 
@@ -73,16 +73,15 @@ void IeSolverTools::get_x_matrices(ie_Mat& K, const ie_Mat& Z, ie_Mat& Xrr,
 // Does it matter?
 // Also, we might not need to do ALL of these matmuls, since some of the 
 // blocks will be eliminated anyways. This should be worked out on a whiteboard
-void IeSolverTools::schur_update(const Kernel& kernel, const ie_Mat& Z, ie_Mat& L, 
-	ie_Mat& U, QuadTreeNode* node) {
+void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 	assert(node != nullptr && "SchurUpdate fails on null node.");
-	assert(Z.height()*Z.width() > 0 &&
+	assert(node->T.height()*node->T.width() > 0 &&
 		"Z must have positive dimensions in SchurUpdate.");
 	assert(node->interaction_lists.active_box.size() > 0 &&
 		"Num of DOFs must be positive in SchurUpdate.");
     //height of Z is number of skeleton columns
-	unsigned int num_redundant = Z.width();
-	unsigned int num_skel 	  = Z.height();
+	unsigned int num_redundant = node->T.width();
+	unsigned int num_skel 	  = node->T.height();
 
 	//GENERATE K_BN,BN
 	std::vector<unsigned int> BN;
@@ -93,8 +92,10 @@ void IeSolverTools::schur_update(const Kernel& kernel, const ie_Mat& Z, ie_Mat& 
 	// Note that BN has all currently deactivated DoFs removed. 
 	ie_Mat K_BN = kernel(BN, BN); //que bien!
 	ie_Mat update(BN.size(), BN.size());
+
 	get_all_schur_updates(update, BN, node);
 	K_BN -= update;
+
 	// Generate various index ranges within BN
 	std::vector<unsigned int> s, r, n, sn;
 	for(unsigned int i=0; i<num_skel; i++){
@@ -113,22 +114,21 @@ void IeSolverTools::schur_update(const Kernel& kernel, const ie_Mat& Z, ie_Mat& 
 	}
 
 	ie_Mat  Xrr(num_redundant, num_redundant);
-	get_x_matrices(K_BN, Z, Xrr, r,s,n);
+	get_x_matrices(K_BN, node->T, Xrr, r,s,n);
 	node->D_r = Xrr;
-
+	
 	// Generate left and right schur complement matrices
 	// TODO change this variable naming
 	int num_skelnear = sn.size();
 	
-	L = ie_Mat(num_skelnear, num_redundant);
-	U = ie_Mat(num_redundant, num_skelnear);
-	
-	Xrr.right_multiply_inverse(K_BN(sn, r), L);
-	Xrr.left_multiply_inverse( K_BN(r, sn), U);
+	node->L = ie_Mat(num_skelnear, num_redundant);
+	node->U = ie_Mat(num_redundant, num_skelnear);
+	Xrr.right_multiply_inverse(K_BN(sn, r), node->L);
+	Xrr.left_multiply_inverse( K_BN(r, sn), node->U);
 
 	ie_Mat schur(sn.size(), sn.size());
-	ie_Mat::gemm(NORMAL, NORMAL, 1.0, L, K_BN(r,sn), 0., schur);
-	
+	ie_Mat::gemm(NORMAL, NORMAL, 1.0, node->L, K_BN(r,sn), 0., schur);
+
 	//set schur update
 	node->schur_update = schur;
 	node->schur_updated = true;
@@ -143,18 +143,11 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree& tree){
 		QuadTreeLevel* current_level = tree.levels[level];
 		for(unsigned int n = 0; n<current_level->nodes.size(); n++){
 			QuadTreeNode* current_node = current_level->nodes[n];
-			std::cout<<"Skeletonizing node "<<current_node->id<<std::endl;
-			// std::cout<<"Center: ";
-			// std::cout<<((current_node->corners[6]-current_node->corners[0])/2.0 ) + current_node->corners[0];
-			// std::cout<<" ";
-			// std::cout<<((current_node->corners[3]-current_node->corners[1])/2.0 ) + current_node->corners[1];
-			// std::cout<<" and side_length: "<<current_node->side_length<<std::endl;
-			// This is only relevant if we are updating
-			
+			// std::cout<<"Node "<<current_node->id<<std::endl;
+			// check_factorization_against_kernel(kernel, tree);
 			//First, get rid of inactive dofs
 			populate_active_box(current_node);
 			if(current_node->schur_updated){
-				std::cout<<"Already got it earlier!"<<std::endl;
 				continue;
 			}
 			
@@ -167,8 +160,7 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree& tree){
 			if(redundants == 0){
 				continue;
 			}
-			schur_update(kernel, current_node->T, current_node->L, current_node->U, 
-				current_node);
+			schur_update(kernel, current_node);
 		}
 	}	
 	populate_active_box(tree.root);

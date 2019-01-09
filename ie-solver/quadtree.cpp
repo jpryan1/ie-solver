@@ -3,6 +3,7 @@
 #include "log.h"
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 namespace ie_solver{
 
@@ -15,6 +16,7 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
 	// TODO later we can assert that the boundary->points are a multiple of dimension
 	this->boundary = boundary_;
 	this->is_stokes = is_stokes_;
+	QuadTreeNode::id_count = 0;
 
 	min = boundary->points[0];
 	max = boundary->points[0];
@@ -24,12 +26,12 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
 		if(point > max) max = point;
 	}
 	//this is a tad silly
-	// double tree_min = min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
-	// double tree_max = max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+	double tree_min = min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+	double tree_max = max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
 
 	// JUST FOR DEBUGGING
-	double tree_min = 0;//min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
-	double tree_max = 1;//max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+	// double tree_min = 0;//min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+	// double tree_max = 1;//max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
 
 	root = new QuadTreeNode();
 	root->level = 0;
@@ -387,6 +389,7 @@ void QuadTree::write_quadtree_to_file(){
 }
 
 void QuadTree::perturb(){
+	// return;
 	QuadTreeLevel* last_level = levels[levels.size()-1];
 	QuadTreeNode* perturbed;
 	// Find a leaf with more than 10 DoFs to perturb.
@@ -408,7 +411,7 @@ void QuadTree::perturb(){
 		boundary->points[2*pt_index] = randx;
 		boundary->points[2*pt_index+1] = randy;
 	}
-
+std::cout<<std::endl;
 	// Go up tree, marking parents and their neighbors.
 	QuadTreeNode* current = perturbed;
 	while(current != nullptr){
@@ -417,6 +420,8 @@ void QuadTree::perturb(){
 		current->interaction_lists.skel.clear();
 		current->interaction_lists.skelnear.clear();
 		current->interaction_lists.redundant.clear();
+		current->interaction_lists.permutation.clear();
+
 
 		for(QuadTreeNode* neighbor : current->neighbors){
 			neighbor->schur_updated = false;
@@ -424,6 +429,7 @@ void QuadTree::perturb(){
 			neighbor->interaction_lists.skel.clear();
 			neighbor->interaction_lists.skelnear.clear();
 			neighbor->interaction_lists.redundant.clear();
+			neighbor->interaction_lists.permutation.clear();
 		}
 		current = current->parent;
 	}
