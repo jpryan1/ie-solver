@@ -1,369 +1,364 @@
-#include "ie_mat.h"
+// Copyright 2019 John Paul Ryan
+
 #include <string.h>
 #include <lapacke.h>
-#include "log.h"
+#include <string>
 #include <cassert>
+#include "ie-solver/ie_mat.h"
+#include "ie-solver/log.h"
 
-namespace ie_solver{
+namespace ie_solver {
 
 
-ie_Mat::ie_Mat(){
-
-	mat       = NULL;
-	lda_      = 0;
-	height_   = 0;
-	width_    = 0;
+ie_Mat::ie_Mat() {
+  mat       = NULL;
+  lda_      = 0;
+  height_   = 0;
+  width_    = 0;
 }
 
 
-ie_Mat::~ie_Mat(){
-	if(mat) delete[] mat;
+ie_Mat::~ie_Mat() {
+  if (mat) delete[] mat;
 }
 
-ie_Mat::ie_Mat(unsigned int h, unsigned int w){
-
-	lda_      = h;
-	height_   = h;
-	width_    = w;
-	mat       = new double[height_*width_];
-	memset(mat, 0, height_*width_*sizeof(double));
-}
-
-
-ie_Mat& ie_Mat::operator=(const ie_Mat& copy){
-	
-	if(height_ != copy.height_ || width_ != copy.width_ || lda_ != copy.lda_){
-		if(mat) delete[] mat;
-		lda_ = copy.lda_;
-		height_ = copy.height_;
-		width_ = copy.width_;
-		mat = new double[height_*width_];
-	}
-	memcpy(mat, copy.mat, width_*height_*sizeof(double));
-	return *this;
+ie_Mat::ie_Mat(unsigned int h, unsigned int w) {
+  lda_      = h;
+  height_   = h;
+  width_    = w;
+  mat       = new double[height_ * width_];
+  memset(mat, 0, height_ * width_ * sizeof(double));
 }
 
 
-void ie_Mat::resize(unsigned int h, unsigned int w){
-	if(mat) delete[] mat;
-	lda_ = h;
-	height_ = h;
-	width_ = w;
-	mat = new double[height_*width_];
-	memset(mat, 0, height_*width_*sizeof(double));
+ie_Mat& ie_Mat::operator=(const ie_Mat& copy) {
+  if (height_ != copy.height_ || width_ != copy.width_ || lda_ != copy.lda_) {
+    if (mat) delete[] mat;
+    lda_ = copy.lda_;
+    height_ = copy.height_;
+    width_ = copy.width_;
+    mat = new double[height_ * width_];
+  }
+  memcpy(mat, copy.mat, width_ * height_ * sizeof(double));
+  return *this;
 }
 
 
-void ie_Mat::copy(ie_Mat& copy) const{
-
-	assert(height_>0 && width_>0 && mat != NULL);
-	//check if we need a resize
-	if(height_ != copy.height_ || width_ != copy.width_ || lda_ != copy.lda_){
-		if(copy.mat) delete[] copy.mat;
-		copy.lda_    = lda_;
-		copy.height_ = height_;
-		copy.width_  = width_;
-		copy.mat     = new double[height_*width_];
-	}
-
-	for(unsigned int i=0; i<copy.height(); i++){
-		for(unsigned int j=0; j<copy.width(); j++){
-			copy.set(i,j, get(i,j));
-		}
-	}
+void ie_Mat::resize(unsigned int h, unsigned int w) {
+  if (mat) delete[] mat;
+  lda_ = h;
+  height_ = h;
+  width_ = w;
+  mat = new double[height_ * width_];
+  memset(mat, 0, height_ * width_ * sizeof(double));
 }
 
 
-double ie_Mat::get(unsigned int i, unsigned int j) const{
+void ie_Mat::copy_into(ie_Mat* copy) const {
+  assert(height_ > 0 && width_ > 0 && mat != NULL);
+  // check if we need a resize
+  if (height_ != copy->height_ || width_ != copy->width_ || lda_ != copy->lda_) {
+    if (copy->mat) delete[] copy->mat;
+    copy->lda_    = lda_;
+    copy->height_ = height_;
+    copy->width_  = width_;
+    copy->mat     = new double[height_ * width_];
+  }
 
-	assert(i < height_ && j < width_ && mat !=NULL);
-	
-	return mat[i + lda_*j];
+  for (unsigned int i = 0; i < copy->height(); i++) {
+    for (unsigned int j = 0; j < copy->width(); j++) {
+      copy->set(i, j, get(i, j));
+    }
+  }
 }
 
 
-void ie_Mat::set(unsigned int i, unsigned int j, double a){
-	
-	assert(i < height_ && j < width_ && mat !=NULL);
-	mat[i + lda_*j] = a;
+double ie_Mat::get(unsigned int i, unsigned int j) const {
+  assert(i < height_ && j < width_ && mat != NULL);
+
+  return mat[i + lda_ * j];
 }
 
 
-void ie_Mat::addset(unsigned int i, unsigned int j, double a){
-	assert(i < height_ && j < width_ && mat !=NULL);
-	mat[i + lda_*j] += a;
+void ie_Mat::set(unsigned int i, unsigned int j, double a) {
+  assert(i < height_ && j < width_ && mat != NULL);
+  mat[i + lda_ * j] = a;
 }
 
 
-void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_, 
-	const std::vector<unsigned int>& J_, ie_Mat& A){
-	assert(I_.size() == A.height_ && J_.size() == A.width_);
-	for(unsigned int i = 0; i < I_.size(); i++){
-		for(unsigned int j = 0; j < J_.size(); j++){
-			set(I_[i], J_[j], A.get(i,j));
-		}
-	}
+void ie_Mat::addset(unsigned int i, unsigned int j, double a) {
+  assert(i < height_ && j < width_ && mat != NULL);
+  mat[i + lda_ * j] += a;
+}
+
+
+void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
+                           const std::vector<unsigned int>& J_,
+                           const ie_Mat& A) {
+  assert(I_.size() == A.height_ && J_.size() == A.width_);
+  for (unsigned int i = 0; i < I_.size(); i++) {
+    for (unsigned int j = 0; j < J_.size(); j++) {
+      set(I_[i], J_[j], A.get(i, j));
+    }
+  }
 }
 
 void ie_Mat::set_submatrix(int row_s, int row_e, int col_s, int col_e,
-	ie_Mat& A){
-	
-	for(unsigned int i = row_s; i < row_e; i++){
-		for(unsigned int j = col_s; j < col_e; j++){
-			set( i, j, A.get(i-row_s, j-col_s));
-		}
-	}
+                           const ie_Mat& A) {
+  for (unsigned int i = row_s; i < row_e; i++) {
+    for (unsigned int j = col_s; j < col_e; j++) {
+      set(i, j, A.get(i - row_s, j - col_s));
+    }
+  }
 }
 
 
-void ie_Mat::transpose(ie_Mat& A) const {
-	if(height_ != A.width_ || width_ != A.height_){
-		if(A.mat) delete[] A.mat;
-		A.lda_    = width_;
-		A.height_ = width_;
-		A.width_  = height_;
-		A.mat     = new double[height_*width_];
-	}
-	for(unsigned int i = 0; i < height_; i++){
-		for(unsigned int j = 0; j < width_; j++){
-			A.set(j,i, get(i,j));
-		}
-	}
+void ie_Mat::transpose_into(ie_Mat* transpose) const {
+  if (height_ != transpose->width_ || width_ != transpose->height_) {
+    if (transpose->mat) delete[] transpose->mat;
+    transpose->lda_    = width_;
+    transpose->height_ = width_;
+    transpose->width_  = height_;
+    transpose->mat     = new double[height_ * width_];
+  }
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      transpose->set(j, i, get(i, j));
+    }
+  }
 }
 
 
 unsigned int ie_Mat::height() const {
-	return height_;
+  return height_;
 }
 
 
 unsigned int ie_Mat::width() const {
-	return width_;
+  return width_;
 }
 
 
-ie_Mat& ie_Mat::operator-=(const ie_Mat& o){
-	assert(o.height_ == height_ && o.width_ == width_);
+ie_Mat& ie_Mat::operator-=(const ie_Mat& o) {
+  assert(o.height_ == height_ && o.width_ == width_);
 
-	for(unsigned int i=0; i<height_; i++){
-		for(unsigned int j=0; j<width_; j++){
-			mat[i + lda_*j] =  mat[i + lda_*j] - o. mat[i + lda_*j];
-		}
-	}
-	return *this;
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      mat[i + lda_ * j] =  mat[i + lda_ * j] - o. mat[i + lda_ * j];
+    }
+  }
+  return *this;
 }
 
 
-ie_Mat& ie_Mat::operator+=(const ie_Mat& o){
-
-	assert(o.height_== height_ && o.width_== width_ );
-	for(unsigned int i = 0; i < height_; i++){
-		for(unsigned int j = 0; j < width_; j++){
-			 mat[i + lda_*j] =  mat[i + lda_*j] + o. mat[i + lda_*j];
-		}
-	}
-	return *this;
+ie_Mat& ie_Mat::operator+=(const ie_Mat& o) {
+  assert(o.height_ == height_ && o.width_ == width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      mat[i + lda_ * j] =  mat[i + lda_ * j] + o. mat[i + lda_ * j];
+    }
+  }
+  return *this;
 }
 
 
-ie_Mat& ie_Mat::operator*=(double o){
-	for(unsigned int i = 0; i < height_; i++){
-		for(unsigned int j = 0; j < width_; j++){
-			 mat[i + lda_*j] =  mat[i + lda_*j] *o;
-		}
-	}
-	return *this;
+ie_Mat& ie_Mat::operator*=(double o) {
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      mat[i + lda_ * j] =  mat[i + lda_ * j] * o;
+    }
+  }
+  return *this;
 }
 
 
-//TODO shouldn't this->I have the underscore after it, not this arg?
-ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_, 
-	const std::vector<unsigned int>& J_) const {
+// TODO(John) shouldn't this->I have the underscore after it, not this arg?
+ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
+                          const std::vector<unsigned int>& J_) const {
+  ie_Mat ret(I_.size(), J_.size());
 
-	ie_Mat ret(I_.size(), J_.size());
-
-	int olda_ = I_.size();
-	for(unsigned int i = 0; i < I_.size(); i++){
-		for(unsigned int j = 0; j < J_.size(); j++){
-			ret.mat[i + olda_*j] = get(I_[i],J_[j]);
-		}
-	}
-	return ret;
+  int olda_ = I_.size();
+  for (unsigned int i = 0; i < I_.size(); i++) {
+    for (unsigned int j = 0; j < J_.size(); j++) {
+      ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
+    }
+  }
+  return ret;
 }
 
 
-double ie_Mat::norm2() const{
-	double sum=0;
-	for(unsigned int i = 0; i < height_; i++){
-		for(unsigned int j = 0; j < width_; j++){
-			sum += pow( get(i,j), 2);
-		}
-	}
-	return sqrt(sum);
+double ie_Mat::norm2() const {
+  double sum = 0;
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      sum += pow(get(i, j), 2);
+    }
+  }
+  return sqrt(sum);
 }
 
 
 
 
-void ie_Mat::rand_vec(unsigned int dofs){
-	//check if we need a resize
-	if (width_ != 1 || height_ != dofs || lda_ != dofs){
-		if(mat) delete[] mat;
-		lda_    = dofs;
-		height_ = dofs;
-		width_  = 1;
-		mat     = new double[height_*width_];
-	}
-	for(unsigned int i=0; i<dofs; i++){
-		mat[i] = rand()/(0.0+RAND_MAX);
-	}
+void ie_Mat::rand_vec(unsigned int dofs) {
+  // check if we need a resize
+  if (width_ != 1 || height_ != dofs || lda_ != dofs) {
+    if (mat) delete[] mat;
+    lda_    = dofs;
+    height_ = dofs;
+    width_  = 1;
+    mat     = new double[height_ * width_];
+  }
+  for (unsigned int i = 0; i < dofs; i++) {
+    mat[i] = rand() / (0.0 + RAND_MAX);
+  }
 }
 
 
-void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat& U) const {
-	// X^-1K = U
-	//aka, XU = K
+void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
+  // X^-1K = U
+  // aka, XU = K
 
-	//TODO insert asserts for these functions
+  // TODO(John) insert asserts for these functions
 
-	ie_Mat X_copy(height_, width_);
-	copy(X_copy);
+  ie_Mat X_copy(height_, width_);
+  copy_into(&X_copy);
 
-	ie_Mat K_copy(K.height_, K.width_);
+  ie_Mat K_copy(K.height_, K.width_);
 
-	K.copy(K_copy);
+  K.copy_into(&K_copy);
 
-	lapack_int ipiv[height_];
-	memset(ipiv,0, height_*sizeof(lapack_int));
-	
-	LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
-	 X_copy.lda_, ipiv );
+  std::vector<lapack_int> ipiv(height_);
+  memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
 
-	int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ , 
-	 K_copy.width_ , X_copy.mat , X_copy.lda_ , ipiv , K_copy.mat, K_copy.lda_);
-	
-	assert(status==0);
-	K_copy.copy(U);
+  LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
+                 X_copy.lda_, &ipiv[0]);
+
+  int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,
+                              K_copy.width_ , X_copy.mat , X_copy.lda_ , 
+                              &ipiv[0] , K_copy.mat, K_copy.lda_);
+
+  assert(status == 0);
+  K_copy.copy_into(U);
 }
 
 
-void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat& L) const {
-	// KX^-1 = L
-	// aka X_T L^T = K^T
-	
-	ie_Mat X_copy(height_, width_);
-	transpose(X_copy);
+void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
+  // KX^-1 = L
+  // aka X_T L^T = K^T
 
-	ie_Mat K_copy(K.width_, K.height_);
+  ie_Mat X_copy(height_, width_);
+  transpose_into(&X_copy);
 
-	K.transpose(K_copy);
+  ie_Mat K_copy(K.width_, K.height_);
 
-	lapack_int ipiv[height_];
-	memset(ipiv,0, height_*sizeof(lapack_int));
-	
-	LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat, 
-		X_copy.lda_, ipiv );
+  K.transpose_into(&K_copy);
 
-	int err = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'N', X_copy.height_, 
-		K_copy.width_, X_copy.mat, X_copy.lda_, ipiv, K_copy.mat, K_copy.lda_);
-	
-	assert(err==0);
+  std::vector<lapack_int> ipiv(height_);
+  memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
 
-	K_copy.transpose(L);
+  LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
+                 X_copy.lda_, &ipiv[0]);
+
+  int err = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'N', X_copy.height_,
+                           K_copy.width_, X_copy.mat, X_copy.lda_, &ipiv[0],
+                           K_copy.mat, K_copy.lda_);
+
+  assert(err == 0);
+
+  K_copy.transpose_into(L);
 }
 
 
-// Performs interpolative decomposition, and eturns number of skeleton columns. 
-// Takes double /tol/, tolerance factorfor error in CPQR factorization. 
+// Performs interpolative decomposition, and eturns number of skeleton columns.
+// Takes double /tol/, tolerance factorfor error in CPQR factorization.
 // Populates /p/ with permutation, Z with linear transformation.
-int ie_Mat::id( std::vector<unsigned int>& p, ie_Mat& Z, double tol) const {
-	ie_Mat cpy;
-	this->copy(cpy);
-	lapack_int pvt[width_];
-	memset(pvt, 0, width_*sizeof(lapack_int));
-	
-	// /tau/ will contain an output from dgeqp3 that we don't need.
-	double tau[width_];
-	LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_, pvt, tau);
-	
-	unsigned int skel = 0;
-	double thresh = fabs(tol * cpy.get(0,0));
-	
-	for (unsigned int i = 1; i < width_; i++){
-		// check if R_{i,i} / R_{0,0} < tol
-		if(fabs(cpy.get(i,i)) < thresh){
-			skel = i;
-			break;
-		}
-	}
-	
-	if(skel == 0){
-		//no compression to be done :/
-		return 0;
-	}
+int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
+  ie_Mat cpy;
+  this->copy_into(&cpy);
+  std::vector<lapack_int> pvt(width_);
+  memset(&pvt[0], 0, width_ * sizeof(lapack_int));
 
-	for (unsigned int i = 0; i < width_; i++){
-		p.push_back(pvt[i]-1);
-	}
+  // /tau/ will contain an output from dgeqp3 that we don't need.
+  std::vector<double> tau(width_);
+  LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_, &pvt[0],
+                 &tau[0]);
 
-	int redund = width_ - skel;
-	
-	// set Z to be R_11^-1 R_12. Note 'U' (above diagonal) part of cp.mat
-	// is the R matrix from dgeqp3.
-	LAPACKE_dtrtrs(CblasColMajor, 'U', 'N', 'N', skel, redund, cpy.mat, 
-		cpy.lda_, cpy.mat + cpy.lda_ * skel, cpy.lda_);
-	
-	std::vector<unsigned int> I_;
-	std::vector<unsigned int> J_;
-	for(unsigned int i = 0; i < skel; i++) I_.push_back(i);
-	for(unsigned int i = skel; i < skel + redund; i++) J_.push_back(i);
-	Z = cpy(I_, J_);	
-	return skel;
+  unsigned int skel = 0;
+  double thresh = fabs(tol * cpy.get(0, 0));
+
+  for (unsigned int i = 1; i < width_; i++) {
+    // check if R_{i,i} / R_{0,0} < tol
+    if (fabs(cpy.get(i, i)) < thresh) {
+      skel = i;
+      break;
+    }
+  }
+
+  if (skel == 0) {
+    // no compression to be done :/
+    return 0;
+  }
+
+  for (unsigned int i = 0; i < width_; i++) {
+    p->push_back(pvt[i] - 1);
+  }
+
+  int redund = width_ - skel;
+
+  // set Z to be R_11^-1 R_12. Note 'U' (above diagonal) part of cp.mat
+  // is the R matrix from dgeqp3.
+  LAPACKE_dtrtrs(CblasColMajor, 'U', 'N', 'N', skel, redund, cpy.mat,
+                 cpy.lda_, cpy.mat + cpy.lda_ * skel, cpy.lda_);
+
+  std::vector<unsigned int> I_;
+  std::vector<unsigned int> J_;
+  for (unsigned int i = 0; i < skel; i++) I_.push_back(i);
+  for (unsigned int i = skel; i < skel + redund; i++) J_.push_back(i);
+  *Z = cpy(I_, J_);
+  return skel;
 }
 
 
-void ie_Mat::print() const{
-	std::string message = "\n(Printing matrix*1000)\n";
-	for(unsigned int i=0; i<height_; i++){
-		for(unsigned int j=0; j<width_; j++){
-			message += std::to_string(1000*get(i,j)) + " ";
-		}
-		message += "\n";
-	}
-	LOG::INFO(message);
+void ie_Mat::print() const {
+  std::string message = "\n(Printing matrix*1000)\n";
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      message += std::to_string(1000 * get(i, j)) + " ";
+    }
+    message += "\n";
+  }
+  LOG::INFO(message);
 }
 
 
-void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A, 
-	const ie_Mat& x, double beta, ie_Mat& b){
-	assert(A.height()*A.width()*x.height()*x.width() !=0 && 
-		"gemv needs positive dimensions only.");
-	assert(x.width() == 1 && "gemv only works on a column vector.");
-	assert(A.mat != nullptr && "gemv fails on null A mat.");
-	assert(x.mat != nullptr && "gemv fails on null x mat.");
-	assert(b.mat != nullptr && "gemv fails on null b mat.");
+void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
+                  const ie_Mat& x, double beta, ie_Mat* b) {
+  assert(A.height()*A.width()*x.height()*x.width() != 0 &&
+         "gemv needs positive dimensions only.");
+  assert(x.width() == 1 && "gemv only works on a column vector.");
+  assert(A.mat != nullptr && "gemv fails on null A mat.");
+  assert(x.mat != nullptr && "gemv fails on null x mat.");
+  assert(b->mat != nullptr && "gemv fails on null b mat.");
 
 
-	cblas_dgemv(CblasColMajor, trans0, A.height(), A.width(), alpha, A.mat, 
-		A.lda_, x.mat, 1, beta, b.mat, 1);
+  cblas_dgemv(CblasColMajor, trans0, A.height(), A.width(), alpha, A.mat,
+              A.lda_, x.mat, 1, beta, b->mat, 1);
 }
 
-void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1, 
-	double alpha, const ie_Mat& A, const ie_Mat& B, double beta, ie_Mat& C){
-	assert(A.height()*B.height()*A.width()*B.width()!=0 &&
-		"gemm needs positive dimensions only.");
-	assert(A.mat != nullptr && "gemm fails on null A mat.");
-	assert(B.mat != nullptr && "gemm fails on null B mat.");
-	assert(C.mat != nullptr && "gemm fails on null C mat.");
-	assert(A.mat != nullptr && "gemm fails on null A mat.");
-	assert(B.mat != nullptr && "gemm fails on null B mat.");
-	assert(C.mat != nullptr && "gemm fails on null C mat.");
+void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
+                  double alpha, const ie_Mat& A, const ie_Mat& B, double beta,
+                  ie_Mat* C) {
+  assert(A.height()*B.height()*A.width()*B.width() != 0 &&
+         "gemm needs positive dimensions only.");
+  assert(A.mat != nullptr && "gemm fails on null A mat.");
+  assert(B.mat != nullptr && "gemm fails on null B mat.");
+  assert(C->mat != nullptr && "gemm fails on null C mat.");
 
-	unsigned int k = (trans0 == CblasTrans) ? A.height() : A.width();
-	cblas_dgemm(CblasColMajor, trans0, trans1, C.height(), C.width(), 
-		k, alpha, A.mat, A.height(), B.mat, B.height(), beta, C.mat, 
-		C.height());
+  unsigned int k = (trans0 == CblasTrans) ? A.height() : A.width();
+  cblas_dgemm(CblasColMajor, trans0, trans1, C->height(), C->width(),
+              k, alpha, A.mat, A.height(), B.mat, B.height(), beta, C->mat,
+              C->height());
 }
 
-
-} // namespace ie_solver
+}  // namespace ie_solver

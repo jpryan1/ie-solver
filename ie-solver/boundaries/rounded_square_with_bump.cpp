@@ -1,12 +1,12 @@
 // Copyright 2019 John Paul Ryan
 #include <cmath>
-#include "ie-solver/boundaries/rounded_square.h"
+#include "ie-solver/boundaries/rounded_square_with_bump.h"
 #include "ie-solver/log.h"
 
 
 namespace ie_solver {
 
-void RoundedSquare::initialize(int N, int bc_enum) {
+void RoundedSquareWithBump::initialize(int N, int bc_enum) {
   if (bc_enum != BoundaryCondition::SINGLE_ELECTRON) {
     LOG::ERROR("Circle boundary can only do single electron bc currently.");
   }
@@ -205,7 +205,7 @@ void RoundedSquare::initialize(int N, int bc_enum) {
 }
 
 
-bool RoundedSquare::is_in_domain(const Vec2& a) {
+bool RoundedSquareWithBump::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
   double eps = 1e-2;
