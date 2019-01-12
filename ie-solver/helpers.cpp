@@ -141,7 +141,7 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
     if (std::isnan(domain.get(i / 2, 0))) {
       continue;
     }
-    max = std::max(max, std::abs(std::abs(potential - domain.get(i / 2, 0))));
+    max = std::max(max, std::abs(potential - domain.get(i / 2, 0)));
   }
   if (max <= id_tol * 100) {
     std::cout << "Solution looks good." << std::endl;
@@ -154,7 +154,7 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   // The default boundary is Circle, set it here.
   config->boundary.reset(new Circle());
-
+  bool enforce_factor_of_36 = false;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-pde")) {
       if (i < argc - 1) {
@@ -181,8 +181,8 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
     } else if (!strcmp(argv[i], "-h")) {
       LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
       LOG::INFO("\n\tusage: ./ie-solver -pde {LAPLACE|STOKES}"
-                " -boundary {CIRCLE|ROUNDED_SQUARE} -N"
-                " {number of nodes} -e {ID error tolerance} {-scaling}"
+                " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP}"
+                " -N {number of nodes} -e {ID error tolerance} {-scaling}"
                 " \nOmitting an arg triggers a default value.");
       return 0;
     } else if (!strcmp(argv[i], "-e")) {
@@ -195,8 +195,10 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
         if (!strcmp(argv[i + 1], "CIRCLE")) {
           config->boundary.reset(new Circle());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE")) {
+          enforce_factor_of_36 = true;
           config->boundary.reset(new RoundedSquare());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE_WITH_BUMP")) {
+          enforce_factor_of_36 = true;
           config->boundary.reset(new RoundedSquareWithBump());
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])
@@ -208,11 +210,14 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
     } else {
       LOG::ERROR("Unrecognized argument: " + std::string(argv[i]) +
                  "usage: ./ie-solver -pde {LAPLACE|STOKES}"
-                 " -boundary {CIRCLE|ROUNDED_SQUARE} -N"
-                 " {number of nodes} -e {ID error tolerance} {-scaling}"
+                 " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP}"
+                 " -N {number of nodes} -e {ID error tolerance} {-scaling}"
                  " \nOmitting an arg triggers a default value.");
       return 0;
     }
+  }
+  if (enforce_factor_of_36) {
+    config->N = 36 * (config->N / 36);
   }
   return 1;
   // TODO(John) after parsing, print out input configuration

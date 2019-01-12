@@ -58,8 +58,6 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   level_one->nodes.push_back(root);
   levels.push_back(level_one);
 
-
-
   // all near and far ranges should be taken care of by this guy
   for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
     recursive_add(this->root, boundary->points[i], boundary->points[i + 1],
@@ -109,7 +107,6 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   //    }
   //  }
   // }
-
 
   // make neighbor lists in a stupid way
   for (unsigned int j = 0; j < levels.size(); j++) {

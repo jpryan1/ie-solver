@@ -39,6 +39,7 @@ void boundary_integral_solve(const ie_solver_config& config,
   int dofs = config.boundary->points.size() / 2;
   QuadTree quadtree;
   quadtree.initialize_tree(config.boundary.get(), is_stokes);
+
   if (!is_time_trial) {
     quadtree.write_quadtree_to_file();
   }
@@ -90,7 +91,6 @@ void boundary_integral_solve(const ie_solver_config& config,
   }
 
   ie_solver_tools.skeletonize(kernel, &quadtree);
-
   ie_solver_tools.solve(kernel, quadtree, &phi, f);
 
   // This will be done as a sparse mat vec in the future, for now we do
