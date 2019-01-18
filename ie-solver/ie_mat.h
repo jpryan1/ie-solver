@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _IE_MAT_H_
-#define _IE_MAT_H_
+#ifndef IE_SOLVER_IE_MAT_H_
+#define IE_SOLVER_IE_MAT_H_
 
 #include <cblas.h>
 #include <vector>
@@ -64,4 +64,4 @@ struct ie_Mat {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_IE_MAT_H_

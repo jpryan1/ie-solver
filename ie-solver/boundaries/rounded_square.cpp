@@ -9,10 +9,9 @@ namespace ie_solver {
 
 
 void RoundedSquare::draw_line(int bc_index, int num_points,
-                                      double start_x, double start_y,
-                                      double end_x, double end_y,
-                                      bool normal_is_left, int bc_enum) {
-
+                              double start_x, double start_y,
+                              double end_x, double end_y,
+                              bool normal_is_left, int bc_enum) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
 
@@ -26,29 +25,27 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
     normal_y *= -1;
   }
   double weight = norm / num_points;
-
   for (int i = 0; i < num_points; i++) {
-    double x = start_x + (end_x - start_x) * ((i+0.0)/ num_points);
-    double y = start_y + (end_y - start_y) * ((i+0.0)/ num_points);
+    double x = start_x + (end_x - start_x) * ((i + 0.0) / num_points);
+    double y = start_y + (end_y - start_y) * ((i + 0.0) / num_points);
     points.push_back(x);
     points.push_back(y);
     normals.push_back(normal_x);
     normals.push_back(normal_y);
     curvatures.push_back(0);
-    if ( i != 0 && i != num_points - 1) {
+    if (i != 0 && i != num_points - 1) {
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
     boundary_condition.set(bc_index++, 0, potential);
   }
-
 }
 
 
 void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
-    double start_x, double start_y,
-    double end_x, double end_y, bool convex,
-    int bc_enum) {
+                                        double start_x, double start_y,
+                                        double end_x, double end_y, bool convex,
+                                        int bc_enum) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
   // From start_ to end_, a clockwise quartercircle is drawn. If convex, then
@@ -82,7 +79,6 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
     curvature *= -1;
   }
   double weight = 2.0 * M_PI * rad / (4.0 * num_points);
-
   for (int i = 0; i < num_points; i++) {
     double current_ang = ang - ((i * M_PI) / (2 * num_points));
     double x = c_x + rad * cos(current_ang);
@@ -98,7 +94,7 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
     normals.push_back(normal_x);
     normals.push_back(normal_y);
     curvatures.push_back(curvature);
-    if ( i != 0 && i != num_points - 1) {
+    if (i != 0 && i != num_points - 1) {
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
@@ -124,7 +120,6 @@ void RoundedSquare::initialize(int N, int bc_enum) {
 
   double middie = (0.8 / NUM_SIDE_POINTS) * 0.5 + (2 * M_PI * 0.05 /
                   (4 * NUM_CORN_POINTS)) * 0.5;
-
   int bc_idx = 0;
 
   // bottom side
@@ -174,7 +169,6 @@ void RoundedSquare::initialize(int N, int bc_enum) {
   draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.95, 0.1, 0.9, 0.05, true, 0);
   weights.push_back(middie);
   bc_idx += NUM_CORN_POINTS;
- 
 }
 
 
@@ -183,8 +177,8 @@ bool RoundedSquare::is_in_domain(const Vec2& a) {
 
   double eps = 1e-2;
 
-  if ( fabs(v[0] - 0.5) > 0.45 - eps
-       || fabs(v[1] - 0.5) > 0.45 - eps) {
+  if (fabs(v[0] - 0.5) > 0.45 - eps
+      || fabs(v[1] - 0.5) > 0.45 - eps) {
     return false;
   }
 

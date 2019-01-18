@@ -105,14 +105,13 @@ void boundary_integral_solve(const ie_solver_config& config,
   ie_Mat phi1(dim * dofs, 1);
   ie_solver_tools.sparse_matvec(K, quadtree, f, &phi1);
 
-  QuadTree quadtree2;
-  quadtree2.initialize_tree(config.boundary.get(), is_stokes);
+  quadtree.reset();
   std::cout << "\n\nReset" << std::endl;
 
-  ie_solver_tools.skeletonize(K, &quadtree2);
-  ie_solver_tools.check_factorization_against_kernel(K, &quadtree2);
+  ie_solver_tools.skeletonize(K, &quadtree);
+  ie_solver_tools.check_factorization_against_kernel(K, &quadtree);
   ie_Mat phi2(dim * dofs, 1);
-  ie_solver_tools.sparse_matvec(K, quadtree2, f, &phi2);
+  ie_solver_tools.sparse_matvec(K, quadtree, f, &phi2);
 
   phi2 -= phi1;
   std::cout << "Diff norm: " << phi2.norm2() << std::endl;

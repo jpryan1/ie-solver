@@ -1,2 +1,4 @@
 bazel-*
 output/
+ie-solver/._*
+ie-solver/*/._*

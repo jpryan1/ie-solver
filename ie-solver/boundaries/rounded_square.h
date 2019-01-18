@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _ROUNDED_SQUARE_H_
-#define _ROUNDED_SQUARE_H_
+#ifndef IE_SOLVER_BOUNDARIES_ROUNDED_SQUARE_H_
+#define IE_SOLVER_BOUNDARIES_ROUNDED_SQUARE_H_
 
 #include "ie-solver/boundaries/boundary.h"
 
@@ -20,9 +20,8 @@ class RoundedSquare : public Boundary {
   void draw_quarter_circle(int bc_index, int num_points, double start_x,
                            double start_y, double end_x, double end_y,
                            bool convex, int bc_enum);
-
 };
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_BOUNDARIES_ROUNDED_SQUARE_H_

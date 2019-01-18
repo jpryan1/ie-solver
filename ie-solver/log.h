@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _LOG_H_
-#define _LOG_H_
+#ifndef IE_SOLVER_LOG_H_
+#define IE_SOLVER_LOG_H_
 
 #include <string>
 
@@ -22,4 +22,4 @@ struct LOG {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_LOG_H_

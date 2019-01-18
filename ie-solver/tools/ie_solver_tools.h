@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _IE_SOLVER_TOOLS_H_
-#define _IE_SOLVER_TOOLS_H_
+#ifndef IE_SOLVER_TOOLS_IE_SOLVER_TOOLS_H_
+#define IE_SOLVER_TOOLS_IE_SOLVER_TOOLS_H_
 
 #include <vector>
 #include "ie-solver/ie_mat.h"
@@ -84,4 +84,4 @@ class IeSolverTools {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_TOOLS_IE_SOLVER_TOOLS_H_

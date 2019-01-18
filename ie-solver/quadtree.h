@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _QUADTREE_H_
-#define _QUADTREE_H_
+#ifndef IE_SOLVER_QUADTREE_H_
+#define IE_SOLVER_QUADTREE_H_
 
 #include <vector>
 #include "ie-solver/ie_mat.h"
@@ -78,6 +78,7 @@ class QuadTree {
   }
 
   void reset();
+  void reset(Boundary* boundary_);
 
   void initialize_tree(Boundary* boundary, bool is_stokes);
   void recursive_add(QuadTreeNode* node, double x, double y,
@@ -97,4 +98,4 @@ class QuadTree {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_QUADTREE_H_

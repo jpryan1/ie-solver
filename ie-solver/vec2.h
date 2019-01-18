@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _VEC2_H_
-#define _VEC2_H_
+#ifndef IE_SOLVER_VEC2_H_
+#define IE_SOLVER_VEC2_H_
 
 namespace ie_solver {
 
@@ -18,4 +18,4 @@ struct Vec2 {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_VEC2_H_
