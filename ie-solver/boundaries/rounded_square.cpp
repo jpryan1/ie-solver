@@ -9,9 +9,9 @@ namespace ie_solver {
 
 
 void RoundedSquare::draw_line(int bc_index, int num_points,
-                              double start_x, double start_y,
-                              double end_x, double end_y,
-                              bool normal_is_left, int bc_enum) {
+                                      double start_x, double start_y,
+                                      double end_x, double end_y,
+                                      bool normal_is_left, int bc_enum) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
 
@@ -25,6 +25,7 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
     normal_y *= -1;
   }
   double weight = norm / num_points;
+
   for (int i = 0; i < num_points; i++) {
     double x = start_x + (end_x - start_x) * ((i + 0.0) / num_points);
     double y = start_y + (end_y - start_y) * ((i + 0.0) / num_points);
@@ -33,7 +34,7 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
     normals.push_back(normal_x);
     normals.push_back(normal_y);
     curvatures.push_back(0);
-    if (i != 0 && i != num_points - 1) {
+    if (i != 0) {
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
@@ -43,15 +44,24 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
 
 
 void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
-                                        double start_x, double start_y,
-                                        double end_x, double end_y, bool convex,
-                                        int bc_enum) {
+    double start_x, double start_y,
+    double end_x, double end_y, bool convex,
+    int bc_enum) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
   // From start_ to end_, a clockwise quartercircle is drawn. If convex, then
   // normals point out from clock, else in.
   // Assumed for now that the slope of the line through the points is +/- 1
+
   double c_x, c_y, ang;
+  if (!convex) {
+    double swap = end_x;
+    end_x = start_x;
+    start_x = swap;
+    swap = end_y;
+    end_y = start_y;
+    start_y = swap;
+  }
   if (start_x < end_x) {
     if (start_y < end_y) {
       c_x = end_x;
@@ -73,14 +83,24 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
       ang = 0;
     }
   }
+  if (!convex) {
+    ang -= M_PI / 2.0;
+  }
+
   double rad = fabs(end_x - start_x);
   double curvature = 1.0 / rad;
   if (!convex) {
     curvature *= -1;
   }
   double weight = 2.0 * M_PI * rad / (4.0 * num_points);
+
   for (int i = 0; i < num_points; i++) {
-    double current_ang = ang - ((i * M_PI) / (2 * num_points));
+    double current_ang;
+    if (convex) {
+      current_ang = ang - ((i * M_PI) / (2 * num_points));
+    } else {
+      current_ang = ang + ((i * M_PI) / (2 * num_points));
+    }
     double x = c_x + rad * cos(current_ang);
     double y = c_y + rad * sin(current_ang);
     points.push_back(x);
@@ -94,7 +114,7 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
     normals.push_back(normal_x);
     normals.push_back(normal_y);
     curvatures.push_back(curvature);
-    if (i != 0 && i != num_points - 1) {
+    if (i != 0) {
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
@@ -125,49 +145,41 @@ void RoundedSquare::initialize(int N, int bc_enum) {
   // bottom side
   weights.push_back(middie);
   draw_line(bc_idx, NUM_SIDE_POINTS, 0.9, 0.05, 0.1, 0.05, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_SIDE_POINTS;
 
   // bottom left corner
   weights.push_back(middie);
   draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.1, 0.05, 0.05, 0.1, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_CORN_POINTS;
 
   // left side
   weights.push_back(middie);
   draw_line(bc_idx, NUM_SIDE_POINTS, 0.05, 0.1, 0.05, 0.9, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_SIDE_POINTS;
 
   // top left corner
   weights.push_back(middie);
   draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.05, 0.9, 0.1, 0.95, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_CORN_POINTS;
 
   // top side
   weights.push_back(middie);
   draw_line(bc_idx, NUM_SIDE_POINTS, 0.1, 0.95, 0.9, 0.95, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_SIDE_POINTS;
 
   // top right corner
   weights.push_back(middie);
   draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.9, 0.95, 0.95, 0.9, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_CORN_POINTS;
 
   // right side
   weights.push_back(middie);
   draw_line(bc_idx, NUM_SIDE_POINTS, 0.95, 0.9, 0.95, 0.1, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_SIDE_POINTS;
 
   // bottom right corner
   weights.push_back(middie);
   draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.95, 0.1, 0.9, 0.05, true, 0);
-  weights.push_back(middie);
   bc_idx += NUM_CORN_POINTS;
 }
 
