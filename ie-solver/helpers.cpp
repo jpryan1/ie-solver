@@ -130,6 +130,9 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
                             const std::vector<double>& domain_points,
                             Boundary* boundary) {
   double max = 0;
+  double diff_norm = 0;
+  double avg = 0;
+  double norm_of_true = 0;
   for (unsigned int i = 0; i < domain_points.size(); i += 2) {
     double x0 = domain_points[i];
     double x1 = domain_points[i + 1];
@@ -141,13 +144,17 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
     if (std::isnan(domain.get(i / 2, 0))) {
       continue;
     }
-    max = std::max(max, std::abs(potential - domain.get(i / 2, 0)));
+    double diff = std::abs(potential - domain.get(i / 2, 0));
+    avg += diff / potential;
+    diff_norm += pow(diff, 2);
+    norm_of_true += pow(potential, 2);
+    max = std::max(max, diff / potential);
   }
-  if (max <= id_tol * 100) {
-    std::cout << "Solution looks good." << std::endl;
-  } else {
-    std::cout << "Error max err too big: " << max << std::endl;
-  }
+  avg /= domain_points.size();
+  diff_norm = sqrt(diff_norm) / sqrt(norm_of_true);
+  std::cout << "Avg relative error: " << avg << "\nrelative error of solution: "
+            << "by 2norm " << diff_norm << "\nmax relative error: " << max
+            << std::endl;
 }
 
 
@@ -198,7 +205,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
           enforce_factor_of_36 = true;
           config->boundary.reset(new RoundedSquare());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE_WITH_BUMP")) {
-          enforce_factor_of_36 = true;
+          // enforce_factor_of_36 = true;
           config->boundary.reset(new RoundedSquareWithBump());
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])

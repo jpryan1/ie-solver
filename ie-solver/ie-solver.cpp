@@ -36,6 +36,12 @@ void boundary_integral_solve(const ie_solver_config& config,
     write_boundary_to_file(config.boundary->points);
   }
   // TODO(John) why not just N here?
+  // Answer: for now, and maybe this isn't ideal, but we allow the boundary init
+  // to choose a different number of points than N. My inclination is that this
+  // is obviously necessary. One way to simplify could be to only allow input to
+  // be small, medium, large, etc. or even how large on a scale from 1-10,
+  // then pass initialize a number which initialize must use as a lower bound.
+  // Or just treat the user's input as a lower bound. Hmm.
   int dofs = config.boundary->points.size() / 2;
   QuadTree quadtree;
   quadtree.initialize_tree(config.boundary.get(), is_stokes);

@@ -128,6 +128,7 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
   node->L = ie_Mat(num_skelnear, num_redundant);
   node->U = ie_Mat(num_redundant, num_skelnear);
+
   Xrr.right_multiply_inverse(K_BN(sn, r), &node->L);
   Xrr.left_multiply_inverse(K_BN(r, sn), &node->U);
 
@@ -168,5 +169,6 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
   }
   populate_active_box(tree->root);
 }
+
 
 }  // namespace ie_solver

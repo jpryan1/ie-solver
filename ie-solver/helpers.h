@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _HELPERS_H_
-#define _HELPERS_H_
+#ifndef IE_SOLVER_HELPERS_H_
+#define IE_SOLVER_HELPERS_H_
 
 #include <vector>
 #include <memory>
@@ -51,4 +51,4 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config);
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_HELPERS_H_

@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _CIRCLE_H_
-#define _CIRCLE_H_
+#ifndef IE_SOLVER_BOUNDARIES_CIRCLE_H_
+#define IE_SOLVER_BOUNDARIES_CIRCLE_H_
 
 #include "ie-solver/boundaries/boundary.h"
 
@@ -18,4 +18,4 @@ class Circle : public Boundary {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_BOUNDARIES_CIRCLE_H_

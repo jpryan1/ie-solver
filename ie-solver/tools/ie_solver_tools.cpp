@@ -55,7 +55,6 @@ void IeSolverTools::populate_all_active_boxes(QuadTree* tree) {
 }
 
 
-
 void IeSolverTools::populate_active_box(QuadTreeNode* node) {
   // this function removes from the box any DoFs which have already been made
   // redundant. It involves a bunch of annoying C++ functions and probably
@@ -91,7 +90,8 @@ void IeSolverTools::set_rs_ranges(InteractionLists* interaction_lists,
     interaction_lists->permutation.push_back(prm[i]);
   }
   for (unsigned int i = sk; i < sk + rd; i++) {
-    interaction_lists->redundant.push_back(interaction_lists->active_box[prm[i]]);
+    interaction_lists->redundant.push_back(
+      interaction_lists->active_box[prm[i]]);
     interaction_lists->permutation.push_back(prm[i]);
   }
 }

@@ -1,5 +1,6 @@
 // Copyright 2019 John Paul Ryan
 #include <cmath>
+#include <iostream>
 #include "ie-solver/kernel.h"
 
 namespace ie_solver {
@@ -84,7 +85,7 @@ double Kernel::stokes_kernel(unsigned int i, unsigned int j) const {
              * scale * t1 * t1;
     } else {
       return -0.5 * boundary->curvatures[dof_i] * boundary->weights[dof_i]
-        * scale * t0 * t1;
+             * scale * t0 * t1;
     }
   }
 

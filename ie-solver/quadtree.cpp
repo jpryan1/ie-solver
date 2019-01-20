@@ -27,12 +27,12 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
     if (point > max) max = point;
   }
   // this is a tad silly
-  double tree_min = min - (0.1 + rand() * (1.0 / RAND_MAX) * 1e-3);
-  double tree_max = max + (0.1 + rand() * (1.0 / RAND_MAX) * 1e-3);
+  // double tree_min = min - (0.1 + rand() * (1.0 / RAND_MAX) * 1e-3);
+  // double tree_max = max + (0.1 + rand() * (1.0 / RAND_MAX) * 1e-3);
 
   // JUST FOR DEBUGGING
-  // double tree_min = 0;//min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
-  // double tree_max = 1;//max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+  double tree_min = 0;  // min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+  double tree_max = 1;  // max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
 
   root = new QuadTreeNode();
   root->level = 0;
@@ -432,6 +432,20 @@ void QuadTree::reset() {
   levels.clear();
   QuadTreeNode::id_count = 0;
   initialize_tree(boundary, is_stokes);
+}
+
+void QuadTree::reset(Boundary* boundary_) {
+  if (root) {
+    delete root;
+  }
+  for (QuadTreeLevel* level : levels) {
+    if (level) {
+      delete level;
+    }
+  }
+  levels.clear();
+  QuadTreeNode::id_count = 0;
+  initialize_tree(boundary_, is_stokes);
 }
 
 }  // namespace ie_solver

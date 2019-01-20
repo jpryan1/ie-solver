@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _KERNEL_H_
-#define _KERNEL_H_
+#ifndef IE_SOLVER_KERNEL_H_
+#define IE_SOLVER_KERNEL_H_
 
 #include <vector>
 #include "ie-solver/boundaries/boundary.h"
@@ -29,4 +29,4 @@ struct Kernel {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_KERNEL_H_

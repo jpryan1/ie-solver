@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef _INITIALIZATION_H_
-#define _INITIALIZATION_H_
+#ifndef IE_SOLVER_INITIALIZATION_H_
+#define IE_SOLVER_INITIALIZATION_H_
 
 #include <vector>
 #include "ie-solver/ie_mat.h"
@@ -36,4 +36,4 @@ struct Initialization {
 
 }  // namespace ie_solver
 
-#endif
+#endif  // IE_SOLVER_INITIALIZATION_H_

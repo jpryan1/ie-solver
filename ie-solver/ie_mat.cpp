@@ -4,6 +4,7 @@
 #include <lapacke.h>
 #include <string>
 #include <cassert>
+#include <iostream>
 #include "ie-solver/ie_mat.h"
 #include "ie-solver/log.h"
 
@@ -57,7 +58,8 @@ void ie_Mat::resize(unsigned int h, unsigned int w) {
 void ie_Mat::copy_into(ie_Mat* copy) const {
   assert(height_ > 0 && width_ > 0 && mat != NULL);
   // check if we need a resize
-  if (height_ != copy->height_ || width_ != copy->width_ || lda_ != copy->lda_) {
+  if (height_ != copy->height_ || width_ != copy->width_
+      || lda_ != copy->lda_) {
     if (copy->mat) delete[] copy->mat;
     copy->lda_    = lda_;
     copy->height_ = height_;
@@ -235,7 +237,7 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
                  X_copy.lda_, &ipiv[0]);
 
   int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,
-                              K_copy.width_ , X_copy.mat , X_copy.lda_ , 
+                              K_copy.width_ , X_copy.mat , X_copy.lda_ ,
                               &ipiv[0] , K_copy.mat, K_copy.lda_);
 
   assert(status == 0);
