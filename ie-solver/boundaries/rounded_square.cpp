@@ -40,10 +40,10 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
     switch (boundary_condition) {
       case BoundaryCondition::SINGLE_ELECTRON:
-        boundary_values.set(i, 0, potential);
+        boundary_values.set(bc_index++, 0, potential);
         break;
       case BoundaryCondition::ALL_ONES:
-        boundary_values.set(i, 0, 1.0);
+        boundary_values.set(bc_index++, 0, 1.0);
         break;
     }
   }

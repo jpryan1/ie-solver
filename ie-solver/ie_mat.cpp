@@ -283,9 +283,10 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
 
   // /tau/ will contain an output from dgeqp3 that we don't need.
   std::vector<double> tau(width_);
-  LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_, &pvt[0],
-                 &tau[0]);
-
+  int info1 = LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_,
+                             &pvt[0],
+                             &tau[0]);
+  assert(info1 == 0);
   unsigned int skel = 0;
   double thresh = fabs(tol * cpy.get(0, 0));
 
@@ -296,7 +297,6 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
       break;
     }
   }
-
   if (skel == 0) {
     // no compression to be done :/
     return 0;
@@ -310,9 +310,11 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
 
   // set Z to be R_11^-1 R_12. Note 'U' (above diagonal) part of cp.mat
   // is the R matrix from dgeqp3.
-  LAPACKE_dtrtrs(CblasColMajor, 'U', 'N', 'N', skel, redund, cpy.mat,
-                 cpy.lda_, cpy.mat + cpy.lda_ * skel, cpy.lda_);
+  int info2 = LAPACKE_dtrtrs(CblasColMajor, 'U', 'N', 'N', skel, redund,
+                             cpy.mat, cpy.lda_, cpy.mat + cpy.lda_ * skel,
+                             cpy.lda_);
 
+  assert(info2 == 0);
   std::vector<unsigned int> I_;
   std::vector<unsigned int> J_;
   for (unsigned int i = 0; i < skel; i++) I_.push_back(i);

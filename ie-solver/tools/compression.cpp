@@ -5,6 +5,9 @@
 #include "ie-solver/tools/ie_solver_tools.h"
 #include "ie-solver/kernel.h"
 
+#define NODE_CAP INFINITY
+#define LEVEL_CAP INFINITY
+
 namespace ie_solver {
 
 int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
@@ -12,7 +15,7 @@ int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
   assert(node != nullptr && "InterpolativeDecomposition fails on null node.");
   assert(node->interaction_lists.active_box.size() > 0 &&
          "Num of DOFs must be positive in InterpolativeDecomposition.");
-
+  // TODO(John) better variable name
   ie_Mat pxy;
 
   make_id_mat(kernel, &pxy, tree, node);
@@ -51,12 +54,12 @@ void IeSolverTools::get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,
     Xnr = (*K)(n, r);
   }
 
-  ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z,       (*K)(s, r), 1., Xrr);
-  ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z,       (*K)(s, s), 1., &Xrs);
+  ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z, (*K)(s, r), 1., Xrr);
+  ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z, (*K)(s, s), 1., &Xrs);
   ie_Mat::gemm(NORMAL,    NORMAL, -1., Xrs,     Z,       1., Xrr);
   ie_Mat::gemm(NORMAL,    NORMAL, -1., (*K)(s, s), Z,       1., &Xsr);
   if (n_size > 0) {
-    ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z,     (*K)(s, n), 1., &Xrn);
+    ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z, (*K)(s, n), 1., &Xrn);
     ie_Mat::gemm(NORMAL,   NORMAL, -1., (*K)(n, s), Z,     1., &Xnr);
   }
 
@@ -142,15 +145,24 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
 
 void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
+  int node_counter = 0;
   unsigned int lvls = tree->levels.size();
   for (unsigned int level = lvls - 1; level > 0; level--) {
+    if (lvls - level > LEVEL_CAP) {
+      break;
+    }
     QuadTreeLevel* current_level = tree->levels[level];
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
+      node_counter++;
+      if (node_counter > NODE_CAP) {
+        break;
+      }
       QuadTreeNode* current_node = current_level->nodes[n];
-      // std::cout<<"Node "<<current_node->id<<std::endl;
       // check_factorization_against_kernel(kernel, tree);
       // First, get rid of inactive dofs
+
       populate_active_box(current_node);
+
       if (current_node->schur_updated) {
         continue;
       }
@@ -167,7 +179,9 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
       schur_update(kernel, current_node);
     }
   }
-  populate_active_box(tree->root);
+  // If the above breaks due to a cap, we need to manually propagate active
+  // boxes up the tree.
+  populate_all_active_boxes(tree);
 }
 
 
