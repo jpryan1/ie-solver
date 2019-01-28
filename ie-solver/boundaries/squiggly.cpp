@@ -93,8 +93,8 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
 
   // // points
   for (int i = 0; i < points.size(); i += 2) {
-    // points[i] = (1.05 + points[i]) * (0.9 / (3 * M_PI + 2.05));
-    // points[i + 1] = (1.05 + points[i + 1]) * (0.9 / (3 * M_PI + 2.05));
+    points[i] = (1.05 + points[i]) * (0.9 / (3 * M_PI + 2.05));
+    points[i + 1] = (1.05 + points[i + 1]) * (0.9 / (3 * M_PI + 2.05));
     double potential = log(sqrt(pow(points[i] + 2, 2) +
                                 pow(points[i + 1] + 2, 2))) / (2 * M_PI);
     switch (boundary_condition) {
@@ -106,26 +106,27 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
         break;
     }
   }
+
   // normals stay the same
   // weights
-  // for (int i = 0; i < weights.size(); i++) {
-  //   weights[i] = weights[i] * (0.9 / (3 * M_PI + 2.05));
-  // }
+  for (int i = 0; i < weights.size(); i++) {
+    weights[i] = weights[i] * (0.9 / (3 * M_PI + 2.05));
+  }
 
-  // // curvatures
-  // for (int i = 0; i < curvatures.size(); i++) {
-  //   curvatures[i] = curvatures[i] / (0.9 / (3 * M_PI + 2.05));
-  // }
+  // curvatures
+  for (int i = 0; i < curvatures.size(); i++) {
+    curvatures[i] = curvatures[i] / (0.9 / (3 * M_PI + 2.05));
+  }
 }
 
 
 bool Squiggly::is_in_domain(const Vec2 & a) {
   // Hacky, TODO(John) don't be hacky
   // Unscale the point, compare to original representation
-  // double x = -1.05 + (a.a[0] / (0.9 / (3 * M_PI + 2.05)));
-  // double y = -1.05 + (a.a[1] / (0.9 / (3 * M_PI + 2.05)));
-  double x = a.a[0];
-  double y = a.a[1];
+  double x = -1.05 + (a.a[0] / (0.9 / (3 * M_PI + 2.05)));
+  double y = -1.05 + (a.a[1] / (0.9 / (3 * M_PI + 2.05)));
+  // double x = a.a[0];
+  // double y = a.a[1];
 
   double eps = 1e-1;
 
@@ -133,7 +134,6 @@ bool Squiggly::is_in_domain(const Vec2 & a) {
       x - eps > -sin(y) && x + eps <  sin(y) + 3 * M_PI) {
     return true;
   }
-
   return false;
 }
 

@@ -23,16 +23,12 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   max = boundary->points[0];
 
   for (double point : boundary->points) {
+    assert(point > 0 && point < 1);
     if (point < min) min = point;
     if (point > max) max = point;
   }
-  // this is a tad silly
-  // double tree_min = 0;
-  // double tree_max = 1;
-
-  // JUST FOR DEBUGGING
-  double tree_min = -M_PI;  // min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
-  double tree_max = 4 * M_PI;  // max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+  double tree_min = 0;
+  double tree_max = 1;
 
   root = new QuadTreeNode();
   root->level = 0;
