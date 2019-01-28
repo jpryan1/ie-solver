@@ -101,13 +101,11 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
 
-  // TWO POSSIBLE FAILURE POINTS HERE:
   std::vector<unsigned int> allskel =
-    tree.root->interaction_lists.active_box;  // HERE
+    tree.root->interaction_lists.active_box;
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
-    std::cout << "Calling for updates from smv" << std::endl;
-    get_all_schur_updates(&allskel_mat, allskel, tree.root);  // HERE
+    get_all_schur_updates(&allskel_mat, allskel, tree.root);
     allskel_mat *= -1;
     allskel_mat += K(allskel, allskel);
     apply_diag_matrix(allskel_mat, b, allskel);
