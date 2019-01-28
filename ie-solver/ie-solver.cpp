@@ -30,7 +30,7 @@ void boundary_integral_solve(const ie_solver_config& config,
   //    printf("Turn down N or disable accuracy checking please\n");
   //    return;
   // }
-  config.boundary->initialize(N, Boundary::BoundaryCondition::SINGLE_ELECTRON);
+  config.boundary->initialize(N, config.boundary_condition);
 
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);

@@ -30,7 +30,7 @@ void boundary_integral_solve(const ie_solver_config& config,
   //  printf("Turn down N or disable accuracy checking please\n");
   //  return;
   // }
-  config.boundary->initialize(N, 0);
+  config.boundary->initialize(N, config.boundary_condition);
 
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);
@@ -118,7 +118,6 @@ void boundary_integral_solve(const ie_solver_config& config,
 }  // namespace ie_solver
 
 int main(int argc, char** argv) {
-  // TODO(John) allow for command line args for setting parameters
   srand(omp_get_wtime());
 
   ie_solver::ie_solver_config config;

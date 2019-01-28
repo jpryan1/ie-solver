@@ -167,6 +167,18 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
 
 
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
+  std::string usage = "\n\tusage: ./ie-solver "
+                      "-pde {LAPLACE|STOKES} "
+                      "-boundary {CIRCLE|ROUNDED_SQUARE|"
+                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY} "
+                      "-boundary_condition {SINGLE_ELECTRON|ALL_ONES} "
+                      "-N {number of nodes} "
+                      "-e {ID error tolerance} "
+                      "{-scaling} {-strong}"
+                      "\nOmitting an arg triggers a default value.";
+  std::string boundary_name = "CIRCLE";
+  std::string pde_name = "LAPLACE";
+  std::string boundary_condition_name = "SINGLE_ELECTRON";
   // The default boundary is Circle, set it here.
   config->boundary.reset(new Circle());
   int multiple = 1;
@@ -182,6 +194,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
                      + "\n Acceptable pdes: STOKES, LAPLACE");
           return 0;
         }
+        pde_name = argv[i + 1];
       }
       i++;
     } else if (!strcmp(argv[i], "-N")) {
@@ -195,10 +208,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
       config->scaling = true;
     } else if (!strcmp(argv[i], "-h")) {
       LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
-      LOG::INFO("\n\tusage: ./ie-solver -pde {LAPLACE|STOKES}"
-                " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP"
-                "|SQUIGGLY} -N {number of nodes} -e {ID error tolerance}"
-                " {-scaling}\nOmitting an arg triggers a default value.");
+      LOG::INFO(usage);
       return 0;
     } else if (!strcmp(argv[i], "-e")) {
       if (i < argc - 1) {
@@ -219,22 +229,48 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
           config->boundary.reset(new Squiggly());
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])
-                     + "\n Acceptable boundaries: CIRCLE, ROUNDED_SQUARE, "
-                     "ROUNDED_SQUARE_WITH_BUMP, SQUIGGLY");
+                     + usage);
           return 0;
         }
+        boundary_name = argv[i + 1];
+      }
+      i++;
+    } else if (!strcmp(argv[i], "-boundary_condition")) {
+      if (i < argc - 1) {
+        if (!strcmp(argv[i + 1], "SINGLE_ELECTRON")) {
+          config->boundary_condition =
+            Boundary::BoundaryCondition::SINGLE_ELECTRON;
+        } else if (!strcmp(argv[i + 1], "ALL_ONES")) {
+          config->boundary_condition = Boundary::BoundaryCondition::ALL_ONES;
+        } else {
+          LOG::ERROR("Unrecognized boundary_condition: " +
+                     std::string(argv[i + 1]) + "\n Acceptable "
+                     "boundary_conditions: SINGLE_ELECTRON, ALL_ONES");
+          return 0;
+        }
+        boundary_condition_name = argv[i + 1];
       }
       i++;
     } else {
-      LOG::ERROR("Unrecognized argument: " + std::string(argv[i]) +
-                 "usage: ./ie-solver -pde {LAPLACE|STOKES}"
-                 " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP"
-                 "|SQUIGGLY} -N {number of nodes} -e {ID error tolerance}"
-                 " {-scaling}\nOmitting an arg triggers a default value.");
+      LOG::ERROR("Unrecognized argument: " + std::string(argv[i]) + usage);
       return 0;
     }
   }
   config->N = multiple * (config->N / multiple);
+
+  LOG::INFO("PDE: " + pde_name);
+  LOG::INFO("Boundary: " + boundary_name);
+  LOG::INFO("Boundary condition: " + boundary_condition_name);
+  LOG::INFO("Number of nodes: " + std::to_string(config->N));
+  LOG::INFO("ID error tolerance: " + std::to_string(config->id_tol));
+  if (config->scaling) {
+    LOG::INFO("Scaling run");
+  }
+  if (config->admissibility == ie_solver_config::STRONG) {
+    LOG::INFO("Strong admissibility");
+  } else {
+    LOG::INFO("Weak admissibility");
+  }
 
   return 1;
   // TODO(John) after parsing, print out input configuration
