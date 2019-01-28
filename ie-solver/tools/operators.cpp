@@ -100,10 +100,14 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
   // We need all of the skeleton indices. This is just the negation of
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
-  std::vector<unsigned int> allskel = tree.root->interaction_lists.active_box;
+
+  // TWO POSSIBLE FAILURE POINTS HERE:
+  std::vector<unsigned int> allskel =
+    tree.root->interaction_lists.active_box;  // HERE
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
-    get_all_schur_updates(&allskel_mat, allskel, tree.root);
+    std::cout << "Calling for updates from smv" << std::endl;
+    get_all_schur_updates(&allskel_mat, allskel, tree.root);  // HERE
     allskel_mat *= -1;
     allskel_mat += K(allskel, allskel);
     apply_diag_matrix(allskel_mat, b, allskel);
@@ -188,13 +192,14 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
   std::vector<unsigned int> allskel = tree.root->interaction_lists.active_box;
-  ie_Mat allskel_mat(allskel.size(), allskel.size());
-  get_all_schur_updates(&allskel_mat, allskel, tree.root);
+  if (allskel.size() > 0) {
+    ie_Mat allskel_mat(allskel.size(), allskel.size());
+    get_all_schur_updates(&allskel_mat, allskel, tree.root);  // HERE
+    allskel_mat *= -1;
+    allskel_mat += K(allskel, allskel);
+    apply_diag_inv_matrix(allskel_mat, x, allskel);
+  }
 
-  allskel_mat *= -1;
-  allskel_mat += K(allskel, allskel);
-
-  apply_diag_inv_matrix(allskel_mat, x, allskel);
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = tree.levels[level];
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {

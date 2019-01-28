@@ -22,17 +22,17 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   min = boundary->points[0];
   max = boundary->points[0];
 
-  for ( double point : boundary->points ) {
+  for (double point : boundary->points) {
     if (point < min) min = point;
     if (point > max) max = point;
   }
   // this is a tad silly
-  // double tree_min = min - (0.1 + rand() * (1.0 / RAND_MAX) * 1e-3);
-  // double tree_max = max + (0.1 + rand() * (1.0 / RAND_MAX) * 1e-3);
+  double tree_min = 0;
+  double tree_max = 1;
 
   // JUST FOR DEBUGGING
-  double tree_min = -M_PI;  // min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
-  double tree_max = 4*M_PI;  // max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+  // double tree_min = -M_PI;  // min - (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
+  // double tree_max = 4 * M_PI;  // max + (0.1 + rand()*(1.0/RAND_MAX)*1e-3);
 
   root = new QuadTreeNode();
   root->level = 0;
@@ -133,7 +133,7 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   }
   for (unsigned int j = 0; j < levels.size(); j++) {
     QuadTreeLevel* current_level = levels[j];
-    for ( QuadTreeNode* node_a : current_level->nodes ) {
+    for (QuadTreeNode* node_a : current_level->nodes) {
       for (QuadTreeNode* neighbor : node_a->neighbors) {
         neighbor->interaction_lists.near.insert(
           neighbor->interaction_lists.near.end(),
@@ -152,9 +152,9 @@ void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
   add_index(&node->interaction_lists.original_box, mat_ind);
 
   // figure out which child
-  double midx = ((node->corners[6] - node->corners[0]) / 2.0 )
+  double midx = ((node->corners[6] - node->corners[0]) / 2.0)
                 + node->corners[0];
-  double midy = ((node->corners[3] - node->corners[1]) / 2.0 )
+  double midy = ((node->corners[3] - node->corners[1]) / 2.0)
                 + node->corners[1];
 
   QuadTreeNode* child;
@@ -188,9 +188,9 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
   node->is_leaf = false;
 
   QuadTreeNode *bl, *br, *tl, *tr;
-  double midx = ((node->corners[6] - node->corners[0]) / 2.0 )
+  double midx = ((node->corners[6] - node->corners[0]) / 2.0)
                 + node->corners[0];
-  double midy = ((node->corners[3] - node->corners[1]) / 2.0 )
+  double midy = ((node->corners[3] - node->corners[1]) / 2.0)
                 + node->corners[1];
 
   bl = new QuadTreeNode();
