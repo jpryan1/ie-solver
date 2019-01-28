@@ -9,9 +9,9 @@ namespace ie_solver {
 
 
 void RoundedSquare::draw_line(int bc_index, int num_points,
-                                      double start_x, double start_y,
-                                      double end_x, double end_y,
-                                      bool normal_is_left, int bc_enum) {
+                              double start_x, double start_y,
+                              double end_x, double end_y,
+                              bool normal_is_left) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
 
@@ -38,15 +38,22 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
-    boundary_condition.set(bc_index++, 0, potential);
+    switch (boundary_condition) {
+      case BoundaryCondition::SINGLE_ELECTRON:
+        boundary_values.set(i, 0, potential);
+        break;
+      case BoundaryCondition::ALL_ONES:
+        boundary_values.set(i, 0, 1.0);
+        break;
+    }
   }
 }
 
 
 void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
-    double start_x, double start_y,
-    double end_x, double end_y, bool convex,
-    int bc_enum) {
+                                        double start_x, double start_y,
+                                        double end_x, double end_y,
+                                        bool convex) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
   // From start_ to end_, a clockwise quartercircle is drawn. If convex, then
@@ -118,16 +125,22 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
-    boundary_condition.set(bc_index++, 0, potential);
+    switch (boundary_condition) {
+      case BoundaryCondition::SINGLE_ELECTRON:
+        boundary_values.set(bc_index++, 0, potential);
+        break;
+      case BoundaryCondition::ALL_ONES:
+        boundary_values.set(bc_index++, 0, 1.0);
+        break;
+    }
   }
 }
 
 
-void RoundedSquare::initialize(int N, int bc_enum) {
-  if (bc_enum != BoundaryCondition::SINGLE_ELECTRON) {
-    LOG::ERROR("RoundedSquare can only do single electron bc currently.");
-  }
-  boundary_condition = ie_Mat(N, 1);
+void RoundedSquare::initialize(int N, BoundaryCondition bc) {
+  boundary_condition = bc;
+
+  boundary_values = ie_Mat(N, 1);
 
   // This square will have side length 0.9 and will have BL corner 0.05, 0.05
 
@@ -144,42 +157,42 @@ void RoundedSquare::initialize(int N, int bc_enum) {
 
   // bottom side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.9, 0.05, 0.1, 0.05, true, 0);
+  draw_line(bc_idx, NUM_SIDE_POINTS, 0.9, 0.05, 0.1, 0.05, true);
   bc_idx += NUM_SIDE_POINTS;
 
   // bottom left corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.1, 0.05, 0.05, 0.1, true, 0);
+  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.1, 0.05, 0.05, 0.1, true);
   bc_idx += NUM_CORN_POINTS;
 
   // left side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.05, 0.1, 0.05, 0.9, true, 0);
+  draw_line(bc_idx, NUM_SIDE_POINTS, 0.05, 0.1, 0.05, 0.9, true);
   bc_idx += NUM_SIDE_POINTS;
 
   // top left corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.05, 0.9, 0.1, 0.95, true, 0);
+  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.05, 0.9, 0.1, 0.95, true);
   bc_idx += NUM_CORN_POINTS;
 
   // top side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.1, 0.95, 0.9, 0.95, true, 0);
+  draw_line(bc_idx, NUM_SIDE_POINTS, 0.1, 0.95, 0.9, 0.95, true);
   bc_idx += NUM_SIDE_POINTS;
 
   // top right corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.9, 0.95, 0.95, 0.9, true, 0);
+  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.9, 0.95, 0.95, 0.9, true);
   bc_idx += NUM_CORN_POINTS;
 
   // right side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.95, 0.9, 0.95, 0.1, true, 0);
+  draw_line(bc_idx, NUM_SIDE_POINTS, 0.95, 0.9, 0.95, 0.1, true);
   bc_idx += NUM_SIDE_POINTS;
 
   // bottom right corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.95, 0.1, 0.9, 0.05, true, 0);
+  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.95, 0.1, 0.9, 0.05, true);
   bc_idx += NUM_CORN_POINTS;
 }
 

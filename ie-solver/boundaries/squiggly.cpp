@@ -1,172 +1,141 @@
 // Copyright 2019 John Paul Ryan
 #include "ie-solver/boundaries/squiggly.h"
+#include <vector>
+#include <boost/math/special_functions/ellint_2.hpp>
 
 namespace ie_solver {
 
-// void squiggly(int N, std::vector<double>& points,
-// std::vector<double>& normals,
-//               std::vector<double>& curvatures,
-//               std::vector<double>& weights) {
+void Squiggly::draw_squiggle(int bc_index, int num_points, double start_x,
+                             double start_y, double end_x, double end_y) {
+  // By default, the normal vector is on the left, and the amplitude is 1.
+  // The strategy here is going to be to draw the squiggle on [0,3pi], then
+  // appropriately scale, rotate, and translate
+
+  double x_diff = end_x - start_x;
+  double y_diff = end_y - start_y;
+  double angle = atan2(y_diff, x_diff);
+  double scale = sqrt(pow(x_diff, 2) + pow(y_diff, 2)) / (3.0 * M_PI);
+  for (int i = 0; i < num_points; i++) {
+    double t = (3 * M_PI * i) / num_points;
+    double x = t;
+    double y = sin(t);
+
+    double x_prime = 1;
+    double y_prime = cos(t);
+
+    x *= scale;
+    x_prime *= scale;
+    double prime_norm = sqrt(pow(x_prime, 2) + pow(y_prime, 2));
+    double norm_x = -y_prime / prime_norm;
+    double norm_y = x_prime / prime_norm;
+
+    // curvature = (x'y''-y'x'') / |(x',y')|^3
+    double curvature = x_prime * (-sin(t)) / pow(x_prime +
+                       pow(cos(t), 2) , 1.5);
+    curvatures.push_back(curvature);
+
+    double transformed_x = cos(angle) * x - sin(angle) * y + start_x;
+    double transformed_y = sin(angle) * x + cos(angle) * y + start_y;
+    points.push_back(transformed_x);
+    points.push_back(transformed_y);
+
+    double transformed_x_norm = cos(angle) * norm_x - sin(angle) * norm_y;
+    double transformed_y_norm = sin(angle) * norm_x + cos(angle) * norm_y;
+    normals.push_back(transformed_x_norm);
+    normals.push_back(transformed_y_norm);
+  }
+
+
+  // now we need to figure out some arclengths
+  double k = 1.0 / sqrt(2.0);
+  int side_scale = num_points / 6;
+  std::vector<double> E(side_scale + 1);
+  E[0] = 0.0;  // this isn't used, just to make the indexing a bit easier
+  for (int i = 1; i < side_scale + 1; i++) {
+    double ang = 0.5 * M_PI * ((i + 0.0) / side_scale);
+    E[i] = scale * sqrt(2.0) * boost::math::ellint_2(k, ang);
+  }
+
+  for (int k = 0; k < 3; k++) {
+    weights.push_back(E[1]);
+
+    for (int i = 1; i < side_scale; i++) {
+      weights.push_back((E[i + 1] - E[i - 1]) / 2.0);
+    }
+
+
+    weights.push_back(E[side_scale] - E[side_scale - 1]);
+    for (int i = side_scale - 1; i >= 1; i--) {
+      weights.push_back((E[i + 1] - E[i - 1]) / 2.0);
+    }
+  }
+}
+
+
+void Squiggly::initialize(int N, BoundaryCondition bc) {
+  boundary_condition = bc;
+
+  int bc_index = 0;
+  boundary_values = ie_Mat(N, 1);
+  // Currently, we set boundary conditions in initialize, because we scale the
+  // points after drawing. TODO(John) scale before, so bc init can go in draw fn
+  int side_points = N / 4;
+  draw_squiggle(bc_index, side_points, 0, 0, 0, 3 * M_PI);
+  bc_index += side_points;
+  draw_squiggle(bc_index, side_points, 0, 3 * M_PI, 3 * M_PI, 3 * M_PI);
+  bc_index += side_points;
+  draw_squiggle(bc_index, side_points, 3 * M_PI, 3 * M_PI, 3 * M_PI, 0);
+  bc_index += side_points;
+  draw_squiggle(bc_index, side_points, 3 * M_PI, 0, 0, 0);
+  bc_index += side_points;
+
+  // Brave post-processing - lets put everyone in [0,1]x[0,1]
+
+  // // points
+  for (int i = 0; i < points.size(); i += 2) {
+    points[i] = (1.05 + points[i]) * (0.9 / (3 * M_PI + 2.05));
+    points[i + 1] = (1.05 + points[i + 1]) * (0.9 / (3 * M_PI + 2.05));
+    double potential = log(sqrt(pow(points[i] + 2, 2) +
+                                pow(points[i + 1] + 2, 2))) / (2 * M_PI);
+    switch (boundary_condition) {
+      case BoundaryCondition::SINGLE_ELECTRON:
+        boundary_values.set(i / 2, 0, potential);
+        break;
+      case BoundaryCondition::ALL_ONES:
+        boundary_values.set(i / 2, 0, 1.0);
+        break;
+    }
+  }
+  // normals stay the same
+  // weights
+  for (int i = 0; i < weights.size(); i++) {
+    weights[i] = weights[i] * (0.9 / (3 * M_PI + 2.05));
+  }
+
+  // curvatures
+  for (int i = 0; i < curvatures.size(); i++) {
+    curvatures[i] = curvatures[i] / (0.9 / (3 * M_PI + 2.05));
+  }
+}
+
+
+bool Squiggly::is_in_domain(const Vec2 & a) {
+  // Hacky, TODO(John) don't be hacky
+  // Unscale the point, compare to original representation
+  // double x = -1.05 + (a.a[0] / (0.9 / (3 * M_PI + 2.05)));
+  // double y = -1.05 + (a.a[1] / (0.9 / (3 * M_PI + 2.05)));
+  double x = a.a[0];
+  double y = a.a[1];
+
+  double eps = 1e-1;
+
+  if (y - eps > -sin(x) && y + eps <  sin(x) + 3 * M_PI &&
+      x - eps > -sin(y) && x + eps <  sin(y) + 3 * M_PI) {
+    return true;
+  }
+
+  return false;
+}
 
-
-
-//   int side_scale = N;
-//   int side_points = 6 * side_scale;
-
-//   std::vector<double> integrals(side_scale);
-
-
-//   // bottom
-//   for (int i = 0; i < side_points; i++) {
-//     //t ranges from 0 to 3pi
-//     double t = (3.0 * M_PI * i) / side_points;
-
-//     points.push_back(t);
-//     points.push_back(-sin(t));
-
-
-//     double x0 = 1;
-//     double x1 = -cos(t);
-//     double nrm = sqrt(pow(x0, 2) + pow(x1, 2));
-//     normals.push_back(x1 / nrm);
-//     normals.push_back(-x0 / nrm);
-
-
-//     curvatures.push_back(sin(t) / pow(1 + pow(cos(t), 2) , 1.5));
-
-//   }
-
-
-//   // right
-//   for (int i = 0; i < side_points; i++) {
-//     //t ranges from 0 to 3pi
-//     double t = (3.0 * M_PI * i) / side_points;
-
-//     points.push_back(3 * M_PI + sin(t));
-//     points.push_back(t);
-
-//     double x0 = cos(t);
-//     double x1 = 1;
-//     double nrm = sqrt(pow(x0, 2) + pow(x1, 2));
-//     normals.push_back(x1 / nrm);
-//     normals.push_back(-x0 / nrm);
-
-//     curvatures.push_back(sin(t) / pow(1 + pow(cos(t), 2) , 1.5));
-
-//   }
-
-//   // top
-//   for (int i = 0; i < side_points; i++) {
-//     //t ranges from 0 to 3pi
-//     double t = (3.0 * M_PI * i) / side_points;
-
-//     points.push_back(3 * M_PI - t);
-//     points.push_back(3 * M_PI + sin(3 * M_PI - t));
-
-
-
-//     double x0 = -1;
-//     double x1 = -cos(3 * M_PI - t);
-//     double nrm = sqrt(pow(x0, 2) + pow(x1, 2));
-//     normals.push_back(x1 / nrm);
-//     normals.push_back(-x0 / nrm);
-
-
-
-//     curvatures.push_back(sin(3 * M_PI - t) / pow(1 + pow(cos(3 * M_PI - t),
-// 2) ,
-//                          1.5));
-
-
-//   }
-
-//   // left
-//   for (int i = 0; i < side_points; i++) {
-//     //t ranges from 0 to 3pi
-//     double t = (3.0 * M_PI * i) / side_points;
-
-//     points.push_back(-sin(3 * M_PI - t));
-//     points.push_back(3 * M_PI - t);
-
-
-
-//     double x0 = cos(3 * M_PI - t);
-//     double x1 = -1;
-//     double nrm = sqrt(pow(x0, 2) + pow(x1, 2));
-//     normals.push_back(x1 / nrm);
-//     normals.push_back(-x0 / nrm);
-
-//     curvatures.push_back(sin(3 * M_PI - t) / pow(1 + pow(cos(3 * M_PI - t),
-// 2) ,
-//                          1.5));
-
-//   }
-
-
-
-
-
-
-//   // now we need to figure out some arclengths
-//   double k = 1.0 / sqrt(2.0);
-
-//   std::vector<double> E(side_scale + 1);
-//   E[0] = 0; //this isn't used, just to make the indexing a bit easier
-//   for (int i = 1; i < side_scale + 1; i++) {
-//     double ang = 0.5 * M_PI * ((i + 0.0) / side_scale);
-//     E[i] = sqrt(2) * boost::math::ellint_2(k, ang);
-
-//   }
-
-//   for (int k = 0; k < 12; k++) {
-//     weights.push_back(E[1]);
-
-//     for (int i = 1; i < side_scale; i++) {
-//       weights.push_back((E[i + 1] - E[i - 1]) / 2.0);
-//     }
-
-
-//     weights.push_back(E[side_scale] - E[side_scale - 1]);
-//     for (int i = side_scale - 1; i >= 1; i--) {
-//       weights.push_back((E[i + 1] - E[i - 1]) / 2.0);
-//     }
-//   }
-
-
-
-
-
-
-
-
-
-//   // //for exterior problem
-//   // for(int i=0; i<normals.size(); i++){
-//   //   normals[i] = -1*normals[i];
-//   // }
-// }
-
-
-
-
-
-// int out_of_squiggly(Vec2& a) {
-//   double x = a.a[0];
-//   double y = a.a[1];
-//   double eps = 1;
-//   if (y - eps > -sin(x)        &&
-//       y + eps <  sin(x) + 3 * M_PI &&
-//       x - eps > -sin(y)        &&
-//       x + eps <  sin(y) + 3 * M_PI) return 0;
-
-//   return 1;
-
-
-
-//   // if(y+eps>-sin(x) && y -eps< sin(x)+3*M_PI && x+eps>-sin(y) && x
-// -eps<sin(y)+3*M_PI) return 1;
-
-//   // return 0;
-// }
 
 }  // namespace ie_solver
