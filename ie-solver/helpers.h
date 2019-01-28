@@ -18,7 +18,7 @@
 
 namespace ie_solver {
 
-struct ie_solver_config{
+struct ie_solver_config {
   enum Pde {
     LAPLACE,
     STOKES
@@ -32,6 +32,8 @@ struct ie_solver_config{
   Pde pde = LAPLACE;
   Admissibility admissibility = WEAK;
   std::unique_ptr<Boundary> boundary;
+  Boundary::BoundaryCondition boundary_condition =
+    Boundary::BoundaryCondition::SINGLE_ELECTRON;
   bool scaling = false;
   std::ofstream n_scaling_output, error_scaling_output;
 };
@@ -41,13 +43,15 @@ struct ie_solver_config{
 void write_boundary_to_file(const std::vector<double>& points);
 void write_potential_to_file();
 void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
-  double* scale_eps, const std::vector<double>& eps_times);
+                          double* scale_eps,
+                          const std::vector<double>& eps_times);
 void write_solution_to_file(const ie_Mat& domain, const std::vector<double>&
-  domain_points, bool is_stokes);
+                            domain_points, bool is_stokes);
 void get_domain_points(std::vector<double>* points, double min,
-  double max);
+                       double max);
 void check_laplace_solution(const ie_Mat& domain, double id_tol,
-  const std::vector<double>& domain_points, Boundary* boundary);
+                            const std::vector<double>& domain_points,
+                            Boundary* boundary);
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config);
 
 }  // namespace ie_solver
