@@ -10,6 +10,7 @@
 #include "ie-solver/boundaries/circle.h"
 #include "ie-solver/boundaries/rounded_square.h"
 #include "ie-solver/boundaries/rounded_square_with_bump.h"
+#include "ie-solver/boundaries/squiggly.h"
 
 #define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
 #define DEFAULT_ID_TOL 1e-6

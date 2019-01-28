@@ -30,7 +30,7 @@ void boundary_integral_solve(const ie_solver_config& config,
   //    printf("Turn down N or disable accuracy checking please\n");
   //    return;
   // }
-  config.boundary->initialize(N, 0);
+  config.boundary->initialize(N, Boundary::BoundaryCondition::ALL_ONES);
 
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);
@@ -77,7 +77,7 @@ void boundary_integral_solve(const ie_solver_config& config,
     // notice here we are passing the normals since the flow will just be
     // unit tangent to the boundary.
   } else {
-    f = config.boundary->boundary_condition;
+    f = config.boundary->boundary_values;
   }
 
   ie_Mat phi(dim * dofs, 1);
@@ -95,7 +95,6 @@ void boundary_integral_solve(const ie_solver_config& config,
     skel_times->push_back(elapsed / TIMING_ITERATIONS);
     return;
   }
-
   ie_solver_tools.skeletonize(kernel, &quadtree);
   ie_solver_tools.solve(kernel, quadtree, &phi, f);
 
@@ -119,6 +118,7 @@ void boundary_integral_solve(const ie_solver_config& config,
 
 int main(int argc, char** argv) {
   // TODO(John) allow for command line args for setting parameters
+  srand(omp_get_wtime());
 
   ie_solver::ie_solver_config config;
   if (!ie_solver::parse_input_into_config(argc, argv, &config)) {

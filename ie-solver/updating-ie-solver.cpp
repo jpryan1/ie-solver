@@ -20,8 +20,6 @@ namespace ie_solver {
 
 void boundary_integral_solve(const ie_solver_config& config,
                              std::vector<double>* skel_times = nullptr) {
-  srand(omp_get_wtime());
-
   bool is_stokes = (config.pde == ie_solver_config::STOKES);
   bool is_time_trial = (skel_times != nullptr);
   int N = config.N;
@@ -121,6 +119,7 @@ void boundary_integral_solve(const ie_solver_config& config,
 
 int main(int argc, char** argv) {
   // TODO(John) allow for command line args for setting parameters
+  srand(omp_get_wtime());
 
   ie_solver::ie_solver_config config;
   if (!ie_solver::parse_input_into_config(argc, argv, &config)) {

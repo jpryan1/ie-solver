@@ -7,20 +7,20 @@
 
 
 namespace ie_solver {
-void RoundedSquareWithBump::reinitialize(int N, int bc_enum, int bump) {
+void RoundedSquareWithBump::reinitialize(int N, int bump) {
   points.clear();
   normals.clear();
   weights.clear();
   curvatures.clear();
   bump_size = bump;
-  initialize(N, bc_enum);
+  initialize(N, boundary_condition);
 }
 
 
 void RoundedSquareWithBump::draw_line(int bc_index, int num_points,
                                       double start_x, double start_y,
                                       double end_x, double end_y,
-                                      bool normal_is_left, int bc_enum) {
+                                      bool normal_is_left) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
 
@@ -47,15 +47,14 @@ void RoundedSquareWithBump::draw_line(int bc_index, int num_points,
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
-    boundary_condition.set(bc_index++, 0, potential);
+    boundary_values.set(bc_index++, 0, potential);
   }
 }
 
 
 void RoundedSquareWithBump::draw_quarter_circle(int bc_index, int num_points,
     double start_x, double start_y,
-    double end_x, double end_y, bool convex,
-    int bc_enum) {
+    double end_x, double end_y, bool convex) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
   // From start_ to end_, a clockwise quartercircle is drawn. If convex, then
@@ -127,15 +126,20 @@ void RoundedSquareWithBump::draw_quarter_circle(int bc_index, int num_points,
       weights.push_back(weight);
     }
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
-    boundary_condition.set(bc_index++, 0, potential);
+    switch (boundary_condition) {
+      case BoundaryCondition::SINGLE_ELECTRON:
+        boundary_values.set(bc_index++, 0, potential);
+        break;
+      case BoundaryCondition::ALL_ONES:
+        boundary_values.set(bc_index++, 0, 1.0);
+        break;
+    }
   }
 }
 
 
-void RoundedSquareWithBump::initialize(int N, int bc_enum) {
-  if (bc_enum != BoundaryCondition::SINGLE_ELECTRON) {
-    LOG::ERROR("Circle boundary can only do single electron bc currently.");
-  }
+void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
+  boundary_condition = bc;
 
   // For now we ignore N and force the number of discretization points.
   int line_points = 128;
@@ -147,7 +151,7 @@ void RoundedSquareWithBump::initialize(int N, int bc_enum) {
   // similar.
   N = 22 * line_points + 8 * corner_points;
 
-  boundary_condition = ie_Mat(N, 1);
+  boundary_values = ie_Mat(N, 1);
 
   int bc_index = 0;
 
@@ -155,92 +159,90 @@ void RoundedSquareWithBump::initialize(int N, int bc_enum) {
   // line ed
 
   weights.push_back(middie);
-  draw_line(bc_index, 6 * line_points, 0.8, 0.1, 0.2, 0.1, true, 0);
+  draw_line(bc_index, 6 * line_points, 0.8, 0.1, 0.2, 0.1, true);
   bc_index += 6 * line_points;
 
   // corner d
 
   weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.2, 0.1, 0.1, 0.2, true, 0);
+  draw_quarter_circle(bc_index, corner_points, 0.2, 0.1, 0.1, 0.2, true);
   bc_index += corner_points;
 
   // line dc
 
   weights.push_back(middie);
-  draw_line(bc_index, line_points, 0.1, 0.2, 0.1, 0.3, true, 0);
+  draw_line(bc_index, line_points, 0.1, 0.2, 0.1, 0.3, true);
   bc_index += line_points;
 
   // corner c
 
   weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.1, 0.3, 0.2, 0.4, true, 0);
+  draw_quarter_circle(bc_index, corner_points, 0.1, 0.3, 0.2, 0.4, true);
   bc_index += corner_points;
 
   // line co
   double o_x = 0.2 + ((0.0 + bump_size) / line_points) * 0.1;
   weights.push_back(middie);
-  draw_line(bc_index, bump_size, 0.2, 0.4, o_x, 0.4, true, 0);
+  draw_line(bc_index, bump_size, 0.2, 0.4, o_x, 0.4, true);
   bc_index += line_points;
 
   // corner o1
   // Careful here, not middie between two quarter circles
   weights.push_back(corner_weight);
-  draw_quarter_circle(bc_index, corner_points, o_x, 0.4, o_x + 0.1, 0.5, false,
-                      0);
+  draw_quarter_circle(bc_index, corner_points, o_x, 0.4, o_x + 0.1, 0.5, false);
   bc_index += corner_points;
 
   // corner o2
 
   weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, o_x + 0.1, 0.5, o_x, 0.6, false,
-                      0);
+  draw_quarter_circle(bc_index, corner_points, o_x + 0.1, 0.5, o_x, 0.6, false);
   bc_index += corner_points;
 
   // line ob
   weights.push_back(middie);
-  draw_line(bc_index, line_points, 0.3, 0.6, 0.2, 0.6, true, 0);
+  draw_line(bc_index, line_points, 0.3, 0.6, 0.2, 0.6, true);
   bc_index += line_points;
 
   // corner b
 
   weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.2, 0.6, 0.1, 0.7, true, 0);
+  draw_quarter_circle(bc_index, corner_points, 0.2, 0.6, 0.1, 0.7, true);
   bc_index += corner_points;
 
   // line ba
 
   weights.push_back(middie);
-  draw_line(bc_index, line_points, 0.1, 0.7, 0.1, 0.8, true, 0);
+  draw_line(bc_index, line_points, 0.1, 0.7, 0.1, 0.8, true);
   bc_index += line_points;
 
   // corner a
 
   weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.1, 0.8, 0.2, 0.9, true, 0);
+  draw_quarter_circle(bc_index, corner_points, 0.1, 0.8, 0.2, 0.9, true);
   bc_index += corner_points;
 
   // line af
 
   weights.push_back(middie);
-  draw_line(bc_index, 6 * line_points, 0.2, 0.9, 0.8, 0.9, true, 0);
+  draw_line(bc_index, 6 * line_points, 0.2, 0.9, 0.8, 0.9, true);
   bc_index += 6 * line_points;
 
   // corner f
 
   weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.8, 0.9, 0.9, 0.8, true, 0);
+  draw_quarter_circle(bc_index, corner_points, 0.8, 0.9, 0.9, 0.8, true);
   bc_index += corner_points;
 
   // line fe
 
   weights.push_back(middie);
-  draw_line(bc_index, 6 * line_points, 0.9, 0.8, 0.9, 0.2, true, 0);
+  draw_line(bc_index, 6 * line_points, 0.9, 0.8, 0.9, 0.2, true);
   bc_index += 6 * line_points;
 
   // corner e
 
   weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true, 0);
+  draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
 
   assert(weights.size() == N);

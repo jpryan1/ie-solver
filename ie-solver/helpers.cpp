@@ -140,7 +140,15 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
     if (!boundary->is_in_domain(x)) {
       continue;
     }
-    double potential = log(sqrt(pow(x0 + 2, 2) + pow(x1 + 2, 2))) / (2 * M_PI);
+    double potential;
+    switch (boundary->boundary_condition) {
+      case Boundary::BoundaryCondition::SINGLE_ELECTRON:
+        potential = log(sqrt(pow(x0 + 2, 2) + pow(x1 + 2, 2))) / (2 * M_PI);
+        break;
+      case Boundary::BoundaryCondition::ALL_ONES:
+        potential = 1.0;
+        break;
+    }
     if (std::isnan(domain.get(i / 2, 0))) {
       continue;
     }
@@ -161,7 +169,7 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   // The default boundary is Circle, set it here.
   config->boundary.reset(new Circle());
-  bool enforce_factor_of_36 = false;
+  int multiple = 1;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-pde")) {
       if (i < argc - 1) {
@@ -188,9 +196,9 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
     } else if (!strcmp(argv[i], "-h")) {
       LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
       LOG::INFO("\n\tusage: ./ie-solver -pde {LAPLACE|STOKES}"
-                " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP}"
-                " -N {number of nodes} -e {ID error tolerance} {-scaling}"
-                " \nOmitting an arg triggers a default value.");
+                " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP"
+                "|SQUIGGLY} -N {number of nodes} -e {ID error tolerance}"
+                " {-scaling}\nOmitting an arg triggers a default value.");
       return 0;
     } else if (!strcmp(argv[i], "-e")) {
       if (i < argc - 1) {
@@ -202,14 +210,17 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
         if (!strcmp(argv[i + 1], "CIRCLE")) {
           config->boundary.reset(new Circle());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE")) {
-          enforce_factor_of_36 = true;
+          multiple = 36;
           config->boundary.reset(new RoundedSquare());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE_WITH_BUMP")) {
-          // enforce_factor_of_36 = true;
           config->boundary.reset(new RoundedSquareWithBump());
+        } else if (!strcmp(argv[i + 1], "SQUIGGLY")) {
+          multiple = 24;
+          config->boundary.reset(new Squiggly());
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])
-                     + "\n Acceptable boundaries: CIRCLE, ROUNDED_SQUARE");
+                     + "\n Acceptable boundaries: CIRCLE, ROUNDED_SQUARE, "
+                     "ROUNDED_SQUARE_WITH_BUMP, SQUIGGLY");
           return 0;
         }
       }
@@ -217,15 +228,14 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
     } else {
       LOG::ERROR("Unrecognized argument: " + std::string(argv[i]) +
                  "usage: ./ie-solver -pde {LAPLACE|STOKES}"
-                 " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP}"
-                 " -N {number of nodes} -e {ID error tolerance} {-scaling}"
-                 " \nOmitting an arg triggers a default value.");
+                 " -boundary {CIRCLE|ROUNDED_SQUARE|ROUNDED_SQUARE_WITH_BUMP"
+                 "|SQUIGGLY} -N {number of nodes} -e {ID error tolerance}"
+                 " {-scaling}\nOmitting an arg triggers a default value.");
       return 0;
     }
   }
-  if (enforce_factor_of_36) {
-    config->N = 36 * (config->N / 36);
-  }
+  config->N = multiple * (config->N / multiple);
+
   return 1;
   // TODO(John) after parsing, print out input configuration
 }

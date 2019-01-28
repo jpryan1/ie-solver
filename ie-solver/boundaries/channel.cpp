@@ -2,10 +2,8 @@
 #include "ie-solver/boundaries/channel.h"
 
 namespace ie_solver {
-// void channel(std::vector<double>& points, std::vector<double>& normals,
-//              std::vector<double>& curvatures,
-//              std::vector<double>& weights) {
 
+void Squiggly::initialize(int N, int bc_enum) {
 //   int flat_points = 4;
 //   int sine_points = 16 * flat_points;
 
@@ -177,14 +175,13 @@ namespace ie_solver {
 //   double avg = (dist1+dist2)/2.0;
 //   printf("%f %f\n", weights[w_ind] , avg);
 // }
-
-// }
-
+}
 
 
 
 
-// int out_of_channel(Vec2& a) {
+
+bool Squiggly::is_in_domain(const Vec2& a) {
 //   double x = a.a[0];
 //   double y = a.a[1];
 //   double eps = 1e-1;
@@ -193,6 +190,5 @@ namespace ie_solver {
 
 //   if (x > 0 && x < 2 * M_PI && (y < -cos(x) || y > cos(x) + 3.5)) return 1;
 //   return 0;
-
-// }
+}
 }  // namespace ie_solver

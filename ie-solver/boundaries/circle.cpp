@@ -5,11 +5,9 @@
 
 namespace ie_solver {
 
-void Circle::initialize(int N, int bc_enum) {
-  boundary_condition = ie_Mat(N, 1);
-  if (bc_enum != BoundaryCondition::SINGLE_ELECTRON) {
-    LOG::ERROR("Circle boundary can only do single electron bc currently.");
-  }
+void Circle::initialize(int N, BoundaryCondition bc) {
+  boundary_values = ie_Mat(N, 1);
+  boundary_condition = bc;
 
   for (int i = 0; i < N; i++) {
     double ang = i * 2.0 * M_PI / N;
@@ -23,7 +21,14 @@ void Circle::initialize(int N, int bc_enum) {
     weights.push_back(M_PI / (N * 2));
 
     double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
-    boundary_condition.set(i, 0, potential);
+    switch (boundary_condition) {
+      case BoundaryCondition::SINGLE_ELECTRON:
+        boundary_values.set(i, 0, potential);
+        break;
+      case BoundaryCondition::ALL_ONES:
+        boundary_values.set(i, 0, 1.0);
+        break;
+    }
   }
 }
 

@@ -11,8 +11,13 @@ namespace ie_solver {
 class Boundary {
  public:
   std::vector<double> points, normals, curvatures, weights;
-  ie_Mat boundary_condition;
-  virtual void initialize(int n, int bc_enum) = 0;
+  enum BoundaryCondition {
+    SINGLE_ELECTRON,
+    ALL_ONES
+  };
+  ie_Mat boundary_values;
+  BoundaryCondition boundary_condition;
+  virtual void initialize(int n, BoundaryCondition bc) = 0;
   virtual bool is_in_domain(const Vec2& a) = 0;
 };
 
