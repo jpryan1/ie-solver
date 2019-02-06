@@ -25,7 +25,7 @@ void IeSolverTools::check_factorization_against_kernel(const Kernel& kernel,
   assert(tree->boundary->points.size() % 2 == 0);
   populate_all_active_boxes(tree);
   unsigned int dofs = tree->boundary->points.size() / 2;
-  int rand_idx = rand() % dofs;
+  int rand_idx = 0;  // rand() % dofs;
   ie_Mat e1(dofs, 1);
   for (unsigned int i = 0; i < dofs; i++) {
     e1.set(i, 0, 0);

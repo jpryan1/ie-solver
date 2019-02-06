@@ -1,18 +1,21 @@
 // Copyright 2019 John Paul Ryan
 #include <cassert>
+#include <iostream>
 #include "ie-solver/tools/ie_solver_tools.h"
 
 namespace ie_solver {
 
 void IeSolverTools::get_all_schur_updates(ie_Mat* updates,
-    const std::vector<unsigned int>& BN, const QuadTreeNode* node) {
+    const std::vector<unsigned int>& BN, QuadTreeNode* node,
+    bool get_neighbors) {
   assert(node != nullptr && "get_all_schur_updates fails on null node.");
   assert(BN.size() > 0 && "get_all_schur_updates needs positive num of DOFs");
-
+  std::cout << "Called on " << BN.size() << " indices " << std::endl;
   if (!node->is_leaf) get_descendents_updates(updates, BN, node);
 
-  if (strong_admissibility) {
+  if (get_neighbors) {
     for (QuadTreeNode* neighbor : node->neighbors) {
+      if (neighbor->level != node->level) continue;
       if (neighbor->schur_updated) get_update(updates, BN, neighbor);
       if (!neighbor->is_leaf) get_descendents_updates(updates, BN, neighbor);
     }
@@ -21,7 +24,7 @@ void IeSolverTools::get_all_schur_updates(ie_Mat* updates,
 
 
 void IeSolverTools::get_descendents_updates(ie_Mat* updates,
-    const std::vector<unsigned int>& BN, const QuadTreeNode* node) {
+    const std::vector<unsigned int>& BN, QuadTreeNode* node) {
   assert(node != nullptr && "get_descendents_updates fails on null node.");
   assert(!node->is_leaf &&
          "get_descendents_updates must be called on non-leaf.");

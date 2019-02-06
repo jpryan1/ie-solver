@@ -7,15 +7,6 @@
 
 
 namespace ie_solver {
-void RoundedSquareWithBump::reinitialize(int N, int bump) {
-  points.clear();
-  normals.clear();
-  weights.clear();
-  curvatures.clear();
-  bump_size = bump;
-  initialize(N, boundary_condition);
-}
-
 
 void RoundedSquareWithBump::draw_line(int bc_index, int num_points,
                                       double start_x, double start_y,
@@ -140,18 +131,21 @@ void RoundedSquareWithBump::draw_quarter_circle(int bc_index, int num_points,
 
 void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   boundary_condition = bc;
-
+  points.clear();
+  normals.clear();
+  weights.clear();
+  curvatures.clear();
   // For now we ignore N and force the number of discretization points.
-  int line_points = 128;
-  int corner_points = 192;  // = 128*1.5
+  int line_points = N / 32;
+  int corner_points = 3 * N / 64;  // = 128*1.5
   double line_weight = 0.1 / line_points;
   double corner_weight = (M_PI / 20.0) / corner_points;
   double middie = (line_weight + corner_weight) / 2.0;
   // The idea is that line_weight and corner_weight should hopefully be very
   // similar.
-  N = 22 * line_points + 8 * corner_points;
 
-  boundary_values = ie_Mat(N, 1);
+
+  boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
 
   int bc_index = 0;
 
@@ -181,10 +175,10 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   bc_index += corner_points;
 
   // line co
-  double o_x = 0.2 + ((0.0 + bump_size) / line_points) * 0.1;
+  double o_x = 0.2 + ((0.0 + perturbation_size) / line_points) * 0.1;
   weights.push_back(middie);
-  draw_line(bc_index, bump_size, 0.2, 0.4, o_x, 0.4, true);
-  bc_index += line_points;
+  draw_line(bc_index, perturbation_size, 0.2, 0.4, o_x, 0.4, true);
+  bc_index += perturbation_size;
 
   // corner o1
   // Careful here, not middie between two quarter circles
@@ -200,8 +194,8 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
 
   // line ob
   weights.push_back(middie);
-  draw_line(bc_index, line_points, 0.3, 0.6, 0.2, 0.6, true);
-  bc_index += line_points;
+  draw_line(bc_index, perturbation_size, o_x, 0.6, 0.2, 0.6, true);
+  bc_index += perturbation_size;
 
   // corner b
 
@@ -244,8 +238,7 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
-
-  assert(weights.size() == N);
+  assert(bc_index == N + 2*perturbation_size);
 }
 
 // TODO(John) consider generalizing this somehow.
@@ -253,12 +246,15 @@ bool RoundedSquareWithBump::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
   double eps = 1e-2;
+  int line_points = (boundary_values.height()-2*perturbation_size) / 32;
 
-  double o_dist = sqrt(pow(v[0] - 0.4, 2) + pow(v[1] - 0.5, 2));
+  double o_x = 0.2 + ((0.0 + perturbation_size) / line_points) * 0.1;
+
+  double o_dist = sqrt(pow(v[0] - o_x, 2) + pow(v[1] - 0.5, 2));
   if (o_dist - eps < 0.1) {
     return false;
   }
-  if (v[0] - eps < 0.4 && v[1] - eps < 0.6 && v[1] + eps > 0.4) {
+  if (v[0] - eps < o_x && v[1] - eps < 0.6 && v[1] + eps > 0.4) {
     return false;
   }
   if (v[0] + eps < 0.8 && v[0] - eps > 0.2 && v[1] + eps < 0.8

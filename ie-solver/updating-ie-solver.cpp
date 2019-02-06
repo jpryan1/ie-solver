@@ -22,7 +22,6 @@ void boundary_integral_solve(const ie_solver_config& config,
                              std::vector<double>* skel_times = nullptr) {
   bool is_stokes = (config.pde == ie_solver_config::STOKES);
   bool is_time_trial = (skel_times != nullptr);
-  int N = config.N;
   double id_tol = config.id_tol;
 
   // TODO(John) insert comment here explaining why this is necessary
@@ -30,7 +29,8 @@ void boundary_integral_solve(const ie_solver_config& config,
   //  printf("Turn down N or disable accuracy checking please\n");
   //  return;
   // }
-  config.boundary->initialize(N, config.boundary_condition);
+  config.boundary->perturbation_size = 0;
+  config.boundary->initialize(config.N, config.boundary_condition);
 
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);
@@ -50,19 +50,19 @@ void boundary_integral_solve(const ie_solver_config& config,
     (config.admissibility == ie_solver_config::STRONG);
   IeSolverTools ie_solver_tools(id_tol, strong_admissibility, is_stokes);
 
-  Kernel K;
+  Kernel kernel;
 
-  K.load(config.boundary.get(), is_stokes);
+  kernel.load(config.boundary.get(), is_stokes);
 
   // Now we calculate the solution to the PDE inside the domain by setting
   // up the relevant linear system.
 
   int dim = is_stokes ? 2 : 1;
 
-  Initialization init;
+  std::vector<double> domain_points;
+  get_domain_points(&domain_points, quadtree.min, quadtree.max);
 
-  // init.Electric_InitializeDomainKernel(K_domain, points,
-  //  domain_points, TEST_SIZE, config.boundary.get());
+  Initialization init;
 
   ie_Mat f(dim * dofs, 1);
   // TODO(John) get rid of these damn if(is_stokes) statements, push them to the
@@ -72,7 +72,7 @@ void boundary_integral_solve(const ie_solver_config& config,
     // notice here we are passing the normals since the flow will just be
     // unit tangent to the boundary.
   } else {
-    init.Electric_InitializeBoundary(&f, config.boundary->points);
+    f = config.boundary->boundary_values;
   }
 
   ie_Mat phi(dim * dofs, 1);
@@ -81,7 +81,7 @@ void boundary_integral_solve(const ie_solver_config& config,
     double elapsed = 0;
     for (int i = 0; i < TIMING_ITERATIONS; i++) {
       double start = omp_get_wtime();
-      ie_solver_tools.skeletonize(K, &quadtree);
+      ie_solver_tools.skeletonize(kernel, &quadtree);
       double end = omp_get_wtime();
       elapsed += (end - start);
 
@@ -91,28 +91,36 @@ void boundary_integral_solve(const ie_solver_config& config,
     return;
   }
 
-  ie_solver_tools.skeletonize(K, &quadtree);
-  ie_solver_tools.check_factorization_against_kernel(K, &quadtree);
+  ie_solver_tools.skeletonize(kernel, &quadtree);
+  ie_solver_tools.check_factorization_against_kernel(kernel, &quadtree);
 
-  quadtree.perturb();
-  std::cout << "\n\nPerturbed" << std::endl;
+  std::vector<double> old_points = config.boundary->points;
+  config.boundary->perturbation_size = 100;
+  config.boundary->initialize(config.N, config.boundary_condition);
+  f = config.boundary->boundary_values;
+  std::cout << "\nPerturbed" << std::endl;
+  std::vector<double> new_points = config.boundary->points;
 
-  ie_solver_tools.skeletonize(K, &quadtree);
-  ie_solver_tools.check_factorization_against_kernel(K, &quadtree);
-
-  ie_Mat phi1(dim * dofs, 1);
-  ie_solver_tools.sparse_matvec(K, quadtree, f, &phi1);
+  // Quadtree needs editing now
+  // quadtree.perturb(old_points, new_points);
 
   quadtree.reset();
-  std::cout << "\n\nReset" << std::endl;
+  ie_solver_tools.skeletonize(kernel, &quadtree);
+  ie_solver_tools.check_factorization_against_kernel(kernel, &quadtree);
 
-  ie_solver_tools.skeletonize(K, &quadtree);
-  ie_solver_tools.check_factorization_against_kernel(K, &quadtree);
-  ie_Mat phi2(dim * dofs, 1);
-  ie_solver_tools.sparse_matvec(K, quadtree, f, &phi2);
+  ie_Mat phi1(dim * kernel.boundary->points.size(), 1);
+  ie_solver_tools.sparse_matvec(kernel, quadtree, f, &phi1);
+
+  quadtree.reset();
+  std::cout << "\nReset" << std::endl;
+
+  ie_solver_tools.skeletonize(kernel, &quadtree);
+  ie_solver_tools.check_factorization_against_kernel(kernel, &quadtree);
+  ie_Mat phi2(dim * kernel.boundary->points.size(), 1);
+  ie_solver_tools.sparse_matvec(kernel, quadtree, f, &phi2);
 
   phi2 -= phi1;
-  std::cout << "Diff norm: " << phi2.norm2() << std::endl;
+  std::cout << "\nDiff norm: " << phi2.norm2() << std::endl;
 }
 
 }  // namespace ie_solver

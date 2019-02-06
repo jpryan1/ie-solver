@@ -10,6 +10,7 @@ namespace ie_solver {
 
 class Boundary {
  public:
+  int perturbation_size = 0;
   std::vector<double> points, normals, curvatures, weights;
   enum BoundaryCondition {
     SINGLE_ELECTRON,

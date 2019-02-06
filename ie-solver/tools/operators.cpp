@@ -96,7 +96,6 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
                         current_node->interaction_lists.redundant);
     }
   }
-
   // We need all of the skeleton indices. This is just the negation of
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
@@ -105,12 +104,11 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
     tree.root->interaction_lists.active_box;
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
-    get_all_schur_updates(&allskel_mat, allskel, tree.root);
+    get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
     allskel_mat *= -1;
     allskel_mat += K(allskel, allskel);
     apply_diag_matrix(allskel_mat, b, allskel);
   }
-
 
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = tree.levels[level];
@@ -192,7 +190,7 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
   std::vector<unsigned int> allskel = tree.root->interaction_lists.active_box;
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
-    get_all_schur_updates(&allskel_mat, allskel, tree.root);  // HERE
+    get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
     allskel_mat *= -1;
     allskel_mat += K(allskel, allskel);
     apply_diag_inv_matrix(allskel_mat, x, allskel);

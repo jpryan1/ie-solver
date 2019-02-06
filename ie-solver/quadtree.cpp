@@ -22,13 +22,17 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   min = boundary->points[0];
   max = boundary->points[0];
 
+  double tree_min = -M_PI;  //0;
+  double tree_max = M_PI;
+  // double tree_min = 0;
+  // double tree_max = 1;
+
   for (double point : boundary->points) {
-    assert(point > 0 && point < 1);
     if (point < min) min = point;
     if (point > max) max = point;
   }
-  double tree_min = 0;
-  double tree_max = 1;
+
+  assert(min > tree_min && max < tree_max);
 
   root = new QuadTreeNode();
   root->level = 0;
@@ -105,13 +109,15 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   // }
 
   // make neighbor lists in a stupid way
-  for (unsigned int j = 0; j < levels.size(); j++) {
-    QuadTreeLevel* current_level = levels[j];
+
+  for (unsigned int level = 0; level < levels.size(); level++) {
+    QuadTreeLevel* current_level = levels[level];
     for (unsigned int k = 0; k < current_level->nodes.size(); k++) {
       QuadTreeNode* node_a = current_level->nodes[k];
+
+      // First check against all nodes on this level
       for (unsigned int l = k + 1; l < current_level->nodes.size(); l++) {
         QuadTreeNode* node_b = current_level->nodes[l];
-
         double dist = sqrt(pow(node_a->corners[0] - node_b->corners[0], 2)
                            + pow(node_a->corners[1] - node_b->corners[1], 2));
         // just need to check if the distance of the BL corners
@@ -120,13 +126,24 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
           node_a->neighbors.push_back(node_b);
           node_b->neighbors.push_back(node_a);
         }
-        // else if(  dist < node_a->side_length*2*sqrt(2)+1e-5){
-        //  node_a->far_neighbors.push_back(node_b);
-        //  node_b->far_neighbors.push_back(node_a);
-        // }
+      }
+      // Now if it is a leaf, check against nodes in all subsequent levels
+      if (node_a->is_leaf) {
+        for (QuadTreeNode* neighbor : node_a->neighbors) {
+          // Make sure this isn't a neighbor from a higher level
+          if (neighbor->level != node_a->level) {
+            continue;
+          }
+          for (QuadTreeNode* child : neighbor->children) {
+            if (child != nullptr) {
+              get_descendent_neighbors(node_a, child);
+            }
+          }
+        }
       }
     }
   }
+
   for (unsigned int j = 0; j < levels.size(); j++) {
     QuadTreeLevel* current_level = levels[j];
     for (QuadTreeNode* node_a : current_level->nodes) {
@@ -140,6 +157,53 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   }
 }
 
+
+void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
+                                        QuadTreeNode* small) {
+  assert(big->level < small->level);
+  double top = big->corners[3];
+  double bottom = big->corners[1];
+  double left = big->corners[0];
+  double right = big->corners[4];
+  for (int i = 0; i < 8; i += 2) {
+    double x = small->corners[i];
+    double y = small->corners[i + 1];
+    // Note: in theory, the equalities should be exact (I think), but to be
+    // overcareful we will allow for machine error
+
+    if (x > left && x < right) {
+      if (fabs(y - top) < 1e-14) {
+        big->neighbors.push_back(small);
+        small->neighbors.push_back(big);
+        break;
+      }
+      if (fabs(y - bottom) < 1e-14) {
+        big->neighbors.push_back(small);
+        small->neighbors.push_back(big);
+        break;
+      }
+    }
+    if (y < top && y < bottom) {
+      if (fabs(x - left) < 1e-14) {
+        big->neighbors.push_back(small);
+        small->neighbors.push_back(big);
+        break;
+      }
+      if (fabs(x - right) < 1e-14) {
+        big->neighbors.push_back(small);
+        small->neighbors.push_back(big);
+        break;
+      }
+    }
+  }
+
+  for (QuadTreeNode* child : small->children) {
+    if (child != nullptr) {
+      get_descendent_neighbors(big, child);
+    }
+  }
+
+}
 
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
                              unsigned int mat_ind) {
@@ -369,51 +433,31 @@ void QuadTree::write_quadtree_to_file() {
   }
 }
 
-void QuadTree::perturb() {
-  // return;
-  QuadTreeLevel* last_level = levels[levels.size() - 1];
-  QuadTreeNode* perturbed;
-  // Find a leaf with more than 10 DoFs to perturb.
-  for (QuadTreeNode* node : last_level->nodes) {
-    if (node->interaction_lists.original_box.size() > 10) {
-      perturbed = node;
-      break;
-    }
-  }
-  double min_x = perturbed->corners[0];
-  double min_y = perturbed->corners[1];
-  // Pick 10 new random boundary->points for the first 10 in the leaf.
-  for (int i = 0; i < 10; i++) {
-    int pt_index = perturbed->interaction_lists.original_box[i];
-    double randx = (rand() + 0.0) / RAND_MAX;
-    double randy = (rand() + 0.0) / RAND_MAX;
-    randx = randx * perturbed->side_length + min_x;
-    randy = randy * perturbed->side_length + min_y;
-    boundary->points[2 * pt_index] = randx;
-    boundary->points[2 * pt_index + 1] = randy;
-  }
-  std::cout << std::endl;
+void QuadTree::perturb(const std::vector<double>& old_points,
+                       const std::vector<double>& new_points) {
+
+
   // Go up tree, marking parents and their neighbors.
-  QuadTreeNode* current = perturbed;
-  while (current != nullptr) {
-    current->schur_updated = false;
-    current->interaction_lists.active_box.clear();
-    current->interaction_lists.skel.clear();
-    current->interaction_lists.skelnear.clear();
-    current->interaction_lists.redundant.clear();
-    current->interaction_lists.permutation.clear();
+
+  // while (current != nullptr) {
+  //   current->schur_updated = false;
+  //   current->interaction_lists.active_box.clear();
+  //   current->interaction_lists.skel.clear();
+  //   current->interaction_lists.skelnear.clear();
+  //   current->interaction_lists.redundant.clear();
+  //   current->interaction_lists.permutation.clear();
 
 
-    for (QuadTreeNode* neighbor : current->neighbors) {
-      neighbor->schur_updated = false;
-      neighbor->interaction_lists.active_box.clear();
-      neighbor->interaction_lists.skel.clear();
-      neighbor->interaction_lists.skelnear.clear();
-      neighbor->interaction_lists.redundant.clear();
-      neighbor->interaction_lists.permutation.clear();
-    }
-    current = current->parent;
-  }
+  //   for (QuadTreeNode* neighbor : current->neighbors) {
+  //     neighbor->schur_updated = false;
+  //     neighbor->interaction_lists.active_box.clear();
+  //     neighbor->interaction_lists.skel.clear();
+  //     neighbor->interaction_lists.skelnear.clear();
+  //     neighbor->interaction_lists.redundant.clear();
+  //     neighbor->interaction_lists.permutation.clear();
+  //   }
+  //   current = current->parent;
+  // }
 }
 
 void QuadTree::reset() {

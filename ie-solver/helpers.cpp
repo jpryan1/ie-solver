@@ -224,6 +224,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
           config->boundary.reset(new RoundedSquare());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE_WITH_BUMP")) {
           config->boundary.reset(new RoundedSquareWithBump());
+          multiple = 64;
         } else if (!strcmp(argv[i + 1], "SQUIGGLY")) {
           multiple = 24;
           config->boundary.reset(new Squiggly());

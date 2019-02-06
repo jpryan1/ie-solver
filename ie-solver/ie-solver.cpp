@@ -22,7 +22,6 @@ void boundary_integral_solve(const ie_solver_config& config,
                              std::vector<double>* skel_times = nullptr) {
   bool is_stokes = (config.pde == ie_solver_config::STOKES);
   bool is_time_trial = (skel_times != nullptr);
-  int N = config.N;
   double id_tol = config.id_tol;
 
   // // TODO insert comment here explaining why this is necessary
@@ -30,7 +29,8 @@ void boundary_integral_solve(const ie_solver_config& config,
   //    printf("Turn down N or disable accuracy checking please\n");
   //    return;
   // }
-  config.boundary->initialize(N, config.boundary_condition);
+  config.boundary->perturbation_size = 128;
+  config.boundary->initialize(config.N, config.boundary_condition);
 
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);

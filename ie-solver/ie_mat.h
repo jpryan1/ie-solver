@@ -43,7 +43,7 @@ struct ie_Mat {
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_) const;
 
-  double norm2() const;
+  double frob_norm() const;
 
   // This function stores the DoF data, and calculates the diagonals of the
   // mat.

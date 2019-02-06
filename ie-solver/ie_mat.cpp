@@ -189,7 +189,7 @@ ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
 }
 
 
-double ie_Mat::norm2() const {
+double ie_Mat::frob_norm() const {
   double sum = 0;
   for (unsigned int i = 0; i < height_; i++) {
     for (unsigned int j = 0; j < width_; j++) {
@@ -259,14 +259,15 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
   std::vector<lapack_int> ipiv(height_);
   memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
 
-  LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
-                 X_copy.lda_, &ipiv[0]);
+  int err1 = LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_,
+                            X_copy.mat,
+                            X_copy.lda_, &ipiv[0]);
+  assert(err1 == 0);
+  int err2 = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'N', X_copy.height_,
+                            K_copy.width_, X_copy.mat, X_copy.lda_, &ipiv[0],
+                            K_copy.mat, K_copy.lda_);
 
-  int err = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'N', X_copy.height_,
-                           K_copy.width_, X_copy.mat, X_copy.lda_, &ipiv[0],
-                           K_copy.mat, K_copy.lda_);
-
-  assert(err == 0);
+  assert(err2 == 0);
 
   K_copy.transpose_into(L);
 }
@@ -301,7 +302,6 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
     // no compression to be done :/
     return 0;
   }
-
   for (unsigned int i = 0; i < width_; i++) {
     p->push_back(pvt[i] - 1);
   }

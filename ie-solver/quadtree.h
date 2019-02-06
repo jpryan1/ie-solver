@@ -83,6 +83,8 @@ class QuadTree {
   void initialize_tree(Boundary* boundary, bool is_stokes);
   void recursive_add(QuadTreeNode* node, double x, double y,
                      unsigned int mat_ind);
+  void get_descendent_neighbors(QuadTreeNode* big, QuadTreeNode* small);
+
   void node_subdivide(QuadTreeNode* node);
   void add_index(std::vector<unsigned int>* r, unsigned int ind);
 
@@ -90,7 +92,8 @@ class QuadTree {
 
   void write_quadtree_to_file();
 
-  void perturb();
+  void perturb(const std::vector<double>& old_points,
+               const std::vector<double>& new_points);
 
   // void print();
   // void rec_print(QuadTreeNode*);
