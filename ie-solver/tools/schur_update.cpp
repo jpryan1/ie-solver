@@ -6,11 +6,10 @@
 namespace ie_solver {
 
 void IeSolverTools::get_all_schur_updates(ie_Mat* updates,
-    const std::vector<unsigned int>& BN, QuadTreeNode* node,
+    const std::vector<unsigned int>& BN, const QuadTreeNode* node,
     bool get_neighbors) {
   assert(node != nullptr && "get_all_schur_updates fails on null node.");
   assert(BN.size() > 0 && "get_all_schur_updates needs positive num of DOFs");
-  std::cout << "Called on " << BN.size() << " indices " << std::endl;
   if (!node->is_leaf) get_descendents_updates(updates, BN, node);
 
   if (get_neighbors) {
@@ -24,7 +23,7 @@ void IeSolverTools::get_all_schur_updates(ie_Mat* updates,
 
 
 void IeSolverTools::get_descendents_updates(ie_Mat* updates,
-    const std::vector<unsigned int>& BN, QuadTreeNode* node) {
+    const std::vector<unsigned int>& BN, const QuadTreeNode* node) {
   assert(node != nullptr && "get_descendents_updates fails on null node.");
   assert(!node->is_leaf &&
          "get_descendents_updates must be called on non-leaf.");

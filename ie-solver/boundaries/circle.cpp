@@ -8,7 +8,10 @@ namespace ie_solver {
 void Circle::initialize(int N, BoundaryCondition bc) {
   boundary_values = ie_Mat(N, 1);
   boundary_condition = bc;
-
+  points.clear();
+  normals.clear();
+  weights.clear();
+  curvatures.clear();
   for (int i = 0; i < N; i++) {
     double ang = i * 2.0 * M_PI / N;
     double x = 0.5 + 0.25 * cos(ang);

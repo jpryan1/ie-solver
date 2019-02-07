@@ -139,7 +139,10 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
 
 void RoundedSquare::initialize(int N, BoundaryCondition bc) {
   boundary_condition = bc;
-
+  points.clear();
+  normals.clear();
+  weights.clear();
+  curvatures.clear();
   boundary_values = ie_Mat(N, 1);
 
   // This square will have side length 0.9 and will have BL corner 0.05, 0.05

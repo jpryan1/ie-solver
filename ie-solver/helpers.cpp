@@ -181,6 +181,8 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   std::string boundary_condition_name = "SINGLE_ELECTRON";
   // The default boundary is Circle, set it here.
   config->boundary.reset(new Circle());
+  // Some boundaries need the number of dofs to be a certain multiple, since
+  // they are formed by stitching together equally sized constituent parts.
   int multiple = 1;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-pde")) {

@@ -120,13 +120,6 @@ double Kernel::laplace_kernel(unsigned int i, unsigned int j) const {
 
   Vec2 n(boundary->normals[2 * j], boundary->normals[2 * j + 1]);
   double potential = -boundary->weights[j] * scale * (r.dot(n)) / (r.dot(r));
-  if (std::isnan(potential)) {
-    std::cout << potential << std::endl;
-    std::cout << "rdotr " << r.dot(r) << std::endl;
-    std::cout << x.a[0] << " " << x.a[1] << " " << y.a[0] << " " << y.a[1] <<
-              std::endl;
-    std::cout << i << " " << j << std::endl;
-  }
   return potential;
 }
 

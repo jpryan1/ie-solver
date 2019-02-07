@@ -22,10 +22,8 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   min = boundary->points[0];
   max = boundary->points[0];
 
-  double tree_min = -M_PI;  //0;
-  double tree_max = M_PI;
-  // double tree_min = 0;
-  // double tree_max = 1;
+  double tree_min = -0.1;
+  double tree_max = 1;
 
   for (double point : boundary->points) {
     if (point < min) min = point;
@@ -158,6 +156,8 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
 }
 
 
+// Adds neighbors to leaf which are on lower levels, by recursing and checking
+// if the corners are along the wall. 
 void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
                                         QuadTreeNode* small) {
   assert(big->level < small->level);
@@ -202,7 +202,6 @@ void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
       get_descendent_neighbors(big, child);
     }
   }
-
 }
 
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,

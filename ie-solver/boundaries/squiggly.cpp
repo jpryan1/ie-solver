@@ -74,7 +74,10 @@ void Squiggly::draw_squiggle(int bc_index, int num_points, double start_x,
 
 void Squiggly::initialize(int N, BoundaryCondition bc) {
   boundary_condition = bc;
-
+  points.clear();
+  normals.clear();
+  weights.clear();
+  curvatures.clear();
   int bc_index = 0;
   boundary_values = ie_Mat(N, 1);
   // Currently, we set boundary conditions in initialize, because we scale the

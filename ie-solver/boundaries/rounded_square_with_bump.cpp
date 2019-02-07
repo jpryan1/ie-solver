@@ -135,20 +135,20 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   normals.clear();
   weights.clear();
   curvatures.clear();
-  // For now we ignore N and force the number of discretization points.
+
+  // We will have 20 lines and 8 corners. We want the number of line points to
+  // be 1.5 * line_points. So 20 + 8*1.5 = 32.
   int line_points = N / 32;
   int corner_points = 3 * N / 64;  // = 128*1.5
   double line_weight = 0.1 / line_points;
   double corner_weight = (M_PI / 20.0) / corner_points;
   double middie = (line_weight + corner_weight) / 2.0;
-  // The idea is that line_weight and corner_weight should hopefully be very
-  // similar.
 
-
+  // Perturbation size describes the length of the bump, and the number of dofs
+  // is 2* this size, because the wall grows on either side of the bump.
   boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
 
   int bc_index = 0;
-
 
   // line ed
 
@@ -238,7 +238,7 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
-  assert(bc_index == N + 2*perturbation_size);
+  assert(bc_index == N + 2 * perturbation_size);
 }
 
 // TODO(John) consider generalizing this somehow.
@@ -246,7 +246,7 @@ bool RoundedSquareWithBump::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
   double eps = 1e-2;
-  int line_points = (boundary_values.height()-2*perturbation_size) / 32;
+  int line_points = (boundary_values.height() - 2 * perturbation_size) / 32;
 
   double o_x = 0.2 + ((0.0 + perturbation_size) / line_points) * 0.1;
 
