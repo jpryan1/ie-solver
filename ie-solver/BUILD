@@ -59,7 +59,7 @@ cc_library(
 cc_library(
 	name = "vec2",
 	hdrs = ["vec2.h"],
-	srcs = ["vec2.cpp"], 
+	srcs = ["vec2.cpp"],
 	deps = [":log"],
 )
 
@@ -75,7 +75,7 @@ cc_library(
 	name = "kernel",
 	hdrs = ["kernel.h"],
 	srcs = ["kernel.cpp"],
-	deps = [":ie_mat", 
+	deps = [":ie_mat",
 			"//ie-solver/boundaries"]
 )
 

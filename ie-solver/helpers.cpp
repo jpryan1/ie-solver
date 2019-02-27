@@ -87,11 +87,12 @@ void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
 }
 
 
-void write_solution_to_file(const ie_Mat& domain, const std::vector<double>&
+void write_solution_to_file(const std::string& filename, const ie_Mat& domain,
+                            const std::vector<double>&
                             domain_points, bool is_stokes) {
   assert(domain.height() > 0 && domain.width() == 1);
   std::ofstream output;
-  output.open("output/data/ie_solver_solution.txt");
+  output.open(filename);
 
   int dim = (is_stokes ? 2 : 1);
   // if it is 2D solution, each row is 2 numbers, ie a vector. else a scalar.
@@ -170,8 +171,9 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   std::string usage = "\n\tusage: ./ie-solver "
                       "-pde {LAPLACE|STOKES} "
                       "-boundary {CIRCLE|ROUNDED_SQUARE|"
-                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY} "
-                      "-boundary_condition {SINGLE_ELECTRON|ALL_ONES} "
+                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|ELLIPSES} "
+                      "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
+                      "BUMP_FUNCTION} "
                       "-N {number of nodes} "
                       "-e {ID error tolerance} "
                       "{-scaling} {-strong}"
@@ -181,7 +183,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   std::string boundary_condition_name = "SINGLE_ELECTRON";
   // The default boundary is Circle, set it here.
   config->boundary.reset(new Circle());
-  int multiple = 1;
+
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-pde")) {
       if (i < argc - 1) {
@@ -220,13 +222,15 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
         if (!strcmp(argv[i + 1], "CIRCLE")) {
           config->boundary.reset(new Circle());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE")) {
-          multiple = 36;
           config->boundary.reset(new RoundedSquare());
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE_WITH_BUMP")) {
           config->boundary.reset(new RoundedSquareWithBump());
         } else if (!strcmp(argv[i + 1], "SQUIGGLY")) {
-          multiple = 24;
           config->boundary.reset(new Squiggly());
+        } else if (!strcmp(argv[i + 1], "ELLIPSES")) {
+          config->boundary.reset(new Ellipses());
+        } else if (!strcmp(argv[i + 1], "CUBIC_SPLINE")) {
+          config->boundary.reset(new CubicSpline());
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])
                      + usage);
@@ -242,10 +246,14 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
             Boundary::BoundaryCondition::SINGLE_ELECTRON;
         } else if (!strcmp(argv[i + 1], "ALL_ONES")) {
           config->boundary_condition = Boundary::BoundaryCondition::ALL_ONES;
+        } else if (!strcmp(argv[i + 1], "BUMP_FUNCTION")) {
+          config->boundary_condition =
+            Boundary::BoundaryCondition::BUMP_FUNCTION;
         } else {
           LOG::ERROR("Unrecognized boundary_condition: " +
                      std::string(argv[i + 1]) + "\n Acceptable "
-                     "boundary_conditions: SINGLE_ELECTRON, ALL_ONES");
+                     "boundary_conditions: SINGLE_ELECTRON, ALL_ONES,"
+                     "BUMP_FUNCTION");
           return 0;
         }
         boundary_condition_name = argv[i + 1];
@@ -256,7 +264,6 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
       return 0;
     }
   }
-  config->N = multiple * (config->N / multiple);
 
   LOG::INFO("PDE: " + pde_name);
   LOG::INFO("Boundary: " + boundary_name);

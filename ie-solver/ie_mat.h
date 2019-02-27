@@ -43,12 +43,13 @@ struct ie_Mat {
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_) const;
 
-  double norm2() const;
+  double one_norm() const;
+  double frob_norm() const;
 
   // This function stores the DoF data, and calculates the diagonals of the
   // mat.
   void rand_vec(unsigned  dofs);
-
+  double condition_number() const;
   void left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const;
   void right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const;
   int id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const;

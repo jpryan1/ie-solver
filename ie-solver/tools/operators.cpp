@@ -1,5 +1,6 @@
 // Copyright 2019 John Paul Ryan
 #include <iostream>
+#include <cassert>
 #include "ie-solver/tools/ie_solver_tools.h"
 namespace ie_solver {
 
@@ -30,13 +31,11 @@ void IeSolverTools::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
 void IeSolverTools::apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
                                       const std::vector<unsigned int>& range) {
   if (range.size() == 0) return;
-
   std::vector<unsigned int> ZERO_VECTOR;
   ZERO_VECTOR.push_back(0);
   ie_Mat temp = (*vec)(range, ZERO_VECTOR);
   ie_Mat product(range.size(), 1);
   ie_Mat::gemv(NORMAL, 1., mat, temp, 0., &product);
-
   vec->set_submatrix(range, ZERO_VECTOR, product);
 }
 
@@ -49,6 +48,7 @@ void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
   ZERO_VECTOR.push_back(0);
   ie_Mat temp = (*vec)(range, ZERO_VECTOR);
   ie_Mat product(range.size(), 1);
+
   mat.left_multiply_inverse(temp, &product);
 
   vec->set_submatrix(range, ZERO_VECTOR, product);
@@ -96,21 +96,22 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
                         current_node->interaction_lists.redundant);
     }
   }
-
   // We need all of the skeleton indices. This is just the negation of
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
 
   std::vector<unsigned int> allskel =
     tree.root->interaction_lists.active_box;
+
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
-    get_all_schur_updates(&allskel_mat, allskel, tree.root);
+
+    get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
+
     allskel_mat *= -1;
     allskel_mat += K(allskel, allskel);
     apply_diag_matrix(allskel_mat, b, allskel);
   }
-
 
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = tree.levels[level];
@@ -142,10 +143,10 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
 
 void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
                           const ie_Mat& b) {
+  assert(x->height() == b.height());
   int lvls = tree.levels.size();
   *x = ie_Mat(b.height(), 1);
   b.copy_into(x);
-
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = tree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
@@ -181,6 +182,11 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
       if (!current_node->schur_updated) {
         continue;
       }
+      double cond = current_node->D_r.condition_number();
+      // if (cond > 1000) {
+      //   std::cout << "Node " << current_node->id << " solve D_r inv -- ";
+      //   std::cout << "Inverting w/ condition number " << cond << std::endl;
+      // }
       apply_diag_inv_matrix(current_node->D_r, x,
                             current_node->interaction_lists.redundant);
     }
@@ -192,12 +198,16 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
   std::vector<unsigned int> allskel = tree.root->interaction_lists.active_box;
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
-    get_all_schur_updates(&allskel_mat, allskel, tree.root);  // HERE
+    get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
     allskel_mat *= -1;
     allskel_mat += K(allskel, allskel);
+    double cond2 = allskel_mat.condition_number();
+    // if (cond2 > 1000) {
+    //   std::cout << "Allskel inv -- ";
+    //   std::cout << "Inverting w/ condition number " << cond2 << std::endl;
+    // }
     apply_diag_inv_matrix(allskel_mat, x, allskel);
   }
-
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = tree.levels[level];
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {

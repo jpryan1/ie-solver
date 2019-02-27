@@ -35,7 +35,7 @@ class IeSolverTools {
 
   void get_all_schur_updates(ie_Mat* updates,
                              const std::vector<unsigned int>& BN,
-                             const QuadTreeNode* node);
+                             const QuadTreeNode* node, bool get_neighbors);
   void get_descendents_updates(ie_Mat* updates,
                                const std::vector<unsigned int>& BN,
                                const QuadTreeNode* node);

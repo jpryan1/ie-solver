@@ -12,9 +12,7 @@ struct Initialization {
   Initialization() {}
   ~Initialization() {}
 
-  void InitializeDomainKernel(ie_Mat* K, const std::vector<double>& points,
-                              const std::vector<double>& normals,
-                              const std::vector<double>& weights,
+  void InitializeDomainKernel(ie_Mat* K,
                               const std::vector<double>& domain_points,
                               int test_size, Boundary* boundary,
                               bool is_stokes);

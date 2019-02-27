@@ -2,16 +2,20 @@
 #include <cmath>
 #include <iostream>
 #include <cassert>
-#include "ie-solver/boundaries/rounded_square_with_bump.h"
+#include "ie-solver/boundaries/ellipses.h"
 #include "ie-solver/log.h"
 
-
+// TODO(John) in this and many boundary files, there are bc_idx's being passed
+// to functions, can we get around that by maintaining a class variable that
+// gets incremented?
 namespace ie_solver {
 
-void RoundedSquareWithBump::draw_line(int bc_index, int num_points,
-                                      double start_x, double start_y,
-                                      double end_x, double end_y,
-                                      bool normal_is_left) {
+// TODO(John) the bump function doesn't really make sense as it stands in this
+// class, please fix
+void Ellipses::draw_line(int bc_index, int num_points,
+                         double start_x, double start_y,
+                         double end_x, double end_y,
+                         bool normal_is_left) {
   // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
 
@@ -57,10 +61,11 @@ void RoundedSquareWithBump::draw_line(int bc_index, int num_points,
 }
 
 
-void RoundedSquareWithBump::draw_quarter_circle(int bc_index, int num_points,
-    double start_x, double start_y,
-    double end_x, double end_y, bool convex) {
-  // NOTE: The first weight is not added - that is done in initialize
+void Ellipses::draw_quarter_circle(int bc_index, int num_points,
+                                   double start_x, double start_y,
+                                   double end_x, double end_y,
+                                   bool convex) {
+  // NOTE: The first and last weights are not added - that is done in initialize
   // A point is placed on start_, not on end_
   // From start_ to end_, a clockwise quartercircle is drawn. If convex, then
   // normals point out from clock, else in.
@@ -150,13 +155,59 @@ void RoundedSquareWithBump::draw_quarter_circle(int bc_index, int num_points,
 }
 
 
-void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
-  boundary_shape = BoundaryShape::ROUNDED_SQUARE_WITH_BUMP;
+void Ellipses::draw_ellipse(int bc_index, int num_points, double c_x,
+                            double c_y, double a, double b) {
+  // By default the normal points into the ellipse.
+  // for testing we put a circle in the center
+  for (int i = 0; i < num_points; i++) {
+    double ang = i * (2.0 * M_PI / num_points);
+    double x = c_x + a * cos(ang);
+    double y = c_y + b * sin(ang);
+    double tangent_x = -a * sin(ang);
+    double tangent_y = b * cos(ang);
+    double normal_x = -tangent_y;
+    double normal_y = tangent_x;
+    double norm = sqrt(pow(normal_x, 2) + pow(normal_y, 2));
+    normal_x /= norm;
+    normal_y /= norm;
+    double curvature = -1.0 / a;
+    double weight = 2.0 * M_PI * a / num_points;
+
+    points.push_back(x);
+    points.push_back(y);
+    normals.push_back(normal_x);
+    normals.push_back(normal_y);
+    curvatures.push_back(curvature);
+    weights.push_back(weight);
+    double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
+    switch (boundary_condition) {
+      case BoundaryCondition::SINGLE_ELECTRON:
+        boundary_values.set(bc_index++, 0, potential);
+        break;
+      case BoundaryCondition::ALL_ONES:
+        boundary_values.set(bc_index++, 0, 0.0);
+        break;
+      case BoundaryCondition::BUMP_FUNCTION:
+        double N = boundary_values.height();
+        double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
+                       + (bc_index / (N - 1.0));
+        potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
+        boundary_values.set(bc_index++, 0, potential);
+        break;
+    }
+  }
+  std::cout << "Ellipse has " << num_points << " points" << std::endl;
+}
+
+
+void Ellipses::initialize(int N, BoundaryCondition bc) {
+  boundary_shape = BoundaryShape::ELLIPSES;
   boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();
   curvatures.clear();
+
   //            SHAPE PROTOCOL
   //
   // Except in trivial cases, we need to be careful if we want to evenly
@@ -166,183 +217,100 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   // the ratio of shape A's points to shape B's points should be x/y, then shape
   // A can have x SCALE_UNIT's and shape B can have y.
   //
-  //    Rounded Square With Bump
+  //    Ellipses
   //
   //    Shape       Num of SCALE_UNIT's     Num of Shape in Boundary
-  //    line        2                       20
-  //    corner      3                       8
+  //    line        2                       24
+  //    corner      3                       4
+  //    ellipse A   16                      1
   // __________________________________________
   //
-  //    Num of SCALE_UNIT's = 2*20 + 3*8 = 64
+  //    Num of SCALE_UNIT's = 2*24 + 3*4 +16*1= 76
 
-  N = 64 * (N / 64);
-  int SCALE_UNIT = N / 64;
+  N = 76 * (N / 76);
+  int SCALE_UNIT = N / 76;
   int line_points = 2 * SCALE_UNIT;
   int corner_points = 3 * SCALE_UNIT;
+  int ellipse_points = 16 * SCALE_UNIT;
 
   // Line width = 0.1
   // Corner radius = 0.1
   double line_weight = 0.1 / line_points;
   double corner_weight = (2.0 * M_PI * 0.1 / 4.0) / corner_points;
   double middie = (line_weight + corner_weight) / 2.0;
+  // We don't consider ellipse weights here, that draw function will take care
+  // of it
 
-  // Perturbation size describes the length of the bump, and the number of dofs
-  // is 2* this size, because the wall grows on either side of the bump.
   int bc_index = 0;
-  boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
-
-  // line ed
+  boundary_values = ie_Mat(N, 1);
 
   weights.push_back(middie);
   draw_line(bc_index, 6 * line_points, 0.8, 0.1, 0.2, 0.1, true);
   bc_index += 6 * line_points;
 
-  // corner d
-
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.2, 0.1, 0.1, 0.2, true);
   bc_index += corner_points;
 
-  // line dc
-
   weights.push_back(middie);
-  draw_line(bc_index, line_points, 0.1, 0.2, 0.1, 0.3, true);
-  bc_index += line_points;
-
-  // corner c
-
-  weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.1, 0.3, 0.2, 0.4, true);
-  bc_index += corner_points;
-
-  // line co
-  double o_x = 0.2 + ((0.0 + perturbation_size) / 20.0) * 0.1;
-  if (perturbation_size > 0) {
-    weights.push_back(middie);
-    draw_line(bc_index, perturbation_size, 0.2, 0.4, o_x, 0.4, true);
-    bc_index += perturbation_size;
-  }
-
-  // corner o1
-  // Careful here, not middie between two quarter circles
-  weights.push_back(corner_weight);
-  draw_quarter_circle(bc_index, corner_points, o_x, 0.4, o_x + 0.1, 0.5, false);
-  bc_index += corner_points;
-
-  // corner o2
-
-  weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, o_x + 0.1, 0.5, o_x, 0.6, false);
-  bc_index += corner_points;
-
-  // line ob
-  if (perturbation_size > 0) {
-    weights.push_back(middie);
-    draw_line(bc_index, perturbation_size, o_x, 0.6, 0.2, 0.6, true);
-    bc_index += perturbation_size;
-  }
-  // corner b
-
-  weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.2, 0.6, 0.1, 0.7, true);
-  bc_index += corner_points;
-
-  // line ba
-
-  weights.push_back(middie);
-  draw_line(bc_index, line_points, 0.1, 0.7, 0.1, 0.8, true);
-  bc_index += line_points;
-
-  // corner a
+  draw_line(bc_index, 6 * line_points, 0.1, 0.2, 0.1, 0.8, true);
+  bc_index += 6 * line_points;
 
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.1, 0.8, 0.2, 0.9, true);
   bc_index += corner_points;
 
-  // line af
-
   weights.push_back(middie);
   draw_line(bc_index, 6 * line_points, 0.2, 0.9, 0.8, 0.9, true);
   bc_index += 6 * line_points;
-
-  // corner f
 
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.8, 0.9, 0.9, 0.8, true);
   bc_index += corner_points;
 
-  // line fe
-
   weights.push_back(middie);
   draw_line(bc_index, 6 * line_points, 0.9, 0.8, 0.9, 0.2, true);
   bc_index += 6 * line_points;
 
-  // corner e
-
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
-  assert(bc_index == N + 2 * perturbation_size);
-  assert(weights.size() == boundary_values.height());
+
+  draw_ellipse(bc_index, ellipse_points, 0.5, 0.5, 0.15, 0.15);
+  bc_index += ellipse_points;
 }
 
-// TODO(John) consider generalizing this somehow.
-bool RoundedSquareWithBump::is_in_domain(const Vec2& a) {
+
+bool Ellipses::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
   double eps = 1e-2;
 
-  double o_x = 0.2 + ((0.0 + perturbation_size) / 20.0) * 0.1;
-
-  double o_dist = sqrt(pow(v[0] - o_x, 2) + pow(v[1] - 0.5, 2));
-  if (o_dist - eps < 0.1) {
+  double dist = sqrt(pow(v[0] - 0.5, 2) + pow(v[1] - 0.5, 2));
+  if (dist - eps < 0.15) {
     return false;
   }
-  if (v[0] - eps < o_x && v[1] - eps < 0.6 && v[1] + eps > 0.4) {
-    return false;
-  }
-  if (v[0] + eps < 0.8 && v[0] - eps > 0.2 && v[1] + eps < 0.8
-      && v[1] - eps > 0.2) {
-    return true;
-  }
-  if (v[0] + eps > 0.9 || v[0] - eps < 0.1 || v[1] + eps > 0.9
-      || v[1] - eps < 0.1) {
-    return false;
-  }
-  // Now make sure not in any of six scraggly corners
-
-  double f_dist = sqrt(pow(v[0] - 0.8, 2) + pow(v[1] - 0.8, 2));
-  if (v[0] + eps > 0.8 && v[1] + eps > 0.8 && f_dist + eps > 0.1) {
+  if (fabs(v[0] - 0.5) > 0.4 - eps
+      || fabs(v[1] - 0.5) > 0.4 - eps) {
     return false;
   }
 
-  double e_dist = sqrt(pow(v[0] - 0.8, 2) + pow(v[1] - 0.2, 2));
-  if (v[0] + eps > 0.8 && v[1] - eps < 0.2 && e_dist + eps > 0.1) {
-    return false;
-  }
+  if (v[0] <= 0.9 + eps && v[0] + eps >= 0.1 && v[1] + eps >= 0.2
+      && v[1] <= 0.8 + eps) return true;
+  if (v[0] <= 0.8  + eps && v[0] + eps >= 0.2 && v[1] + eps >= 0.1
+      && v[1] <= 0.9 + eps) return true;
 
-  double d_dist = sqrt(pow(v[0] - 0.2, 2) + pow(v[1] - 0.2, 2));
-  if (v[0] - eps < 0.2 && v[1] - eps < 0.2 && d_dist + eps > 0.1) {
-    return false;
-  }
+  double min = 1;
+  Vec2 bl(0.2, 0.2);
+  Vec2 br(0.8, 0.2);
+  Vec2 tl(0.2, 0.8);
+  Vec2 tr(0.8, 0.8);
 
-
-  double a_dist = sqrt(pow(v[0] - 0.2, 2) + pow(v[1] - 0.8, 2));
-  if (v[0] - eps < 0.2 && v[1] + eps > 0.8 && a_dist + eps > 0.1) {
-    return false;
-  }
-
-  double b_dist = sqrt(pow(v[0] - 0.2, 2) + pow(v[1] - 0.7, 2));
-  if (v[0] - eps < 0.2 && v[1] - eps < 0.7 && v[1] + eps > 0.6
-      && b_dist + eps > 0.1) {
-    return false;
-  }
-  double c_dist = sqrt(pow(v[0] - 0.2, 2) + pow(v[1] - 0.3, 2));
-  if (v[0] - eps < 0.2 && v[1] - eps < 0.4 && v[1] + eps > 0.3
-      && c_dist + eps > 0.1) {
-    return false;
-  }
-
+  min = fmin(min, (bl - a).norm());
+  min = fmin(min, (tr - a).norm());
+  min = fmin(min, (tl - a).norm());
+  min = fmin(min, (br - a).norm());
+  if (min + eps > 0.1) return false;
   return true;
 }
 

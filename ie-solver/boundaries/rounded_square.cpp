@@ -45,6 +45,13 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(bc_index++, 0, 1.0);
         break;
+      case BoundaryCondition::BUMP_FUNCTION:
+        double N = boundary_values.height();
+        double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
+                       + (bc_index / (N - 1.0));
+        potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
+        boundary_values.set(bc_index++, 0, potential);
+        break;
     }
   }
 }
@@ -132,68 +139,88 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(bc_index++, 0, 1.0);
         break;
+      case BoundaryCondition::BUMP_FUNCTION:
+        double N = boundary_values.height();
+        double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
+                       + (bc_index / (N - 1.0));
+        potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
+        boundary_values.set(bc_index++, 0, potential);
+        break;
     }
   }
 }
 
 
 void RoundedSquare::initialize(int N, BoundaryCondition bc) {
+  boundary_shape = BoundaryShape::ROUNDED_SQUARE;
   boundary_condition = bc;
+  points.clear();
+  normals.clear();
+  weights.clear();
+  curvatures.clear();
+  //            SHAPE PROTOCOL
+  //
+  // Except in trivial cases, we need to be careful if we want to evenly
+  // distribute discretization points on the boundary, while compartmentalizing
+  // drawing functions. For that purpose, we establish a SCALE_UNIT and require
+  // that all draw functions take some multiple of this unit. For example, if
+  // the ratio of shape A's points to shape B's points should be x/y, then shape
+  // A can have x SCALE_UNIT's and shape B can have y.
+  //
+  //    Rounded Square
+  //
+  //    Shape       Num of SCALE_UNIT's     Num of Shape in Boundary
+  //    line        2                       24
+  //    corner      3                       4
+  // __________________________________________
+  //
+  //    Num of SCALE_UNIT's = 2*24 + 3*4 = 60
 
+  N = 60 * (N / 60);
+  int SCALE_UNIT = N / 60;
+  int line_points = 2 * SCALE_UNIT;
+  int corner_points = 3 * SCALE_UNIT;
+
+  // Line width = 0.1
+  // Corner radius = 0.1
+  double line_weight = 0.1 / line_points;
+  double corner_weight = (2.0 * M_PI * 0.1 / 4.0) / corner_points;
+  double middie = (line_weight + corner_weight) / 2.0;
+
+  int bc_index = 0;
   boundary_values = ie_Mat(N, 1);
 
-  // This square will have side length 0.9 and will have BL corner 0.05, 0.05
-
-  // Sides will go from 0.1 to 0.9, rounded corners will have the rest
-
-  // radius of rounded corner is 0.05
-
-  int NUM_SIDE_POINTS = 8 * (N / 36);
-  int NUM_CORN_POINTS = N / 36;
-
-  double middie = (0.8 / NUM_SIDE_POINTS) * 0.5 + (2 * M_PI * 0.05 /
-                  (4 * NUM_CORN_POINTS)) * 0.5;
-  int bc_idx = 0;
-
-  // bottom side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.9, 0.05, 0.1, 0.05, true);
-  bc_idx += NUM_SIDE_POINTS;
+  draw_line(bc_index, 6 * line_points, 0.8, 0.1, 0.2, 0.1, true);
+  bc_index += 6 * line_points;
 
-  // bottom left corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.1, 0.05, 0.05, 0.1, true);
-  bc_idx += NUM_CORN_POINTS;
+  draw_quarter_circle(bc_index, corner_points, 0.2, 0.1, 0.1, 0.2, true);
+  bc_index += corner_points;
 
-  // left side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.05, 0.1, 0.05, 0.9, true);
-  bc_idx += NUM_SIDE_POINTS;
+  draw_line(bc_index, 6 * line_points, 0.1, 0.2, 0.1, 0.8, true);
+  bc_index += 6 * line_points;
 
-  // top left corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.05, 0.9, 0.1, 0.95, true);
-  bc_idx += NUM_CORN_POINTS;
+  draw_quarter_circle(bc_index, corner_points, 0.1, 0.8, 0.2, 0.9, true);
+  bc_index += corner_points;
 
-  // top side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.1, 0.95, 0.9, 0.95, true);
-  bc_idx += NUM_SIDE_POINTS;
+  draw_line(bc_index, 6 * line_points, 0.2, 0.9, 0.8, 0.9, true);
+  bc_index += 6 * line_points;
 
-  // top right corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.9, 0.95, 0.95, 0.9, true);
-  bc_idx += NUM_CORN_POINTS;
+  draw_quarter_circle(bc_index, corner_points, 0.8, 0.9, 0.9, 0.8, true);
+  bc_index += corner_points;
 
-  // right side
   weights.push_back(middie);
-  draw_line(bc_idx, NUM_SIDE_POINTS, 0.95, 0.9, 0.95, 0.1, true);
-  bc_idx += NUM_SIDE_POINTS;
+  draw_line(bc_index, 6 * line_points, 0.9, 0.8, 0.9, 0.2, true);
+  bc_index += 6 * line_points;
 
-  // bottom right corner
   weights.push_back(middie);
-  draw_quarter_circle(bc_idx, NUM_CORN_POINTS, 0.95, 0.1, 0.9, 0.05, true);
-  bc_idx += NUM_CORN_POINTS;
+  draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
+  bc_index += corner_points;
 }
 
 
@@ -202,27 +229,27 @@ bool RoundedSquare::is_in_domain(const Vec2& a) {
 
   double eps = 1e-2;
 
-  if (fabs(v[0] - 0.5) > 0.45 - eps
-      || fabs(v[1] - 0.5) > 0.45 - eps) {
+  if (fabs(v[0] - 0.5) > 0.4 - eps
+      || fabs(v[1] - 0.5) > 0.4 - eps) {
     return false;
   }
 
-  if (v[0] <= 0.95 + eps && v[0] + eps >= 0.05 && v[1] + eps >= 0.1
+  if (v[0] <= 0.9 + eps && v[0] + eps >= 0.1 && v[1] + eps >= 0.2
+      && v[1] <= 0.8 + eps) return true;
+  if (v[0] <= 0.8  + eps && v[0] + eps >= 0.2 && v[1] + eps >= 0.1
       && v[1] <= 0.9 + eps) return true;
-  if (v[0] <= 0.9  + eps && v[0] + eps >= 0.1 && v[1] + eps >= 0.05
-      && v[1] <= 0.95 + eps) return true;
 
   double min = 1;
-  Vec2 bl(0.1, 0.1);
-  Vec2 br(0.9, 0.1);
-  Vec2 tl(0.1, 0.9);
-  Vec2 tr(0.9, 0.9);
+  Vec2 bl(0.2, 0.2);
+  Vec2 br(0.8, 0.2);
+  Vec2 tl(0.2, 0.8);
+  Vec2 tr(0.8, 0.8);
 
   min = fmin(min, (bl - a).norm());
   min = fmin(min, (tr - a).norm());
   min = fmin(min, (tl - a).norm());
   min = fmin(min, (br - a).norm());
-  if (min + eps > 0.05) return false;
+  if (min + eps > 0.1) return false;
   return true;
 }
 

@@ -22,7 +22,6 @@ void boundary_integral_solve(const ie_solver_config& config,
                              std::vector<double>* skel_times = nullptr) {
   bool is_stokes = (config.pde == ie_solver_config::STOKES);
   bool is_time_trial = (skel_times != nullptr);
-  int N = config.N;
   double id_tol = config.id_tol;
 
   // TODO(John) insert comment here explaining why this is necessary
@@ -30,12 +29,18 @@ void boundary_integral_solve(const ie_solver_config& config,
   //  printf("Turn down N or disable accuracy checking please\n");
   //  return;
   // }
-  config.boundary->initialize(N, config.boundary_condition);
+  config.boundary->initialize(config.N, config.boundary_condition);
 
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);
   }
   // TODO(John) why not just N here?
+  // Answer: for now, and maybe this isn't ideal, but we allow the boundary init
+  // to choose a different number of points than N. My inclination is that this
+  // is obviously necessary. One way to simplify could be to only allow input to
+  // be small, medium, large, etc. or even how large on a scale from 1-10,
+  // then pass initialize a number which initialize must use as a lower bound.
+  // Or just treat the user's input as a lower bound. Hmm.
   int dofs = config.boundary->points.size() / 2;
   QuadTree quadtree;
   quadtree.initialize_tree(config.boundary.get(), is_stokes);
@@ -50,38 +55,35 @@ void boundary_integral_solve(const ie_solver_config& config,
     (config.admissibility == ie_solver_config::STRONG);
   IeSolverTools ie_solver_tools(id_tol, strong_admissibility, is_stokes);
 
-  Kernel K;
+  Kernel kernel;
 
-  K.load(config.boundary.get(), is_stokes);
+  kernel.load(config.boundary.get(), is_stokes);
 
   // Now we calculate the solution to the PDE inside the domain by setting
   // up the relevant linear system.
 
-  int dim = is_stokes ? 2 : 1;
+  std::vector<double> domain_points;
+  get_domain_points(&domain_points, quadtree.min, quadtree.max);
 
   Initialization init;
 
-  // init.Electric_InitializeDomainKernel(K_domain, points,
-  //  domain_points, TEST_SIZE, config.boundary.get());
-
-  ie_Mat f(dim * dofs, 1);
+  ie_Mat f(dofs, 1);
   // TODO(John) get rid of these damn if(is_stokes) statements, push them to the
   // functions
+  // TODO(John) actually just get rid of this, use the b_v instead of f
   if (is_stokes) {
     init.Stokes_InitializeBoundary(&f, config.boundary->normals);
     // notice here we are passing the normals since the flow will just be
     // unit tangent to the boundary.
   } else {
-    init.Electric_InitializeBoundary(&f, config.boundary->points);
+    f = config.boundary->boundary_values;
   }
-
-  ie_Mat phi(dim * dofs, 1);
 
   if (is_time_trial) {
     double elapsed = 0;
     for (int i = 0; i < TIMING_ITERATIONS; i++) {
       double start = omp_get_wtime();
-      ie_solver_tools.skeletonize(K, &quadtree);
+      ie_solver_tools.skeletonize(kernel, &quadtree);
       double end = omp_get_wtime();
       elapsed += (end - start);
 
@@ -90,29 +92,90 @@ void boundary_integral_solve(const ie_solver_config& config,
     skel_times->push_back(elapsed / TIMING_ITERATIONS);
     return;
   }
+  double start = omp_get_wtime();
 
-  ie_solver_tools.skeletonize(K, &quadtree);
-  ie_solver_tools.check_factorization_against_kernel(K, &quadtree);
+  ie_solver_tools.skeletonize(kernel, &quadtree);
+  double end = omp_get_wtime();
+  std::cout << (end - start) << " seconds for initial skel" << std::endl;
+  ie_solver_tools.check_factorization_against_kernel(kernel, &quadtree);
 
-  quadtree.perturb();
-  std::cout << "\n\nPerturbed" << std::endl;
+  ie_Mat domain(TEST_SIZE * TEST_SIZE, 1);
+  int file_idx = 0;
 
-  ie_solver_tools.skeletonize(K, &quadtree);
-  ie_solver_tools.check_factorization_against_kernel(K, &quadtree);
+  std::unique_ptr<Boundary> perturbed_boundary;
+  switch (config.boundary->boundary_shape) {
+    case Boundary::BoundaryShape::CIRCLE:
+      perturbed_boundary.reset(new Circle());
+      break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE:
+      perturbed_boundary.reset(new RoundedSquare());
+      break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
+      perturbed_boundary.reset(new RoundedSquareWithBump());
+      break;
+    case Boundary::BoundaryShape::SQUIGGLY:
+      perturbed_boundary.reset(new Squiggly());
+      break;
+    case Boundary::BoundaryShape::ELLIPSES:
+      perturbed_boundary.reset(new Ellipses());
+      break;
+  }
 
-  ie_Mat phi1(dim * dofs, 1);
-  ie_solver_tools.sparse_matvec(K, quadtree, f, &phi1);
+  int perturbation_size = 0;
+  for (int perturbation = 0; perturbation < 40; perturbation++) {
+    if (perturbation < 20) {
+      perturbation_size += 5;
+    } else {
+      perturbation_size -= 5;
+    }
+    perturbed_boundary->perturbation_size = perturbation_size;
+    perturbed_boundary->initialize(config.N, config.boundary_condition);
 
-  quadtree.reset();
-  std::cout << "\n\nReset" << std::endl;
+    dofs = perturbed_boundary->points.size() / 2;
+    // This edits the points too.
+    quadtree.perturb(*perturbed_boundary);
+    assert(dofs = quadtree.boundary->weights.size());
+    start = omp_get_wtime();
+    ie_solver_tools.skeletonize(kernel, &quadtree);
+    end = omp_get_wtime();
+    std::cout << (end - start) << " seconds" << std::endl;
+    ie_solver_tools.check_factorization_against_kernel(kernel, &quadtree);
+    ie_Mat phi(dofs, 1);
 
-  ie_solver_tools.skeletonize(K, &quadtree);
-  ie_solver_tools.check_factorization_against_kernel(K, &quadtree);
-  ie_Mat phi2(dim * dofs, 1);
-  ie_solver_tools.sparse_matvec(K, quadtree, f, &phi2);
+    assert(dofs == config.boundary->boundary_values.height());
+    ie_solver_tools.solve(kernel, quadtree, &phi,
+                          config.boundary->boundary_values);
+    ie_Mat K_domain = ie_Mat(TEST_SIZE * TEST_SIZE, dofs);
+    init.InitializeDomainKernel(&K_domain,
+                                domain_points, TEST_SIZE, config.boundary.get(),
+                                is_stokes);
+    ie_Mat::gemv(NORMAL, 1., K_domain, phi, 0., &domain);
 
-  phi2 -= phi1;
-  std::cout << "Diff norm: " << phi2.norm2() << std::endl;
+    std::string filename = "output/bake/sol/" + std::to_string(file_idx++)
+                           + ".txt";
+    write_solution_to_file(filename, domain, domain_points, is_stokes);
+  }
+
+  // Quadtree needs editing now
+  // quadtree.perturb(old_points, new_points);
+
+  // quadtree.reset();
+  // ie_solver_tools.skeletonize(kernel, &quadtree);
+  // ie_solver_tools.check_factorization_against_kernel(kernel, &quadtree);
+
+  // ie_Mat phi1(dim * kernel.boundary->points.size(), 1);
+  // ie_solver_tools.sparse_matvec(kernel, quadtree, f, &phi1);
+
+  // quadtree.reset();
+  // std::cout << "\nReset" << std::endl;
+
+  // ie_solver_tools.skeletonize(kernel, &quadtree);
+  // ie_solver_tools.check_factorization_against_kernel(kernel, &quadtree);
+  // ie_Mat phi2(dim * kernel.boundary->points.size(), 1);
+  // ie_solver_tools.sparse_matvec(kernel, quadtree, f, &phi2);
+
+  // phi2 -= phi1;
+  // std::cout << "\nDiff norm: " << phi2.norm2() << std::endl;
 }
 
 }  // namespace ie_solver

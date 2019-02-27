@@ -1,4 +1,5 @@
 // Copyright 2019 John Paul Ryan
+#include <omp.h>
 #include <iostream>
 #include <cassert>
 #include <cmath>
@@ -88,7 +89,6 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   // height of Z is number of skeleton columns
   unsigned int num_redundant = node->T.width();
   unsigned int num_skel     = node->T.height();
-
   // GENERATE K_BN,BN
   std::vector<unsigned int> BN;
   for (unsigned int idx : node->interaction_lists.active_box) {
@@ -99,11 +99,17 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   }
   // Note that BN has all currently deactivated DoFs removed.
   ie_Mat K_BN = kernel(BN, BN);  // que bien!
+
   ie_Mat update(BN.size(), BN.size());
 
-  get_all_schur_updates(&update, BN, node);
+  get_all_schur_updates(&update, BN, node, strong_admissibility);
+  // std::vector<unsigned int > p;
+  // ie_Mat Z;
+  // int redundants = K_BN.id(&p, &Z, 1e-6);
+  // std::cout << "Node id " << node->id << std::endl;
+  // std::cout << "KBN with width " << K_BN.width() << " has " << redundants <<
+  //           " redundants" << std::endl;
   K_BN -= update;
-
   // Generate various index ranges within BN
   std::vector<unsigned int> s, r, n, sn;
   for (unsigned int i = 0; i < num_skel; i++) {
@@ -120,7 +126,6 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
       sn.push_back(i + num_redundant + num_skel);
     }
   }
-
   ie_Mat  Xrr(num_redundant, num_redundant);
   get_x_matrices(&K_BN, node->T, &Xrr, r, s, n);
   node->D_r = Xrr;
@@ -132,12 +137,32 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   node->L = ie_Mat(num_skelnear, num_redundant);
   node->U = ie_Mat(num_redundant, num_skelnear);
 
+  // if (node->id == 5) {
+  //   std::cout << "Showing top left 10x10 block of Xrr" << std::endl;
+  //   for (int i = 0; i < 10; i++) {
+  //     for (int j = 0; j < 10; j++) {
+  //       double x = Xrr.get(i, j);
+  //       int y = (int) (x*1000.0);
+  //       x = y/1000.0;
+  //       std::cout << x << " ";
+  //     } std::cout << std::endl;
+  //   }
+  // }
+  double cond = Xrr.condition_number();
+  // std::cout<<node->side_length<<","<<Xrr.height()<<","<<cond<<std::endl;
+  if (cond > 1000) {
+    std::cout << "Node " << node->id << " schur update -- ";
+    std::cout << "Width " << node->side_length << " num dofs " << Xrr.width() <<
+              std::endl;
+    std::cout << "Inverting w/ condition number " << cond << std::endl;
+  }
+
   Xrr.right_multiply_inverse(K_BN(sn, r), &node->L);
   Xrr.left_multiply_inverse(K_BN(r, sn), &node->U);
 
+
   ie_Mat schur(sn.size(), sn.size());
   ie_Mat::gemm(NORMAL, NORMAL, 1.0, node->L, K_BN(r, sn), 0., &schur);
-
   // set schur update
   node->schur_update = schur;
   node->schur_updated = true;
@@ -147,32 +172,49 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
   int node_counter = 0;
   unsigned int lvls = tree->levels.size();
+  int active_dofs = tree->boundary->points.size() / 2;
   for (unsigned int level = lvls - 1; level > 0; level--) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
     QuadTreeLevel* current_level = tree->levels[level];
+
+    // First, get all active dofs from children
+    for (QuadTreeNode * node : current_level->nodes) {
+      if (node->schur_updated) continue;
+      populate_active_box(node);
+    }
+    // Next, get all active near dofs from neighbors
+    for (QuadTreeNode* node_a : current_level->nodes) {
+      if (node_a->schur_updated) continue;
+      node_a->interaction_lists.near.clear();
+      for (QuadTreeNode* neighbor : node_a->neighbors) {
+        // Some neighbors are smaller boxes from higher levels, we don't
+        // care about those, their parents have the updated information.
+        if (neighbor->level > node_a->level) {
+          continue;
+        }
+        for (unsigned int idx : neighbor->interaction_lists.active_box) {
+          node_a->interaction_lists.near.push_back(idx);
+        }
+      }
+    }
+
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
       node_counter++;
       if (node_counter > NODE_CAP) {
         break;
       }
       QuadTreeNode* current_node = current_level->nodes[n];
-      // check_factorization_against_kernel(kernel, tree);
-      // First, get rid of inactive dofs
-
-      populate_active_box(current_node);
-
       if (current_node->schur_updated) {
         continue;
       }
-
       if (current_node->interaction_lists.active_box.size()
           < MIN_DOFS_TO_COMPRESS) {
         continue;
       }
-
       int redundants = interpolative_decomposition(kernel, tree, current_node);
+      active_dofs -= redundants;
       if (redundants == 0) {
         continue;
       }
@@ -181,7 +223,9 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
   }
   // If the above breaks due to a cap, we need to manually propagate active
   // boxes up the tree.
+  // std::cout << "Final count " << active_dofs << std::endl;
   populate_all_active_boxes(tree);
+  // check_factorization_against_kernel(kernel, tree);
 }
 
 

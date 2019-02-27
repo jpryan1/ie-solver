@@ -10,12 +10,23 @@ namespace ie_solver {
 
 class Boundary {
  public:
+  int perturbation_size = 0;
   std::vector<double> points, normals, curvatures, weights;
+  ie_Mat boundary_values;
+  enum BoundaryShape {
+    CIRCLE,
+    ROUNDED_SQUARE,
+    ROUNDED_SQUARE_WITH_BUMP,
+    SQUIGGLY,
+    ELLIPSES,
+    CUBIC_SPLINE
+  };
   enum BoundaryCondition {
     SINGLE_ELECTRON,
-    ALL_ONES
+    ALL_ONES,
+    BUMP_FUNCTION
   };
-  ie_Mat boundary_values;
+  BoundaryShape boundary_shape;
   BoundaryCondition boundary_condition;
   virtual void initialize(int n, BoundaryCondition bc) = 0;
   virtual bool is_in_domain(const Vec2& a) = 0;

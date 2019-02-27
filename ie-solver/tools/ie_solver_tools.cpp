@@ -22,22 +22,39 @@ IeSolverTools::IeSolverTools(double id_tol, bool strong_admissibility_,
 
 void IeSolverTools::check_factorization_against_kernel(const Kernel& kernel,
     QuadTree* tree) {
-  assert(tree->boundary->points.size() % 2 == 0);
+  int check_size = 100;
+  // This ensures that operations know what the remaining skels are.
   populate_all_active_boxes(tree);
-  unsigned int dofs = tree->boundary->points.size() / 2;
-  int rand_idx = rand() % dofs;
-  ie_Mat e1(dofs, 1);
-  for (unsigned int i = 0; i < dofs; i++) {
-    e1.set(i, 0, 0);
+
+  int dofs = tree->boundary->points.size() / 2;
+  // Take a random 100x100 submatrix of A-A^hat, estimate 2-norm by power method
+  std::vector<unsigned int> rand_x_indices, rand_y_indices;
+  for (int i = 0; i < check_size; i++) {
+    rand_x_indices.push_back(rand() % dofs);
+    rand_y_indices.push_back(rand() % dofs);
   }
-  e1.set(rand_idx, 0, 1.0);
+
+  ie_Mat A = kernel(rand_x_indices, rand_y_indices);
+  ie_Mat A_hat(check_size, check_size);
+  ie_Mat basis(dofs, 1);
   ie_Mat b(dofs, 1);
-  sparse_matvec(kernel, *tree, e1, &b);
-  double error = 0;
-  for (int i = 0; i < dofs; i++) {
-    error += pow(kernel.get(i, rand_idx) - b.get(i, 0), 2);
+
+  for (int y = 0; y < rand_y_indices.size(); y++) {
+    int rand_y_idx = rand_y_indices[y];
+    for (unsigned int i = 0; i < dofs; i++) {
+      basis.set(i, 0, 0);
+    }
+    basis.set(rand_y_idx, 0, 1.0);
+    sparse_matvec(kernel, *tree, basis, &b);
+    for (int x = 0; x < rand_x_indices.size(); x++) {
+      int rand_x_idx = rand_x_indices[x];
+      A_hat.set(x, y, b.get(rand_x_idx, 0));
+    }
   }
-  std::cout << "Total row error: " << sqrt(error) << std::endl;
+  double truenorm = A.frob_norm();
+  A -= A_hat;
+  std::cout << "Total error: " << 100.0 * A.frob_norm() / truenorm << "%" <<
+            std::endl;
 }
 
 
@@ -61,6 +78,9 @@ void IeSolverTools::populate_active_box(QuadTreeNode* node) {
   // would look nicer in matlab.
 
   // populate active_box
+  node->interaction_lists.skel.clear();
+  node->interaction_lists.skelnear.clear();
+  node->interaction_lists.redundant.clear();
   node->interaction_lists.active_box.clear();
   if (!node->is_leaf) {
     for (QuadTreeNode* child : node->children) {
@@ -79,7 +99,9 @@ void IeSolverTools::populate_active_box(QuadTreeNode* node) {
   }
 }
 
-
+// TODO(John) the permutation vector is weirdly unique among the
+// interaction_lists and is weird to deal with in perturbing, can we just ditch
+// it somehow?
 void IeSolverTools::set_rs_ranges(InteractionLists* interaction_lists,
                                   const std::vector<unsigned int>& prm,
                                   unsigned int sk, unsigned int rd) {

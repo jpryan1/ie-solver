@@ -6,7 +6,7 @@
 #include "ie-solver/ie_mat.h"
 #include "boundaries/boundary.h"
 
-#define MAX_LEAF_DOFS 128
+#define MAX_LEAF_DOFS 32
 
 // TODO(John) all headers should have variable names explicit.
 
@@ -83,14 +83,16 @@ class QuadTree {
   void initialize_tree(Boundary* boundary, bool is_stokes);
   void recursive_add(QuadTreeNode* node, double x, double y,
                      unsigned int mat_ind);
+  void get_descendent_neighbors(QuadTreeNode* big, QuadTreeNode* small);
+
   void node_subdivide(QuadTreeNode* node);
   void add_index(std::vector<unsigned int>* r, unsigned int ind);
 
-  int which_field(double x, double y, QuadTreeNode* node);
-
   void write_quadtree_to_file();
 
-  void perturb();
+  void mark_neighbors_and_parents(QuadTreeNode* node);
+
+  void perturb(const Boundary& new_boundary);
 
   // void print();
   // void rec_print(QuadTreeNode*);
