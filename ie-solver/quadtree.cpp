@@ -1,12 +1,18 @@
 // Copyright 2019 John Paul Ryan
+#include <omp.h>
 #include <fstream>
 #include <cassert>
 #include <cmath>
+#include <unordered_map>
 #include <iostream>
+#include <utility>
+#include <boost/functional/hash.hpp>
 #include "ie-solver/log.h"
 #include "ie-solver/quadtree.h"
 
 namespace ie_solver {
+
+typedef std::pair<double, double> pair;
 
 unsigned int QuadTreeNode::id_count = 0;
 
@@ -22,14 +28,16 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   min = boundary->points[0];
   max = boundary->points[0];
 
-  double tree_min = -0.1;
-  double tree_max = 1;
+  double tree_min = 0;  // 1 - tree_max_;//0.05;
+  double tree_max = 1.0;  // M_PI;
+
+  // double tree_min = -M_PI;
+  // double tree_max = M_PI;
 
   for (double point : boundary->points) {
     if (point < min) min = point;
     if (point > max) max = point;
   }
-
   assert(min > tree_min && max < tree_max);
 
   root = new QuadTreeNode();
@@ -64,30 +72,6 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
 
   // This is a naive method and should probably be made smarter
 
-  // After the quadtree is made, we go through the boundary->points and check if
-  // they should be in the near field of EVERY node
-
-
-  // for(int i=0; i<boundary->points.size(); i+=2){
-  //  double x = boundary->points[i];
-  //  double y = boundary->points[i+1];
-  //  for(int j=0; j<levels.size(); j++){
-  //    QuadTreeLevel* current_level = levels[j];
-  //    for(int k=0; k< current_level->nodes.size(); k++){
-
-  //      QuadTreeNode* current_node = current_level->nodes[k];
-
-  //      int field = which_field(x,y,current_node);
-  //      if( field==1){
-  //        add_index(current_node->interaction_lists.near, i/2);
-  //      }
-  //      else if(field==2){
-  //        add_index(current_node->box.far_range, i/2);
-  //      }
-
-  //    }
-  //  }
-  // }
   // //just a quick check on the validity of the tree
   // for(int j=0; j<levels.size(); j++){
   //  QuadTreeLevel* current_level = levels[j];
@@ -157,7 +141,7 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
 
 
 // Adds neighbors to leaf which are on lower levels, by recursing and checking
-// if the corners are along the wall. 
+// if the corners are along the wall.
 void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
                                         QuadTreeNode* small) {
   assert(big->level < small->level);
@@ -395,35 +379,17 @@ void QuadTree::add_index(std::vector<unsigned int>* r, unsigned int ind) {
 }
 
 
-int QuadTree::which_field(double x, double y, QuadTreeNode* node) {
-  assert(node != nullptr && "which_field fails on null node.");
-
-  double bl_x = node->corners[0];
-  double bl_y = node->corners[1];
-  double side_length = node->corners[3] - node->corners[1];
-  if (x >= bl_x && x < bl_x + side_length && y >= bl_y
-      && y < bl_y + side_length) {
-    return 0;  // inside box
-  }
-  if (x >= bl_x - side_length && x < bl_x + 2 * side_length
-      && y >= bl_y - side_length
-      && y < bl_y + 2 * side_length) {
-    return 1;  // near field
-  }
-  return 2;  // far field
-}
-
-
 void QuadTree::write_quadtree_to_file() {
   std::ofstream output;
   output.open("output/data/ie_solver_tree.txt");
   if (output.is_open()) {
     for (QuadTreeLevel* level : levels) {
       for (QuadTreeNode* node : level->nodes) {
-        if (node->is_leaf) {
-          output << node->corners[0] << "," << node->corners[1]
-                 << "," << node->side_length << std::endl;
-        }
+        output << node->corners[0] << "," << node->corners[1]
+               << "," << node->side_length << "," << node->id << "," <<
+               node->interaction_lists.original_box.size() <<
+               std::endl;
+        //}
       }
     }
     output.close();
@@ -432,32 +398,179 @@ void QuadTree::write_quadtree_to_file() {
   }
 }
 
-void QuadTree::perturb(const std::vector<double>& old_points,
-                       const std::vector<double>& new_points) {
+void QuadTree::mark_neighbors_and_parents(QuadTreeNode* node) {
+  if (node == nullptr) return;
+  node->schur_updated = false;
+  node->interaction_lists.active_box.clear();
+  node->interaction_lists.skel.clear();
+  node->interaction_lists.skelnear.clear();
+  node->interaction_lists.redundant.clear();
+  node->interaction_lists.permutation.clear();
 
-
-  // Go up tree, marking parents and their neighbors.
-
-  // while (current != nullptr) {
-  //   current->schur_updated = false;
-  //   current->interaction_lists.active_box.clear();
-  //   current->interaction_lists.skel.clear();
-  //   current->interaction_lists.skelnear.clear();
-  //   current->interaction_lists.redundant.clear();
-  //   current->interaction_lists.permutation.clear();
-
-
-  //   for (QuadTreeNode* neighbor : current->neighbors) {
-  //     neighbor->schur_updated = false;
-  //     neighbor->interaction_lists.active_box.clear();
-  //     neighbor->interaction_lists.skel.clear();
-  //     neighbor->interaction_lists.skelnear.clear();
-  //     neighbor->interaction_lists.redundant.clear();
-  //     neighbor->interaction_lists.permutation.clear();
-  //   }
-  //   current = current->parent;
-  // }
+  for (QuadTreeNode* neighbor : node->neighbors) {
+    neighbor->schur_updated = false;
+    neighbor->interaction_lists.active_box.clear();
+    neighbor->interaction_lists.skel.clear();
+    neighbor->interaction_lists.skelnear.clear();
+    neighbor->interaction_lists.redundant.clear();
+    neighbor->interaction_lists.permutation.clear();
+  }
+  mark_neighbors_and_parents(node->parent);
 }
+
+
+void QuadTree::perturb(const Boundary& perturbed_boundary) {
+  // 1) Create mapping, storing vectors of additions/deletions
+  // 2) Go to every node, marking those with additions and deletions
+
+  // These are vectors of indices
+  std::vector<double> additions;
+  std::vector<double> deletions;
+
+  // First we do it stupid with vectors, optimize later
+  std::vector<double> old_points = boundary->points;
+  std::vector<double> new_points = perturbed_boundary.points;
+
+  // Now create mapping
+  std::unordered_map<pair, int, boost::hash<pair>> point_to_new_index;
+  for (int i = 0; i < new_points.size(); i += 2) {
+    pair new_point(new_points[i], new_points[i + 1]);
+    point_to_new_index[new_point] = i / 2;
+  }
+
+  std::vector<bool> found_in_old(new_points.size() / 2);
+  for (int i = 0; i < found_in_old.size(); i++) {
+    found_in_old[i] = false;
+  }
+
+  std::unordered_map<int, int> old_index_to_new_index;
+
+  for (int i = 0; i < old_points.size(); i += 2) {
+    pair old_point(old_points[i], old_points[i + 1]);
+    std::unordered_map<pair, int, boost::hash<pair>>::const_iterator element =
+          point_to_new_index.find(old_point);
+    if (element != point_to_new_index.end()) {
+      old_index_to_new_index[i / 2] = element->second;
+      found_in_old[element->second] = true;
+    } else {
+      deletions.push_back(i / 2);
+    }
+  }
+  for (int i = 0; i < found_in_old.size(); i++) {
+    if (!found_in_old[i]) {
+      additions.push_back(i);
+    }
+  }
+
+  // Go through all leaf original box vectors and apply mapping.
+  // (If there is a deletion it will be processed later)
+
+  // Each node will be one of three things
+  //   1) Unmarked, in which case the below is a perfectly good mapping
+  //   2) Marked non-leaf, the below is irrelevant, everything will be dumped
+  //   3) Marked leaf, only the leaf portion of the below is relevant.
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      std::vector<unsigned int> ob, ab, s, r, sn, n;
+      if (node->is_leaf) {
+        for (unsigned int idx : node->interaction_lists.original_box) {
+          std::unordered_map<int, int>::const_iterator element =
+            old_index_to_new_index.find(idx);
+          if (element != old_index_to_new_index.end()) {
+            ob.push_back(element->second);
+          }
+        }
+        node->interaction_lists.original_box = ob;
+      }
+
+      for (unsigned int idx : node->interaction_lists.active_box) {
+        std::unordered_map<int, int>::const_iterator element =
+          old_index_to_new_index.find(idx);
+        if (element != old_index_to_new_index.end()) {
+          ab.push_back(element->second);
+        }
+      }
+
+      for (unsigned int idx : node->interaction_lists.skel) {
+        std::unordered_map<int, int>::const_iterator element =
+          old_index_to_new_index.find(idx);
+        if (element != old_index_to_new_index.end()) {
+          s.push_back(element->second);
+        }
+      }
+
+      for (unsigned int idx : node->interaction_lists.redundant) {
+        std::unordered_map<int, int>::const_iterator element =
+          old_index_to_new_index.find(idx);
+        if (element != old_index_to_new_index.end()) {
+          r.push_back(element->second);
+        }
+      }
+
+      for (unsigned int idx : node->interaction_lists.skelnear) {
+        std::unordered_map<int, int>::const_iterator element =
+          old_index_to_new_index.find(idx);
+        if (element != old_index_to_new_index.end()) {
+          sn.push_back(element->second);
+        }
+      }
+
+      node->interaction_lists.active_box = ab;
+      node->interaction_lists.skel = s;
+      node->interaction_lists.skelnear = sn;
+      node->interaction_lists.redundant = r;
+    }
+  }
+
+
+  // Go through all additions, find their leaves, make addition and call mark
+  // function
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      if (!node->is_leaf) {
+        continue;
+      }
+      for (int i = 0; i < additions.size(); i++) {
+        double difx = new_points[2 * additions[i]] - node->corners[0];
+        double dify = new_points[2 * additions[i] + 1]
+                      - node->corners[1];
+        if (difx < node->side_length && dify < node->side_length && difx > 0
+            && dify > 0) {
+          node->interaction_lists.original_box.push_back(additions[i]);
+          mark_neighbors_and_parents(node);
+        }
+      }
+    }
+  }
+
+
+  // Go through all deletions, find their leaves, make deletion and call mark
+  // function
+
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      if (!node->is_leaf) {
+        continue;
+      }
+      for (int i = 0; i < deletions.size(); i++) {
+        double difx = old_points[2 * deletions[i]] - node->corners[0];
+        double dify = old_points[2 * deletions[i] + 1]
+                      - node->corners[1];
+        if (difx < node->side_length && dify < node->side_length && difx > 0
+            && dify > 0) {
+          mark_neighbors_and_parents(node);
+        }
+      }
+    }
+  }
+  boundary->points = perturbed_boundary.points;
+  boundary->normals = perturbed_boundary.normals;
+  boundary->weights = perturbed_boundary.weights;
+  boundary->curvatures = perturbed_boundary.curvatures;
+  perturbed_boundary.boundary_values.copy_into(&(boundary->boundary_values));
+  boundary->perturbation_size = perturbed_boundary.perturbation_size;
+}
+
 
 void QuadTree::reset() {
   if (root) {

@@ -29,18 +29,6 @@ int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
 
   set_skelnear_range(&node->interaction_lists);
 
-
-  // ie_Mat skel_mat = kernel(node->interaction_lists.near,
-  //                          node->interaction_lists.skel);
-  // ie_Mat red_mat = kernel(node->interaction_lists.near,
-  //                         node->interaction_lists.redundant);
-  // ie_Mat result(red_mat.height(), red_mat.width());
-
-  // ie_Mat::gemm(NORMAL, NORMAL, 1., skel_mat, node->T, 0., &result);
-  // result -= red_mat;
-  // std::cout << "\nNear accuracy of id " << result.frob_norm() << "\n\n" <<
-  //           std::endl;
-
   return node->T.width();
 }
 
@@ -111,9 +99,16 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   }
   // Note that BN has all currently deactivated DoFs removed.
   ie_Mat K_BN = kernel(BN, BN);  // que bien!
+
   ie_Mat update(BN.size(), BN.size());
 
   get_all_schur_updates(&update, BN, node, strong_admissibility);
+  // std::vector<unsigned int > p;
+  // ie_Mat Z;
+  // int redundants = K_BN.id(&p, &Z, 1e-6);
+  // std::cout << "Node id " << node->id << std::endl;
+  // std::cout << "KBN with width " << K_BN.width() << " has " << redundants <<
+  //           " redundants" << std::endl;
   K_BN -= update;
   // Generate various index ranges within BN
   std::vector<unsigned int> s, r, n, sn;
@@ -142,8 +137,30 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   node->L = ie_Mat(num_skelnear, num_redundant);
   node->U = ie_Mat(num_redundant, num_skelnear);
 
+  // if (node->id == 5) {
+  //   std::cout << "Showing top left 10x10 block of Xrr" << std::endl;
+  //   for (int i = 0; i < 10; i++) {
+  //     for (int j = 0; j < 10; j++) {
+  //       double x = Xrr.get(i, j);
+  //       int y = (int) (x*1000.0);
+  //       x = y/1000.0;
+  //       std::cout << x << " ";
+  //     } std::cout << std::endl;
+  //   }
+  // }
+  double cond = Xrr.condition_number();
+  // std::cout<<node->side_length<<","<<Xrr.height()<<","<<cond<<std::endl;
+  if (cond > 1000) {
+    std::cout << "Node " << node->id << " schur update -- ";
+    std::cout << "Width " << node->side_length << " num dofs " << Xrr.width() <<
+              std::endl;
+    std::cout << "Inverting w/ condition number " << cond << std::endl;
+  }
+
   Xrr.right_multiply_inverse(K_BN(sn, r), &node->L);
   Xrr.left_multiply_inverse(K_BN(r, sn), &node->U);
+
+
   ie_Mat schur(sn.size(), sn.size());
   ie_Mat::gemm(NORMAL, NORMAL, 1.0, node->L, K_BN(r, sn), 0., &schur);
   // set schur update
@@ -162,17 +179,14 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
     }
     QuadTreeLevel* current_level = tree->levels[level];
 
-
-    std::cout << "Level w side length " << current_level->nodes[0]->side_length <<
-              std::endl;
-    std::cout << "Dofs left " << active_dofs << std::endl;
-
     // First, get all active dofs from children
     for (QuadTreeNode * node : current_level->nodes) {
+      if (node->schur_updated) continue;
       populate_active_box(node);
     }
     // Next, get all active near dofs from neighbors
     for (QuadTreeNode* node_a : current_level->nodes) {
+      if (node_a->schur_updated) continue;
       node_a->interaction_lists.near.clear();
       for (QuadTreeNode* neighbor : node_a->neighbors) {
         // Some neighbors are smaller boxes from higher levels, we don't
@@ -209,9 +223,9 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
   }
   // If the above breaks due to a cap, we need to manually propagate active
   // boxes up the tree.
-  std::cout << "Final count " << active_dofs << std::endl;
+  // std::cout << "Final count " << active_dofs << std::endl;
   populate_all_active_boxes(tree);
-  check_factorization_against_kernel(kernel, tree);
+  // check_factorization_against_kernel(kernel, tree);
 }
 
 

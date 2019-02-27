@@ -73,16 +73,36 @@ void Squiggly::draw_squiggle(int bc_index, int num_points, double start_x,
 
 
 void Squiggly::initialize(int N, BoundaryCondition bc) {
+  boundary_shape = BoundaryShape::SQUIGGLY;
   boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();
   curvatures.clear();
+  //            SHAPE PROTOCOL
+  //
+  // Except in trivial cases, we need to be careful if we want to evenly
+  // distribute discretization points on the boundary, while compartmentalizing
+  // drawing functions. For that purpose, we establish a SCALE_UNIT and require
+  // that all draw functions take some multiple of this unit. For example, if
+  // the ratio of shape A's points to shape B's points should be x/y, then shape
+  // A can have x SCALE_UNIT's and shape B can have y.
+  //
+  //    Squiggly
+  //
+  //    Shape       Num of SCALE_UNIT's     Num of Shape in Boundary
+  //    side        6                       4
+  // __________________________________________
+  //
+  //    Num of SCALE_UNIT's = 6*4 = 24
+  N = 24 * (N / 24);
+  int SCALE_UNIT = N / 24;
+  int side_points = 6 * SCALE_UNIT;
   int bc_index = 0;
   boundary_values = ie_Mat(N, 1);
+
   // Currently, we set boundary conditions in initialize, because we scale the
   // points after drawing. TODO(John) scale before, so bc init can go in draw fn
-  int side_points = N / 4;
   draw_squiggle(bc_index, side_points, 0, 0, 0, 3 * M_PI);
   bc_index += side_points;
   draw_squiggle(bc_index, side_points, 0, 3 * M_PI, 3 * M_PI, 3 * M_PI);
@@ -106,6 +126,13 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
         break;
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(i / 2, 0, 1.0);
+        break;
+      case BoundaryCondition::BUMP_FUNCTION:
+        double N = boundary_values.height();
+        double x_val = -1 * ((N - 1.0 - (i / 2)) / (N - 1.0))
+                       + ((i / 2) / (N - 1.0));
+        potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
+        boundary_values.set(i / 2, 0, potential);
         break;
     }
   }

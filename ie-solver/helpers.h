@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 #include <fstream>
 #include "ie-solver/ie_mat.h"
 #include "ie-solver/boundaries/boundary.h"
@@ -11,6 +12,8 @@
 #include "ie-solver/boundaries/rounded_square.h"
 #include "ie-solver/boundaries/rounded_square_with_bump.h"
 #include "ie-solver/boundaries/squiggly.h"
+#include "ie-solver/boundaries/ellipses.h"
+#include "ie-solver/boundaries/cubic_spline.h"
 
 #define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
 #define DEFAULT_ID_TOL 1e-6
@@ -45,7 +48,8 @@ void write_potential_to_file();
 void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
                           double* scale_eps,
                           const std::vector<double>& eps_times);
-void write_solution_to_file(const ie_Mat& domain, const std::vector<double>&
+void write_solution_to_file(const std::string& filename, const ie_Mat& domain,
+                            const std::vector<double>&
                             domain_points, bool is_stokes);
 void get_domain_points(std::vector<double>* points, double min,
                        double max);

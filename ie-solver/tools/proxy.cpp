@@ -41,6 +41,7 @@ void IeSolverTools::make_id_mat(const Kernel& K, ie_Mat* mat,
                             node->interaction_lists.active_box.size());
       make_proxy_mat(&proxy, cntr_x, cntr_y, node->side_length * radius_ratio,
                      tree, node->interaction_lists.active_box);
+
       *mat = ie_Mat(inner_circle.size() + NUM_PROXY_POINTS,
                     node->interaction_lists.active_box.size());
       mat->set_submatrix(0, inner_circle.size(),

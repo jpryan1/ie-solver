@@ -160,9 +160,9 @@ ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
   for (unsigned int i = 0; i < I_.size(); i++) {
     for (unsigned int j = 0; j < J_.size(); j++) {
       ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
-      assert(!std::isnan(ret.mat[i + olda_ * j]));
     }
   }
+
   return ret;
 }
 

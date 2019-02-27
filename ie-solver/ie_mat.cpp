@@ -200,6 +200,19 @@ double ie_Mat::frob_norm() const {
 }
 
 
+double ie_Mat::one_norm() const {
+  double top = 0;
+  for (unsigned int j = 0; j < width_; j++) {
+    double sum = 0;
+    for (unsigned int i = 0; i < height_; i++) {
+      sum += fabs(get(i, j));
+    }
+    if (sum > top) {
+      top = sum;
+    }
+  }
+  return top;
+}
 
 
 void ie_Mat::rand_vec(unsigned int dofs) {
@@ -222,7 +235,6 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
   // aka, XU = K
 
   // TODO(John) insert asserts for these functions
-
   ie_Mat X_copy(height_, width_);
   copy_into(&X_copy);
 
@@ -235,7 +247,6 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
 
   LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
                  X_copy.lda_, &ipiv[0]);
-
   int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,
                               K_copy.width_ , X_copy.mat , X_copy.lda_ ,
                               &ipiv[0] , K_copy.mat, K_copy.lda_);
@@ -248,7 +259,6 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
 void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
   // KX^-1 = L
   // aka X_T L^T = K^T
-
   ie_Mat X_copy(height_, width_);
   transpose_into(&X_copy);
 
@@ -272,6 +282,21 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
   K_copy.transpose_into(L);
 }
 
+
+double ie_Mat::condition_number() const {
+  // TODO(John) this should be done without using LU factorization if possible?
+  ie_Mat X_copy(height_, width_);
+  copy_into(&X_copy);
+  std::vector<lapack_int> ipiv(height_);
+  memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
+  double one_norm =  X_copy.one_norm();
+  LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
+                 X_copy.lda_, &ipiv[0]);
+  double rcond;
+  LAPACKE_dgecon(LAPACK_COL_MAJOR, '1', X_copy.height(), X_copy.mat,
+                 X_copy.lda_, one_norm, &rcond);
+  return 1.0 / rcond;
+}
 
 // Performs interpolative decomposition, and eturns number of skeleton columns.
 // Takes double /tol/, tolerance factorfor error in CPQR factorization.

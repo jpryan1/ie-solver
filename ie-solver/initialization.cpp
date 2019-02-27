@@ -8,12 +8,12 @@ namespace ie_solver {
 
 // TODO(John) now points vec might need to be boundary_points instead
 void Initialization::InitializeDomainKernel(ie_Mat* K,
-    const std::vector<double>& points,
-    const std::vector<double>& normals,
-    const std::vector<double>& weights,
     const std::vector<double>& domain_points, int test_size,
     Boundary* boundary, bool is_stokes) {
   // is stokes TODO
+  std::vector<double> points = boundary->points;
+  std::vector<double> normals = boundary->normals;
+  std::vector<double> weights = boundary->weights;
 
   if (is_stokes) {
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
@@ -28,6 +28,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
   // #pragma omp parallel for
   for (int i = 0; i < test_size * test_size; i++) {
     Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
+
     for (int j = 0; j < dofs; j++) {
       Vec2 y(points[2 * j], points[2 * j + 1]);
 

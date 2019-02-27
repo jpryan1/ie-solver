@@ -31,6 +31,13 @@ void Circle::initialize(int N, BoundaryCondition bc) {
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(i, 0, 1.0);
         break;
+      case BoundaryCondition::BUMP_FUNCTION:
+        double N = boundary_values.height();
+        double x_val = -1 * ((N - 1.0 - i) / (N - 1.0))
+                       + (i / (N - 1.0));
+        potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
+        boundary_values.set(i, 0, potential);
+        break;
     }
   }
 }

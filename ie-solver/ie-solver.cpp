@@ -29,7 +29,7 @@ void boundary_integral_solve(const ie_solver_config& config,
   //    printf("Turn down N or disable accuracy checking please\n");
   //    return;
   // }
-  config.boundary->perturbation_size = 128;
+  config.boundary->perturbation_size = 50;
   config.boundary->initialize(config.N, config.boundary_condition);
 
   if (!is_time_trial) {
@@ -62,14 +62,12 @@ void boundary_integral_solve(const ie_solver_config& config,
   // Now we calculate the solution to the PDE inside the domain by setting
   // up the relevant linear system.
 
-  int dim = is_stokes ? 2 : 1;
-
   std::vector<double> domain_points;
   get_domain_points(&domain_points, quadtree.min, quadtree.max);
 
   Initialization init;
 
-  ie_Mat f(dim * dofs, 1);
+  ie_Mat f(dofs, 1);
   // TODO(John) get rid of these damn if(is_stokes) statements, push them to the
   // functions
   if (is_stokes) {
@@ -80,7 +78,7 @@ void boundary_integral_solve(const ie_solver_config& config,
     f = config.boundary->boundary_values;
   }
 
-  ie_Mat phi(dim * dofs, 1);
+  ie_Mat phi(dofs, 1);
 
   if (is_time_trial) {
     double elapsed = 0;
@@ -100,15 +98,16 @@ void boundary_integral_solve(const ie_solver_config& config,
 
   // This will be done as a sparse mat vec in the future, for now we do
   // dense matvec
-  ie_Mat K_domain = ie_Mat(dim * TEST_SIZE * TEST_SIZE, dim * dofs);
-  init.InitializeDomainKernel(&K_domain, config.boundary->points,
-                              config.boundary->normals,
-                              config.boundary->weights,
+  ie_Mat K_domain = ie_Mat(TEST_SIZE * TEST_SIZE, dofs);
+  init.InitializeDomainKernel(&K_domain,
                               domain_points, TEST_SIZE, config.boundary.get(),
                               is_stokes);
-  ie_Mat domain(dim * TEST_SIZE * TEST_SIZE, 1);
+
+  ie_Mat domain(TEST_SIZE * TEST_SIZE, 1);
+
   ie_Mat::gemv(NORMAL, 1., K_domain, phi, 0., &domain);
-  write_solution_to_file(domain, domain_points, is_stokes);
+  write_solution_to_file("output/data/ie_solver_solution.txt", domain,
+                         domain_points, is_stokes);
 
   check_laplace_solution(domain, config.id_tol, domain_points,
                          config.boundary.get());
