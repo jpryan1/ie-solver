@@ -103,11 +103,14 @@ void CubicSpline::interpolate() {
     std::vector<double> y_cubic = x1_cubics[i];
     for (int j = 0; j < 100; j++) {
       double t = j / 100.0;
-      double x = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2] + pow(t,
-                 3) * x_cubic[3];
-      double y = y_cubic[0] + t * y_cubic[1] + pow(t, 2) * y_cubic[2] + pow(t,
-                 3) * y_cubic[3];
-      double dist = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2));
+      double x = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2]
+                 + pow(t, 3) * x_cubic[3];
+      double y = y_cubic[0] + t * y_cubic[1] + pow(t, 2) * y_cubic[2]
+                 + pow(t, 3) * y_cubic[3];
+
+      points.push_back(x);
+      points.push_back(y);
+
       double x_prime = x_cubic[1] + 2 * t * x_cubic[2]
                        + 3 * pow(t, 2) * x_cubic[3];
       double y_prime = y_cubic[1] + 2 * t * y_cubic[2]
@@ -116,8 +119,9 @@ void CubicSpline::interpolate() {
       double x_prime_prime = 2 * x_cubic[2] + 6 * t * x_cubic[3];
       double y_prime_prime = 2 * y_cubic[2] + 6 * t * y_cubic[3];
 
-      points.push_back(x);
-      points.push_back(y);
+      double curvature = (x_prime * y_prime_prime - x_prime_prime * y_prime)
+                         / pow(sqrt(pow(x_prime, 2) + pow(y_prime, 2)), 3);
+      curvatures.push_back(curvature);
 
       double norm = sqrt(pow(x_prime, 2) + pow(y_prime, 2));
       x_prime /= norm;
@@ -125,9 +129,6 @@ void CubicSpline::interpolate() {
       normals.push_back(y_prime);
       normals.push_back(-x_prime);
 
-      double curvature = (x_prime * y_prime_prime - x_prime_prime * y_prime)
-                         / pow(sqrt(pow(x_prime, 2) + pow(y_prime, 2)), 3);
-      curvatures.push_back(curvature);
       double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
       switch (boundary_condition) {
         case BoundaryCondition::SINGLE_ELECTRON:
