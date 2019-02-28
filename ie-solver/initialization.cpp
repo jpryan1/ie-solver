@@ -28,11 +28,11 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
   // #pragma omp parallel for
   for (int i = 0; i < test_size * test_size; i++) {
     Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
-
+    bool in_domain = boundary->is_in_domain(x);
     for (int j = 0; j < dofs; j++) {
       Vec2 y(points[2 * j], points[2 * j + 1]);
 
-      if (!boundary->is_in_domain(x)) {
+      if (!in_domain) {
         K->set(i, j, 0);
         continue;
       }

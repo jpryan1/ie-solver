@@ -171,7 +171,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   std::string usage = "\n\tusage: ./ie-solver "
                       "-pde {LAPLACE|STOKES} "
                       "-boundary {CIRCLE|ROUNDED_SQUARE|"
-                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|ELLIPSES} "
+                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|ELLIPSES|CUBIC_SPLINE "
                       "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
                       "BUMP_FUNCTION} "
                       "-N {number of nodes} "

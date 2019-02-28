@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <lapacke.h>
+#include <omp.h>
 #include <string>
 #include <cassert>
 #include <iostream>
@@ -346,6 +347,29 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   for (unsigned int i = skel; i < skel + redund; i++) J_.push_back(i);
   *Z = cpy(I_, J_);
   return skel;
+}
+
+
+std::vector<double> ie_Mat::real_eigenvalues() {
+  std::vector<double> eigvs;
+  double *eigs = new double[width_];
+  double *imags = new double[width_];
+  double start = omp_get_wtime();
+  int info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', width_, mat,
+                           width_, eigs, imags,
+                           nullptr, 1, nullptr, 1);
+
+  double end = omp_get_wtime();
+  if(end-start>1e-4) std::cout << (end - start) << " seconds" << std::endl;
+  for (int i = 0; i < width_; i++) {
+    if (fabs(imags[i]) < 1e-14) {
+      eigvs.push_back(eigs[i]);
+    }
+  }
+
+  delete[] imags;
+  delete[] eigs;
+  return eigvs;
 }
 
 

@@ -53,6 +53,7 @@ struct ie_Mat {
   void left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const;
   void right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const;
   int id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const;
+  std::vector<double> real_eigenvalues();
 
   void print() const;
 
