@@ -1,4 +1,5 @@
 // Copyright 2019 John Paul Ryan
+#include <omp.h>
 #include <cmath>
 #include <iostream>
 #include <cassert>
@@ -13,8 +14,14 @@ namespace ie_solver {
 void CubicSpline::get_spline_points() {
   for (int i = 0; i < 10; i++) {
     double ang = 2 * M_PI * (i / 10.0);
-    double x = 0.5 + 0.4 * cos(ang);
-    double y = 0.5 + 0.25 * sin(ang);
+
+    double x = 0.5 + 0.2 * cos(ang);
+    double y = 0.5 + 0.2 * sin(ang);
+    if (i == 0) x += 0.2;
+    if (i == 3) y += 0.2;
+    if (i == 5) x -= 0.2;
+    if (i == 8) y -= 0.2;
+
     x0_spline_points.push_back(x);
     x1_spline_points.push_back(y);
   }
@@ -192,13 +199,52 @@ void CubicSpline::initialize(int N, BoundaryCondition bc) {
   //    Num of SCALE_UNIT's = 2*24 + 3*4 = 60
 }
 
+void CubicSpline::find_real_roots_of_cubic(const std::vector<double>& y_cubic,
+    std::vector<double>* t_vals) {
+  ie_Mat companion(3, 3);
+  companion.set(1, 0, 1.0);
+  companion.set(2, 1, 1.0);
+  companion.set(0, 2, -y_cubic[0] / y_cubic[3]);
+  companion.set(1, 2, -y_cubic[1] / y_cubic[3]);
+  companion.set(2, 2, -y_cubic[2] / y_cubic[3]);
+  *t_vals = companion.real_eigenvalues();
+
+}
+
+
+int CubicSpline::num_right_intersections(double x, double y, int index) {
+  // Find intersection on spline, if no t in [0,1] return 0
+  // For each t in that range, find corresponding x val, check if
+  // greater than x.
+  std::vector<double> x_cubic = x0_cubics[index];
+  std::vector<double> y_cubic = x1_cubics[index];
+  y_cubic[0] -= y;
+  std::vector<double> t_vals;
+  find_real_roots_of_cubic(y_cubic, &t_vals);
+  int intersections = 0;
+  for (double t : t_vals) {
+    if (t > 0 && t < 1) {
+      if (x_cubic[0] + t * x_cubic[1] + pow(t, 2)*x_cubic[2]
+          + pow(t, 3)*x_cubic[3] > x) {
+        intersections++;
+      }
+    }
+  }
+  return intersections;
+}
+
 
 bool CubicSpline::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
-  double eps = 1e-2;
-  double dist = sqrt(pow(a.a[0] - 0.5, 2) + pow(a.a[1] - 0.5, 2));
-  if (dist + eps > 0.15) return false;
+  int intersections = 0;
+  for (int i = 0; i < num_spline_points; i++) {
+    intersections += num_right_intersections(v[0], v[1], i);
+  }
+  if (intersections % 2 == 0) {
+    return false;
+  }
+
   return true;
 }
 
