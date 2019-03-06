@@ -242,8 +242,11 @@ void Ellipses::initialize(int N, BoundaryCondition bc) {
   // of it
 
   int bc_index = 0;
-  boundary_values = ie_Mat(N, 1);
-
+  if (bc == BoundaryCondition::STOKES) {
+    boundary_values = ie_Mat(2 * N, 1);
+  } else {
+    boundary_values = ie_Mat(N, 1);
+  }
   weights.push_back(middie);
   draw_line(bc_index, 6 * line_points, 0.8, 0.1, 0.2, 0.1, true);
   bc_index += 6 * line_points;

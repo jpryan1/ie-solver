@@ -24,10 +24,6 @@ struct Initialization {
                                      const std::vector<double>& domain_points,
                                      int test_size, Boundary* boundary);
 
-  void Stokes_InitializeBoundary(ie_Mat* f, const std::vector<double>& points);
-
-
-
   void Electric_InitializeBoundary(ie_Mat* f,
                                    const std::vector<double>& points);
 };

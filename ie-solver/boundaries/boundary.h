@@ -24,7 +24,8 @@ class Boundary {
   enum BoundaryCondition {
     SINGLE_ELECTRON,
     ALL_ONES,
-    BUMP_FUNCTION
+    BUMP_FUNCTION,
+    STOKES
   };
   BoundaryShape boundary_shape;
   BoundaryCondition boundary_condition;

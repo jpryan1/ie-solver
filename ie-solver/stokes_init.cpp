@@ -69,17 +69,4 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
 }
 
 
-void Initialization::Stokes_InitializeBoundary(ie_Mat* f,
-    const std::vector<double>& normals) {
-  assert(f->height() == normals.size());
-  for (unsigned int i = 0; i < f->height() / 2; i += 2) {
-    f->set(i,   0, 1);
-    f->set(i + 1, 0, 0);
-  }
-  for (unsigned int i = f->height() / 2; i < f->height(); i += 2) {
-    f->set(i,   0, 0);
-    f->set(i + 1, 0, 0);
-  }
-}
-
 }  // namespace ie_solver

@@ -99,8 +99,11 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
   int SCALE_UNIT = N / 24;
   int side_points = 6 * SCALE_UNIT;
   int bc_index = 0;
-  boundary_values = ie_Mat(N, 1);
-
+  if (bc == BoundaryCondition::STOKES) {
+    boundary_values = ie_Mat(2 * N, 1);
+  } else {
+    boundary_values = ie_Mat(N, 1);
+  }
   // Currently, we set boundary conditions in initialize, because we scale the
   // points after drawing. TODO(John) scale before, so bc init can go in draw fn
   draw_squiggle(bc_index, side_points, 0, 0, 0, 3 * M_PI);
@@ -127,12 +130,17 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(i / 2, 0, 1.0);
         break;
-      case BoundaryCondition::BUMP_FUNCTION:
+      case BoundaryCondition::BUMP_FUNCTION: {
         double N = boundary_values.height();
         double x_val = -1 * ((N - 1.0 - (i / 2)) / (N - 1.0))
                        + ((i / 2) / (N - 1.0));
         potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
         boundary_values.set(i / 2, 0, potential);
+        break;
+      }
+      case BoundaryCondition::STOKES:
+        boundary_values.set(i, 0, -normals[i + 1]);
+        boundary_values.set(i + 1, 0, normals[i]);
         break;
     }
   }

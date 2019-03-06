@@ -18,27 +18,27 @@ Vec2::Vec2(double m, double n) {
 }
 
 
-double Vec2::norm() {
+double Vec2::norm() const {
   return sqrt(a[0] * a[0] + a[1] * a[1]);
 }
 
 
-double Vec2::dot(const Vec2& o) {
+double Vec2::dot(const Vec2& o) const {
   return a[0] * o.a[0] + a[1] * o.a[1];
 }
 
 
-Vec2 Vec2::operator-(const Vec2 &o) {
+Vec2 Vec2::operator-(const Vec2 &o) const {
   return Vec2(a[0] - o.a[0], a[1] - o.a[1]);
 }
 
 
-Vec2 Vec2::operator*(const double d) {
+Vec2 Vec2::operator*(const double d) const {
   return Vec2(a[0] * d, a[1] * d);
 }
 
 
-void Vec2::print() {
+void Vec2::print() const {
   const std::string message = "Vec2: " + std::to_string(a[0]) + " " +
                               std::to_string(a[1]);
   LOG::INFO(message);

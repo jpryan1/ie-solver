@@ -9,11 +9,11 @@ struct Vec2 {
 
   Vec2();
   Vec2(double m, double n);
-  double norm();
-  double dot(const Vec2& o);
-  Vec2 operator-(const Vec2 &o);
-  Vec2 operator*(const double d);
-  void print();
+  double norm() const;
+  double dot(const Vec2& o) const;
+  Vec2 operator-(const Vec2 &o) const;
+  Vec2 operator*(const double d) const;
+  void print() const;
 };
 
 }  // namespace ie_solver

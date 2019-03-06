@@ -11,7 +11,8 @@
 
 namespace ie_solver {
 
-
+// TODO(John) honestly the lda parameter is completely unused, we should get
+// rid of it
 ie_Mat::ie_Mat() {
   mat       = NULL;
   lda_      = 0;
@@ -24,15 +25,16 @@ ie_Mat::~ie_Mat() {
   if (mat) delete[] mat;
 }
 
-ie_Mat::ie_Mat(unsigned int h, unsigned int w) {
-  lda_      = h;
-  height_   = h;
-  width_    = w;
-  mat       = new double[height_ * width_];
-  memset(mat, 0, height_ * width_ * sizeof(double));
+// Copy constructor
+ie_Mat::ie_Mat(const ie_Mat &copy) {
+  lda_ = copy.lda_;
+  height_ = copy.height_;
+  width_ = copy.width_;
+  mat = new double[height_ * width_];
+  memcpy(mat, copy.mat, width_ * height_ * sizeof(double));
 }
 
-
+// Copy assignment
 ie_Mat& ie_Mat::operator=(const ie_Mat& copy) {
   if (height_ != copy.height_ || width_ != copy.width_ || lda_ != copy.lda_) {
     if (mat) delete[] mat;
@@ -46,33 +48,36 @@ ie_Mat& ie_Mat::operator=(const ie_Mat& copy) {
 }
 
 
-void ie_Mat::resize(unsigned int h, unsigned int w) {
-  if (mat) delete[] mat;
-  lda_ = h;
-  height_ = h;
-  width_ = w;
-  mat = new double[height_ * width_];
-  memset(mat, 0, height_ * width_ * sizeof(double));
+// Move constructor
+ie_Mat::ie_Mat(ie_Mat&& move) {
+  lda_ = move.lda_;
+  height_ = move.height_;
+  width_ = move.width_;
+  mat = move.mat;
+  move.mat = nullptr;
 }
 
 
-void ie_Mat::copy_into(ie_Mat* copy) const {
-  assert(height_ > 0 && width_ > 0 && mat != NULL);
-  // check if we need a resize
-  if (height_ != copy->height_ || width_ != copy->width_
-      || lda_ != copy->lda_) {
-    if (copy->mat) delete[] copy->mat;
-    copy->lda_    = lda_;
-    copy->height_ = height_;
-    copy->width_  = width_;
-    copy->mat     = new double[height_ * width_];
+// Move assignment
+ie_Mat& ie_Mat::operator= (ie_Mat&& move) {
+  if (mat) delete[] mat;
+  if (height_ != move.height_ || width_ != move.width_ || lda_ != move.lda_) {
+    lda_ = move.lda_;
+    height_ = move.height_;
+    width_ = move.width_;
   }
+  mat = move.mat;
+  move.mat = nullptr;
+  return *this;
+}
 
-  for (unsigned int i = 0; i < copy->height(); i++) {
-    for (unsigned int j = 0; j < copy->width(); j++) {
-      copy->set(i, j, get(i, j));
-    }
-  }
+
+ie_Mat::ie_Mat(unsigned int h, unsigned int w) {
+  lda_      = h;
+  height_   = h;
+  width_    = w;
+  mat       = new double[height_ * width_];
+  memset(mat, 0, height_ * width_ * sizeof(double));
 }
 
 
@@ -236,24 +241,17 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
   // aka, XU = K
 
   // TODO(John) insert asserts for these functions
-  ie_Mat X_copy(height_, width_);
-  copy_into(&X_copy);
-
-  ie_Mat K_copy(K.height_, K.width_);
-
-  K.copy_into(&K_copy);
-
+  ie_Mat X_copy = *this;
+  *U = K;
   std::vector<lapack_int> ipiv(height_);
   memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
 
   LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
                  X_copy.lda_, &ipiv[0]);
   int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,
-                              K_copy.width_ , X_copy.mat , X_copy.lda_ ,
-                              &ipiv[0] , K_copy.mat, K_copy.lda_);
-
+                              U->width_ , X_copy.mat , X_copy.lda_ ,
+                              &ipiv[0] , U->mat, U->lda_);
   assert(status == 0);
-  K_copy.copy_into(U);
 }
 
 
@@ -262,9 +260,7 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
   // aka X_T L^T = K^T
   ie_Mat X_copy(height_, width_);
   transpose_into(&X_copy);
-
   ie_Mat K_copy(K.width_, K.height_);
-
   K.transpose_into(&K_copy);
 
   std::vector<lapack_int> ipiv(height_);
@@ -286,8 +282,7 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
 
 double ie_Mat::condition_number() const {
   // TODO(John) this should be done without using LU factorization if possible?
-  ie_Mat X_copy(height_, width_);
-  copy_into(&X_copy);
+  ie_Mat X_copy = *this;
   std::vector<lapack_int> ipiv(height_);
   memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
   double one_norm =  X_copy.one_norm();
@@ -303,8 +298,7 @@ double ie_Mat::condition_number() const {
 // Takes double /tol/, tolerance factorfor error in CPQR factorization.
 // Populates /p/ with permutation, Z with linear transformation.
 int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
-  ie_Mat cpy;
-  this->copy_into(&cpy);
+  ie_Mat cpy = *this;
   std::vector<lapack_int> pvt(width_);
   memset(&pvt[0], 0, width_ * sizeof(lapack_int));
 
@@ -360,7 +354,7 @@ std::vector<double> ie_Mat::real_eigenvalues() {
                            nullptr, 1, nullptr, 1);
 
   double end = omp_get_wtime();
-  if(end-start>1e-4) std::cout << (end - start) << " seconds" << std::endl;
+  if (end - start > 1e-4) std::cout << (end - start) << " seconds" << std::endl;
   for (int i = 0; i < width_; i++) {
     if (fabs(imags[i]) < 1e-14) {
       eigvs.push_back(eigs[i]);

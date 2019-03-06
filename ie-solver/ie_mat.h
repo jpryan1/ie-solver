@@ -18,11 +18,17 @@ struct ie_Mat {
 
   ie_Mat();
   ~ie_Mat();
-  ie_Mat(unsigned int h, unsigned int w);
-  ie_Mat& operator=(const ie_Mat& copy);
 
-  void resize(unsigned int h, unsigned int w);
-  void copy_into(ie_Mat* copy) const;
+  ie_Mat(unsigned int h, unsigned int w);
+
+  // Copy constructor
+  ie_Mat(const ie_Mat &o);
+  // Copy assignment
+  ie_Mat& operator=(const ie_Mat& copy);
+  // Move constructor
+  ie_Mat(ie_Mat&& move);
+  // Move assignment
+  ie_Mat& operator= (ie_Mat&& move);
 
   double get(unsigned int i, unsigned int j) const;
   void set(unsigned int i, unsigned int j, double a);

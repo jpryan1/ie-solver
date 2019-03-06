@@ -58,8 +58,7 @@ void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
 void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
                                   const ie_Mat& x,
                                   ie_Mat* b) {
-  *b = ie_Mat(x.height(), 1);
-  x.copy_into(b);
+  *b = x;
   int lvls = tree.levels.size();
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = tree.levels[level];
@@ -145,8 +144,7 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
                           const ie_Mat& b) {
   assert(x->height() == b.height());
   int lvls = tree.levels.size();
-  *x = ie_Mat(b.height(), 1);
-  b.copy_into(x);
+  *x = b;
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = tree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
