@@ -23,6 +23,7 @@ int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
 
   std::vector<unsigned int> p;
   unsigned int numskel = pxy.id(&p, &node->T, id_tol);
+
   if (numskel == 0) return 0;
   set_rs_ranges(&node->interaction_lists, p, node->T.height(),
                 node->T.width());
@@ -101,9 +102,11 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   ie_Mat K_BN = kernel(BN, BN);  // que bien!
 
   ie_Mat update(BN.size(), BN.size());
-
+  // std::cout<<"Before strong"<<std::endl;
   get_all_schur_updates(&update, BN, node, strong_admissibility);
   // std::vector<unsigned int > p;
+
+  // std::cout<<"after strong"<<std::endl;
   // ie_Mat Z;
   // int redundants = K_BN.id(&p, &Z, 1e-6);
   // std::cout << "Node id " << node->id << std::endl;
@@ -178,7 +181,6 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
       break;
     }
     QuadTreeLevel* current_level = tree->levels[level];
-
     // First, get all active dofs from children
     for (QuadTreeNode * node : current_level->nodes) {
       if (node->schur_updated) continue;
@@ -213,7 +215,9 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
           < MIN_DOFS_TO_COMPRESS) {
         continue;
       }
+
       int redundants = interpolative_decomposition(kernel, tree, current_node);
+
       active_dofs -= redundants;
       if (redundants == 0) {
         continue;

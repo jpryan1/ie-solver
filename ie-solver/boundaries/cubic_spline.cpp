@@ -144,12 +144,18 @@ void CubicSpline::interpolate() {
         case BoundaryCondition::ALL_ONES:
           boundary_values.set(bc_index++, 0, 1.0);
           break;
-        case BoundaryCondition::BUMP_FUNCTION:
+        case BoundaryCondition::BUMP_FUNCTION: {
           double N = boundary_values.height();
           double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
                          + (bc_index / (N - 1.0));
           potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
           boundary_values.set(bc_index++, 0, potential);
+          break;
+        }
+        case BoundaryCondition::STOKES:
+          boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index + 1]);
+          boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index]);
+          bc_index++;
           break;
       }
     }
@@ -176,8 +182,11 @@ void CubicSpline::initialize(int N, BoundaryCondition bc) {
   curvatures.clear();
 
   // Currently, just get a working interpolation going
-  boundary_values = ie_Mat(1000, 1);
-  get_spline_points();
+  if (bc == BoundaryCondition::STOKES) {
+    boundary_values = ie_Mat(2 * 1000, 1);
+  } else {
+    boundary_values = ie_Mat(1000, 1);
+  }  get_spline_points();
   get_cubics();
   interpolate();
   //            SHAPE PROTOCOL

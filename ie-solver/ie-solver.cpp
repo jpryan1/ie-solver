@@ -20,7 +20,11 @@ namespace ie_solver {
 
 void boundary_integral_solve(const ie_solver_config& config,
                              std::vector<double>* skel_times = nullptr) {
-  bool is_stokes = (config.pde == ie_solver_config::STOKES);
+  bool is_stokes = false;
+  if (config.pde == ie_solver_config::STOKES) {
+    is_stokes = true;
+  }
+
   bool is_time_trial = (skel_times != nullptr);
   double id_tol = config.id_tol;
 
@@ -35,14 +39,8 @@ void boundary_integral_solve(const ie_solver_config& config,
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);
   }
-  // TODO(John) why not just N here?
-  // Answer: for now, and maybe this isn't ideal, but we allow the boundary init
-  // to choose a different number of points than N. My inclination is that this
-  // is obviously necessary. One way to simplify could be to only allow input to
-  // be small, medium, large, etc. or even how large on a scale from 1-10,
-  // then pass initialize a number which initialize must use as a lower bound.
-  // Or just treat the user's input as a lower bound. Hmm.
   int dofs = config.boundary->points.size() / 2;
+  if (is_stokes) dofs *= 2;
   QuadTree quadtree;
   quadtree.initialize_tree(config.boundary.get(), is_stokes);
 
@@ -67,16 +65,7 @@ void boundary_integral_solve(const ie_solver_config& config,
 
   Initialization init;
 
-  ie_Mat f(dofs, 1);
-  // TODO(John) get rid of these damn if(is_stokes) statements, push them to the
-  // functions
-  if (is_stokes) {
-    init.Stokes_InitializeBoundary(&f, config.boundary->normals);
-    // notice here we are passing the normals since the flow will just be
-    // unit tangent to the boundary.
-  } else {
-    f = config.boundary->boundary_values;
-  }
+  ie_Mat f = config.boundary->boundary_values;
 
   ie_Mat phi(dofs, 1);
 
@@ -94,6 +83,7 @@ void boundary_integral_solve(const ie_solver_config& config,
     return;
   }
   ie_solver_tools.skeletonize(kernel, &quadtree);
+
   ie_solver_tools.solve(kernel, quadtree, &phi, f);
 
   // This will be done as a sparse mat vec in the future, for now we do
@@ -123,6 +113,15 @@ int main(int argc, char** argv) {
   if (!ie_solver::parse_input_into_config(argc, argv, &config)) {
     return 1;
   }
+
+  if (config.boundary_condition
+      ==  ie_solver::Boundary::BoundaryCondition::STOKES
+      || config.pde == ie_solver::ie_solver_config::STOKES) {
+    config.boundary_condition =  ie_solver::Boundary::BoundaryCondition::STOKES;
+    config.pde = ie_solver::ie_solver_config::STOKES;
+  }
+
+
   if (!config.scaling) {
     ie_solver::boundary_integral_solve(config);
   }

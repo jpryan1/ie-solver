@@ -45,12 +45,18 @@ void RoundedSquareWithBump::draw_line(int bc_index, int num_points,
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(bc_index++, 0, 1.0);
         break;
-      case BoundaryCondition::BUMP_FUNCTION:
+      case BoundaryCondition::BUMP_FUNCTION: {
         double N = boundary_values.height();
         double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
                        + (bc_index / (N - 1.0));
         potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
         boundary_values.set(bc_index++, 0, potential);
+        break;
+      }
+      case BoundaryCondition::STOKES:
+        boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index + 1]);
+        boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index]);
+        bc_index++;
         break;
     }
   }
@@ -138,12 +144,18 @@ void RoundedSquareWithBump::draw_quarter_circle(int bc_index, int num_points,
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(bc_index++, 0, 1.0);
         break;
-      case BoundaryCondition::BUMP_FUNCTION:
+      case BoundaryCondition::BUMP_FUNCTION: {
         double N = boundary_values.height();
         double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
                        + (bc_index / (N - 1.0));
         potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
         boundary_values.set(bc_index++, 0, potential);
+        break;
+      }
+      case BoundaryCondition::STOKES:
+        boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index + 1]);
+        boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index]);
+        bc_index++;
         break;
     }
   }
@@ -189,6 +201,11 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   // Perturbation size describes the length of the bump, and the number of dofs
   // is 2* this size, because the wall grows on either side of the bump.
   int bc_index = 0;
+  if (bc == BoundaryCondition::STOKES) {
+    boundary_values = ie_Mat(2 * (N + 2 * perturbation_size), 1);
+  } else {
+    boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
+  }
   boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
 
   // line ed

@@ -8,6 +8,15 @@
 
 namespace ie_solver {
 
+
+struct Dof {
+  Vec2 point;
+  Vec2 normal;
+  double curvature;
+  double weight;
+};  // struct
+
+
 struct Kernel {
   double scale, diag_00, diag_01, diag_11;
   bool is_stokes;
@@ -17,8 +26,8 @@ struct Kernel {
 
   double get(unsigned int i, unsigned int j) const;
 
-  double stokes_kernel(unsigned int i, unsigned int j) const;
-  double laplace_kernel(unsigned int i, unsigned int j) const;
+  ie_Mat stokes_kernel(const Dof& a, const Dof& b) const;
+  double laplace_kernel(const Dof& a, const Dof& b) const;
 
   // This function stores the DoF data,  and calculates the diagonals of the mat
   void load(Boundary* boundary, bool is_stokes_);
