@@ -44,13 +44,13 @@ struct QuadTreeNode {
     br = NULL;
     for (int i = 0; i < 4; i++) children[i] = NULL;
   }
-  ~QuadTreeNode() {
-    for (QuadTreeNode* child : children) {
-      if (child) {
-        delete child;
-      }
-    }
-  }
+  // ~QuadTreeNode() {
+  //   for (QuadTreeNode* child : children) {
+  //     if (child) {
+  //       delete child;
+  //     }
+  //   }
+  // }
 };
 
 struct QuadTreeLevel {
@@ -66,8 +66,10 @@ class QuadTree {
   std::vector<QuadTreeLevel*> levels;
 
   ~QuadTree() {
-    if (root) {
-      delete root;
+    for (QuadTreeLevel* level : levels) {
+      for (QuadTreeNode* node : level->nodes) {
+        delete node;
+      }
     }
     for (QuadTreeLevel* level : levels) {
       if (level) {
@@ -86,7 +88,6 @@ class QuadTree {
   void get_descendent_neighbors(QuadTreeNode* big, QuadTreeNode* small);
 
   void node_subdivide(QuadTreeNode* node);
-  void add_index(std::vector<unsigned int>* r, unsigned int ind);
 
   void write_quadtree_to_file();
 

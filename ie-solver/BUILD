@@ -87,7 +87,8 @@ cc_library(
 			"stokes_init.cpp",
 			],
 	deps = [":ie_mat",
-			":quadtree"]
+			":quadtree",
+			":kernel"]
 )
 
 

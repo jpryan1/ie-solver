@@ -9,36 +9,36 @@ namespace ie_solver {
 // TODO(John) now points vec might need to be boundary_points instead
 void Initialization::InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& domain_points, int test_size,
-    Boundary* boundary, bool is_stokes) {
+    Kernel* kernel, bool is_stokes) {
   // is stokes TODO
-  std::vector<double> points = boundary->points;
-  std::vector<double> normals = boundary->normals;
-  std::vector<double> weights = boundary->weights;
+  std::vector<double> points = kernel->boundary->points;
+  std::vector<double> normals = kernel->boundary->normals;
+  std::vector<double> weights = kernel->boundary->weights;
 
   if (is_stokes) {
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
-                                  test_size, boundary);
+                                  test_size, kernel);
     return;
   }
-
   // columns for phi (aka dofs), rows for spatial domain
   int dofs = points.size() / 2;
   double scale = 1.0 / (2 * M_PI);
   // omp_set_num_threads(4);
   // #pragma omp parallel for
   for (int i = 0; i < test_size * test_size; i++) {
-    Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
-    bool in_domain = boundary->is_in_domain(x);
+    Dof domain_point;
+    domain_point.point = Vec2(domain_points[2 * i], domain_points[2 * i + 1]);
+    bool in_domain = kernel->boundary->is_in_domain(domain_point.point);
     for (int j = 0; j < dofs; j++) {
-      Vec2 y(points[2 * j], points[2 * j + 1]);
-
       if (!in_domain) {
         K->set(i, j, 0);
         continue;
       }
-      Vec2 r = x - y;
-      Vec2 n(normals[2 * j], normals[2 * j + 1]);
-      double potential = -weights[j] * scale * (r.dot(n)) / (r.dot(r));
+      Dof boundary_point;
+      boundary_point.point = Vec2(points[2 * j], points[2 * j + 1]);
+      boundary_point.normal = Vec2(normals[2 * j], normals[2 * j + 1]);
+      boundary_point.weight = weights[j];
+      double potential = kernel->laplace_kernel(domain_point, boundary_point);
       K->set(i, j, potential);
     }
   }

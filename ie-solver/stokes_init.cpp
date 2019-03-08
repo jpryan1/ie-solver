@@ -11,7 +11,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& normals,
     const std::vector<double>& weights,
     const std::vector<double>& domain_points, int test_size,
-    Boundary* boundary) {
+    Kernel* kernel) {
   // columns for phi (aka dofs), rows for spatial domain
 
   assert(points.size() == normals.size() &&
@@ -19,51 +19,31 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
   assert(points.size() == 2 * weights.size() &&
          "In dim 2, pts must be 2*size of weights in stokes domain init.");
 
-  // int dofs = points.size()/2;
-  double scale = 1.0 / (M_PI);
-
-  // min-=d/2;
-  // max+=d/2;
-  // #pragma omp parallel for
-
   for (int i = 0; i < test_size * test_size; i++) {
     Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
-
+    bool in_domain = kernel->boundary->is_in_domain(x);
     for (unsigned int j = 0; j < points.size(); j += 2) {
-      int ind_j = j / 2;
-
-      Vec2 y(points[j], points[j + 1]);
-
-      if (!boundary->is_in_domain(x)) {
-        K->set(2 * i  , 2 * ind_j  , 0);
-        K->set(2 * i + 1, 2 * ind_j  , 0);
-        K->set(2 * i  , 2 * ind_j + 1, 0);
-        K->set(2 * i + 1, 2 * ind_j + 1, 0);
+      if (!in_domain) {
+        K->set(2 * i  , j  , 0);
+        K->set(2 * i + 1, j  , 0);
+        K->set(2 * i  , j + 1, 0);
+        K->set(2 * i + 1, j + 1, 0);
         continue;
       }
 
-      Vec2 r = x - y;
-      Vec2 n(normals[j], normals[j + 1]);
-      double r0 = r.a[0];
-      double r1 = r.a[1];
+      Vec2 y(points[j], points[j + 1]);
 
-      // K->set(2*i  , 2*ind_j  , weights[ind_j]*scale*(log(1.0/r.norm()) +
-      //  (r0*r0/r.dot(r)) ));
-      // K->set(2*i+1, 2*ind_j  , weights[ind_j]*scale*((r0*r1/r.dot(r))));
-      // K->set(2*i  , 2*ind_j+1, weights[ind_j]*scale*((r1*r0/r.dot(r))));
-      // K->set(2*i+1, 2*ind_j+1, weights[ind_j]*scale*(log(1.0/r.norm()) +
-      //  (r1*r1/r.dot(r)) ));
+      Dof a, b;
+      a.point = x;
+      b.point = y;
+      b.normal = Vec2(normals[j], normals[j + 1]);
+      b.weight = weights[j / 2];
+      ie_Mat tensor = kernel->stokes_kernel(a, b);
 
-
-      //  DOUBLE LAYER POTENTIAL
-      double potential = weights[ind_j] * scale * (r.dot(n))
-                         / (pow(r.dot(r), 2));
-
-
-      K->set(2 * i  , 2 * ind_j  , potential * r0 * r0);
-      K->set(2 * i + 1, 2 * ind_j  , potential * r0 * r1);
-      K->set(2 * i  , 2 * ind_j + 1, potential * r0 * r1);
-      K->set(2 * i + 1, 2 * ind_j + 1, potential * r1 * r1);
+      K->set(2 * i  , j  , tensor.get(0, 0));
+      K->set(2 * i + 1, j  , tensor.get(1, 0));
+      K->set(2 * i  , j + 1, tensor.get(0, 1));
+      K->set(2 * i + 1, j + 1, tensor.get(1, 1));
     }
   }
 }

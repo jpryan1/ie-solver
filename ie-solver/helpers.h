@@ -17,7 +17,7 @@
 
 #define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
 #define DEFAULT_ID_TOL 1e-6
-#define TEST_SIZE 100
+#define TEST_SIZE 20
 
 namespace ie_solver {
 
@@ -54,6 +54,9 @@ void write_solution_to_file(const std::string& filename, const ie_Mat& domain,
 void get_domain_points(std::vector<double>* points, double min,
                        double max);
 void check_laplace_solution(const ie_Mat& domain, double id_tol,
+                            const std::vector<double>& domain_points,
+                            Boundary* boundary);
+void check_stokes_solution(const ie_Mat& domain, double id_tol,
                             const std::vector<double>& domain_points,
                             Boundary* boundary);
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config);
