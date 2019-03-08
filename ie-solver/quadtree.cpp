@@ -18,8 +18,8 @@ unsigned int QuadTreeNode::id_count = 0;
 
 void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   assert(boundary_->points.size() > 0
-         && "Number of boundary->points to init tree cannot be 0.");
-  // TODO(John) later we can assert that the boundary->points are a multiple of
+         && "number of boundary->points to init tree cannot be 0.");
+  // todo(john) later we can assert that the boundary->points are a multiple of
   // dimension
   this->boundary = boundary_;
   this->is_stokes = is_stokes_;
@@ -29,10 +29,10 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   max = boundary->points[0];
 
   double tree_min = 0;  // 1 - tree_max_;//0.05;
-  double tree_max = 1.0;  // M_PI;
+  double tree_max = 1.0;  // m_pi;
 
-  // double tree_min = -M_PI;
-  // double tree_max = M_PI;
+  // double tree_min = -m_pi;
+  // double tree_max = m_pi;
 
   for (double point : boundary->points) {
     if (point < min) min = point;
@@ -43,17 +43,17 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
   root = new QuadTreeNode();
   root->level = 0;
   root->parent = nullptr;
-  // Root is the box [0,1]x[0,1]
-  // BL
+  // root is the box [0,1]x[0,1]
+  // bl
   root->corners[0] = tree_min;
   root->corners[1] = tree_min;
-  // TL
+  // tl
   root->corners[2] = tree_min;
   root->corners[3] = tree_max;
-  // TR
+  // tr
   root->corners[4] = tree_max;
   root->corners[5] = tree_max;
-  // BR
+  // br
   root->corners[6] = tree_max;
   root->corners[7] = tree_min;
 
@@ -63,33 +63,11 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
 
   level_one->nodes.push_back(root);
   levels.push_back(level_one);
-
   // all near and far ranges should be taken care of by this guy
   for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
     recursive_add(this->root, boundary->points[i], boundary->points[i + 1],
                   i / 2);
   }
-
-  // This is a naive method and should probably be made smarter
-
-  // //just a quick check on the validity of the tree
-  // for(int j=0; j<levels.size(); j++){
-  //  QuadTreeLevel* current_level = levels[j];
-  //  for(int k=0; k< current_level->nodes.size(); k++){
-
-  //    QuadTreeNode* current_node = current_level->nodes[k];
-  //    if(is_stokes){
-  //      assert(current_node->interaction_lists.original_box.size()+
-  //      current_node->interaction_lists.near.size()+
-  //      current_node->box.far_range.size() == boundary->points.size());
-  //    }else{
-  //      assert(current_node->interaction_lists.original_box.size()+
-  //      current_node->interaction_lists.near.size()+
-  //      current_node->box.far_range.size() == boundary->points.size()/2);
-  //    }
-  //  }
-  // }
-
   // make neighbor lists in a stupid way
 
   for (unsigned int level = 0; level < levels.size(); level++) {
@@ -97,22 +75,23 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
     for (unsigned int k = 0; k < current_level->nodes.size(); k++) {
       QuadTreeNode* node_a = current_level->nodes[k];
 
-      // First check against all nodes on this level
+      // first check against all nodes on this level
       for (unsigned int l = k + 1; l < current_level->nodes.size(); l++) {
         QuadTreeNode* node_b = current_level->nodes[l];
         double dist = sqrt(pow(node_a->corners[0] - node_b->corners[0], 2)
                            + pow(node_a->corners[1] - node_b->corners[1], 2));
-        // just need to check if the distance of the BL corners
+        // just need to check if the distance of the bl corners
         // is <=s*sqrt(2)
         if (dist < node_a->side_length * sqrt(2) + 1e-5) {
           node_a->neighbors.push_back(node_b);
           node_b->neighbors.push_back(node_a);
         }
       }
-      // Now if it is a leaf, check against nodes in all subsequent levels
+      // now if it is a leaf, check against nodes in all subsequent levels
       if (node_a->is_leaf) {
-        for (QuadTreeNode* neighbor : node_a->neighbors) {
-          // Make sure this isn't a neighbor from a higher level
+        for (unsigned int n = 0; n < node_a->neighbors.size(); n++) {
+          QuadTreeNode* neighbor =  node_a->neighbors[n];
+          // make sure this isn't a neighbor from a higher level
           if (neighbor->level != node_a->level) {
             continue;
           }
@@ -140,7 +119,7 @@ void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
 }
 
 
-// Adds neighbors to leaf which are on lower levels, by recursing and checking
+// adds neighbors to leaf which are on lower levels, by recursing and checking
 // if the corners are along the wall.
 void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
                                         QuadTreeNode* small) {
@@ -152,7 +131,7 @@ void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
   for (int i = 0; i < 8; i += 2) {
     double x = small->corners[i];
     double y = small->corners[i + 1];
-    // Note: in theory, the equalities should be exact (I think), but to be
+    // note: in theory, the equalities should be exact (i think), but to be
     // overcareful we will allow for machine error
 
     if (x > left && x < right) {
@@ -189,10 +168,14 @@ void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
 }
 
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
-                             unsigned int mat_ind) {
+                             unsigned int point_ind) {
   assert(node != nullptr && "recursive_add fails on null node.");
-
-  add_index(&node->interaction_lists.original_box, mat_ind);
+  if (is_stokes) {
+    node->interaction_lists.original_box.push_back(2 * point_ind);
+    node->interaction_lists.original_box.push_back(2 * point_ind + 1);
+  } else {
+    node->interaction_lists.original_box.push_back(point_ind);
+  }
 
   // figure out which child
   double midx = ((node->corners[6] - node->corners[0]) / 2.0)
@@ -212,10 +195,10 @@ void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
   }
   // does that child exist?
   if (child) {
-    recursive_add(child, x, y, mat_ind);
+    recursive_add(child, x, y, point_ind);
   } else {
     // do we need one?
-    // If this node is exploding and needs children
+    // if this node is exploding and needs children
     if (node->is_leaf
         && node->interaction_lists.original_box.size() > MAX_LEAF_DOFS) {
       node_subdivide(node);
@@ -293,6 +276,7 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
 
   if (levels.size() < node->level + 2) {
     QuadTreeLevel* new_level = new QuadTreeLevel();
+
     levels.push_back(new_level);
     new_level->nodes.push_back(bl);
     new_level->nodes.push_back(br);
@@ -313,43 +297,47 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
   node->children[2] = tr;
   node->children[3] = br;
 
-  for (unsigned int dof = 0; dof < node->interaction_lists.original_box.size();
-       dof++) {
-    unsigned int ind = node->interaction_lists.original_box[dof];
-    // theres a non-trivial difference between the stokes
-    // and laplace case here, so we split this up
-    if (is_stokes) {
-      if (ind % 2 == 1) continue;
-      // because in stokes case, two "dof"s correspond to one point
-      double x = boundary->points[ind];
-      double y = boundary->points[ind + 1];
 
+  // in the stokes case, the original_box contains pairs of consecutive
+  // indices into the kernel matrix. therefore, its size had better be even
+
+  // Now we bring the indices from the parent's box down into its childrens
+  // boxes
+  if (is_stokes) {
+    assert(node->interaction_lists.original_box.size() % 2 == 0);
+
+    for (unsigned int index = 0;
+         index < node->interaction_lists.original_box.size(); index += 2) {
+      unsigned int stokes_index = node->interaction_lists.original_box[index];
+      double x = boundary->points[stokes_index];
+      double y = boundary->points[stokes_index + 1];
       if (x < midx && y < midy) {
-        bl->interaction_lists.original_box.push_back(ind);
-        bl->interaction_lists.original_box.push_back(ind + 1);
+        bl->interaction_lists.original_box.push_back(stokes_index);
+        bl->interaction_lists.original_box.push_back(stokes_index + 1);
       } else if (x < midx && y >= midy) {
-        tl->interaction_lists.original_box.push_back(ind);
-        tl->interaction_lists.original_box.push_back(ind + 1);
+        tl->interaction_lists.original_box.push_back(stokes_index);
+        tl->interaction_lists.original_box.push_back(stokes_index + 1);
       } else if (x >= midx && y < midy) {
-        br->interaction_lists.original_box.push_back(ind);
-        br->interaction_lists.original_box.push_back(ind + 1);
+        br->interaction_lists.original_box.push_back(stokes_index);
+        br->interaction_lists.original_box.push_back(stokes_index + 1);
       } else {
-        tr->interaction_lists.original_box.push_back(ind);
-        tr->interaction_lists.original_box.push_back(ind + 1);
+        tr->interaction_lists.original_box.push_back(stokes_index);
+        tr->interaction_lists.original_box.push_back(stokes_index + 1);
       }
-    } else {
-      double x = boundary->points[2 * ind];
-      double y = boundary->points[2 * ind + 1];
-
-
+    }
+  } else {
+    // Laplace case
+    for (unsigned int index : node->interaction_lists.original_box) {
+      double x = boundary->points[2 * index];
+      double y = boundary->points[2 * index + 1];
       if (x < midx && y < midy) {
-        bl->interaction_lists.original_box.push_back(ind);
+        bl->interaction_lists.original_box.push_back(index);
       } else if (x < midx && y >= midy) {
-        tl->interaction_lists.original_box.push_back(ind);
+        tl->interaction_lists.original_box.push_back(index);
       } else if (x >= midx && y < midy) {
-        br->interaction_lists.original_box.push_back(ind);
+        br->interaction_lists.original_box.push_back(index);
       } else {
-        tr->interaction_lists.original_box.push_back(ind);
+        tr->interaction_lists.original_box.push_back(index);
       }
     }
   }
@@ -369,16 +357,6 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
 }
 
 
-void QuadTree::add_index(std::vector<unsigned int>* r, unsigned int ind) {
-  if (is_stokes) {
-    r->push_back(2 * ind);
-    r->push_back(2 * ind + 1);
-  } else {
-    r->push_back(ind);
-  }
-}
-
-
 void QuadTree::write_quadtree_to_file() {
   std::ofstream output;
   output.open("output/data/ie_solver_tree.txt");
@@ -394,11 +372,11 @@ void QuadTree::write_quadtree_to_file() {
     }
     output.close();
   } else {
-    LOG::ERROR("Failed to open output file!");
+    LOG::ERROR("failed to open output file!");
   }
 }
 
-void QuadTree::mark_neighbors_and_parents(QuadTreeNode* node) {
+void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   if (node == nullptr) return;
   node->schur_updated = false;
   node->interaction_lists.active_box.clear();
@@ -419,19 +397,19 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode* node) {
 }
 
 
-void QuadTree::perturb(const Boundary& perturbed_boundary) {
-  // 1) Create mapping, storing vectors of additions/deletions
-  // 2) Go to every node, marking those with additions and deletions
+void QuadTree::perturb(const Boundary & perturbed_boundary) {
+  // 1) create mapping, storing vectors of additions/deletions
+  // 2) go to every node, marking those with additions and deletions
 
-  // These are vectors of indices
+  // these are vectors of point indices (p_0, p_1, etc)
   std::vector<double> additions;
   std::vector<double> deletions;
 
-  // First we do it stupid with vectors, optimize later
+  // first we do it with vectors, optimize later
   std::vector<double> old_points = boundary->points;
   std::vector<double> new_points = perturbed_boundary.points;
 
-  // Now create mapping
+  // now create mapping of new_points to their point index in the new vec
   std::unordered_map<pair, int, boost::hash<pair>> point_to_new_index;
   for (int i = 0; i < new_points.size(); i += 2) {
     pair new_point(new_points[i], new_points[i + 1]);
@@ -443,16 +421,18 @@ void QuadTree::perturb(const Boundary& perturbed_boundary) {
     found_in_old[i] = false;
   }
 
+  // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
-
   for (int i = 0; i < old_points.size(); i += 2) {
     pair old_point(old_points[i], old_points[i + 1]);
+    // Is this point also in the new points vec?
     std::unordered_map<pair, int, boost::hash<pair>>::const_iterator element =
           point_to_new_index.find(old_point);
     if (element != point_to_new_index.end()) {
       old_index_to_new_index[i / 2] = element->second;
       found_in_old[element->second] = true;
     } else {
+      // If it's in the old vec but not the new vec, it was deleted
       deletions.push_back(i / 2);
     }
   }
@@ -462,13 +442,15 @@ void QuadTree::perturb(const Boundary& perturbed_boundary) {
     }
   }
 
-  // Go through all leaf original box vectors and apply mapping.
-  // (If there is a deletion it will be processed later)
+  //TODO(John) the below needs to be changed for stokes
 
-  // Each node will be one of three things
-  //   1) Unmarked, in which case the below is a perfectly good mapping
-  //   2) Marked non-leaf, the below is irrelevant, everything will be dumped
-  //   3) Marked leaf, only the leaf portion of the below is relevant.
+  // go through all leaf original box vectors and apply mapping.
+  // (if there is a deletion it will be processed later)
+
+  // each node will be one of three things
+  //   1) unmarked, in which case the below is a perfectly good mapping
+  //   2) marked non-leaf, the below is irrelevant, everything will be dumped
+  //   3) marked leaf, only the leaf portion of the below is relevant.
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
       std::vector<unsigned int> ob, ab, s, r, sn, n;
@@ -522,8 +504,7 @@ void QuadTree::perturb(const Boundary& perturbed_boundary) {
     }
   }
 
-
-  // Go through all additions, find their leaves, make addition and call mark
+  // go through all additions, find their leaves, make addition and call mark
   // function
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
@@ -543,8 +524,7 @@ void QuadTree::perturb(const Boundary& perturbed_boundary) {
     }
   }
 
-
-  // Go through all deletions, find their leaves, make deletion and call mark
+  // go through all deletions, find their leaves, make deletion and call mark
   // function
 
   for (QuadTreeLevel* level : levels) {
@@ -586,7 +566,7 @@ void QuadTree::reset() {
   initialize_tree(boundary, is_stokes);
 }
 
-void QuadTree::reset(Boundary* boundary_) {
+void QuadTree::reset(Boundary * boundary_) {
   if (root) {
     delete root;
   }

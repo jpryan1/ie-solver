@@ -206,7 +206,6 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   } else {
     boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
   }
-  boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
 
   // line ed
 
@@ -300,7 +299,6 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
   assert(bc_index == N + 2 * perturbation_size);
-  assert(weights.size() == boundary_values.height());
 }
 
 // TODO(John) consider generalizing this somehow.

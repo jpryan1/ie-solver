@@ -102,16 +102,8 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   ie_Mat K_BN = kernel(BN, BN);  // que bien!
 
   ie_Mat update(BN.size(), BN.size());
-  // std::cout<<"Before strong"<<std::endl;
   get_all_schur_updates(&update, BN, node, strong_admissibility);
-  // std::vector<unsigned int > p;
-
-  // std::cout<<"after strong"<<std::endl;
-  // ie_Mat Z;
-  // int redundants = K_BN.id(&p, &Z, 1e-6);
-  // std::cout << "Node id " << node->id << std::endl;
-  // std::cout << "KBN with width " << K_BN.width() << " has " << redundants <<
-  //           " redundants" << std::endl;
+ 
   K_BN -= update;
   // Generate various index ranges within BN
   std::vector<unsigned int> s, r, n, sn;
@@ -140,19 +132,7 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   node->L = ie_Mat(num_skelnear, num_redundant);
   node->U = ie_Mat(num_redundant, num_skelnear);
 
-  // if (node->id == 5) {
-  //   std::cout << "Showing top left 10x10 block of Xrr" << std::endl;
-  //   for (int i = 0; i < 10; i++) {
-  //     for (int j = 0; j < 10; j++) {
-  //       double x = Xrr.get(i, j);
-  //       int y = (int) (x*1000.0);
-  //       x = y/1000.0;
-  //       std::cout << x << " ";
-  //     } std::cout << std::endl;
-  //   }
-  // }
   double cond = Xrr.condition_number();
-  // std::cout<<node->side_length<<","<<Xrr.height()<<","<<cond<<std::endl;
   if (cond > 1000) {
     std::cout << "Node " << node->id << " schur update -- ";
     std::cout << "Width " << node->side_length << " num dofs " << Xrr.width() <<
@@ -162,7 +142,6 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
   Xrr.right_multiply_inverse(K_BN(sn, r), &node->L);
   Xrr.left_multiply_inverse(K_BN(r, sn), &node->U);
-
 
   ie_Mat schur(sn.size(), sn.size());
   ie_Mat::gemm(NORMAL, NORMAL, 1.0, node->L, K_BN(r, sn), 0., &schur);

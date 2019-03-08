@@ -167,6 +167,37 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
 }
 
 
+void check_stokes_solution(const ie_Mat& domain, double id_tol,
+                           const std::vector<double>& domain_points,
+                           Boundary* boundary) {
+  if (boundary->boundary_shape != Boundary::CIRCLE) {
+    return;
+  }
+  double truth_size = 0;
+  double total_diff = 0;
+  for (unsigned int i = 0; i < domain_points.size(); i += 2) {
+    double x0 = domain_points[i];
+    double x1 = domain_points[i + 1];
+    Vec2 x(x0, x1);
+    if (!boundary->is_in_domain(x)) {
+      continue;
+    }
+    Vec2 center(0.5, 0.5);
+    Vec2 r = x - center;
+    double temp = r.a[0];
+    r.a[0] = -r.a[1];
+    r.a[1] = temp;
+    r = r * 4;
+    truth_size += pow(r.norm(), 2);
+    double diff = pow(r.a[0] - domain.get(i, 0) , 2) + pow(r.a[1] -
+                  domain.get(i + 1, 0), 2);
+    total_diff += diff;
+  }
+  std::cout << "Relative error " << sqrt(total_diff) / sqrt(
+              truth_size) << std::endl;
+}
+
+
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   std::string usage = "\n\tusage: ./ie-solver "
                       "-pde {LAPLACE|STOKES} "
