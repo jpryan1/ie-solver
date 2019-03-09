@@ -217,7 +217,6 @@ void CubicSpline::find_real_roots_of_cubic(const std::vector<double>& y_cubic,
   companion.set(1, 2, -y_cubic[1] / y_cubic[3]);
   companion.set(2, 2, -y_cubic[2] / y_cubic[3]);
   *t_vals = companion.real_eigenvalues();
-
 }
 
 
@@ -233,8 +232,10 @@ int CubicSpline::num_right_intersections(double x, double y, int index) {
   int intersections = 0;
   for (double t : t_vals) {
     if (t > 0 && t < 1) {
-      if (x_cubic[0] + t * x_cubic[1] + pow(t, 2)*x_cubic[2]
-          + pow(t, 3)*x_cubic[3] > x) {
+      double dif = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2]
+                   + pow(t, 3) * x_cubic[3] - x;
+      if (fabs(dif) < 0.01) return -1;
+      if (dif > 0) {
         intersections++;
       }
     }
@@ -248,7 +249,9 @@ bool CubicSpline::is_in_domain(const Vec2& a) {
 
   int intersections = 0;
   for (int i = 0; i < num_spline_points; i++) {
-    intersections += num_right_intersections(v[0], v[1], i);
+    int right_intersections = num_right_intersections(v[0], v[1], i);
+    if (right_intersections == -1) return false;
+    intersections += right_intersections;
   }
   if (intersections % 2 == 0) {
     return false;
