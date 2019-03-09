@@ -16,14 +16,13 @@ namespace ie_solver {
 class IeSolverTools {
  public:
   double id_tol;
-  bool is_stokes, strong_admissibility;
-
+  bool strong_admissibility;
+  int solution_dimension;
   IeSolverTools() {}
   IeSolverTools(double id_tol, bool strong_admissibility,
-                bool is_stokes);
+                int solution_dimension);
   ~IeSolverTools() {}
 
-  // The actual work functions
   void get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,
                       const std::vector<unsigned int>& r,
                       const std::vector<unsigned int>& s,
@@ -61,8 +60,6 @@ class IeSolverTools {
 
   void populate_all_active_boxes(QuadTree* tree);
   void populate_active_box(QuadTreeNode* node);
-  // TODO(John) when generalizing, let someone pass these functions in initing
-  // IeSolverTools
 
   void make_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
                    const QuadTreeNode* node);
@@ -81,8 +78,6 @@ class IeSolverTools {
                      const std::vector<unsigned int>& prm,
                      unsigned int sk, unsigned int rd);
   void set_skelnear_range(InteractionLists* interaction_lists);
-  // void Conjugate_Gradient(ie_Mat& F, QuadTree& tree, ie_Mat& phi,
-  //   ie_Mat& f);
 };
 
 }  // namespace ie_solver

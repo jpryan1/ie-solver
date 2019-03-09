@@ -9,7 +9,7 @@ namespace ie_solver {
 void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
                                 const QuadTree* tree,
                                 const QuadTreeNode* node) {
-  if (is_stokes) {
+  if (solution_dimension == 2) {
     make_stokes_id_mat(kernel, mat, tree, node);
     return;
   }

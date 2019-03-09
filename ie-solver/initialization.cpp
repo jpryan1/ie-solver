@@ -9,13 +9,13 @@ namespace ie_solver {
 // TODO(John) now points vec might need to be boundary_points instead
 void Initialization::InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& domain_points, int test_size,
-    Kernel* kernel, bool is_stokes) {
+    Kernel* kernel, int solution_dimension) {
   // is stokes TODO
   std::vector<double> points = kernel->boundary->points;
   std::vector<double> normals = kernel->boundary->normals;
   std::vector<double> weights = kernel->boundary->weights;
 
-  if (is_stokes) {
+  if (solution_dimension == 2) {
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
                                   test_size, kernel);
     return;

@@ -5,6 +5,7 @@
 #include <vector>
 #include "ie-solver/boundaries/boundary.h"
 #include "ie-solver/ie_mat.h"
+#include "ie-solver/helpers.h"
 
 namespace ie_solver {
 
@@ -19,7 +20,7 @@ struct Dof {
 
 struct Kernel {
   double scale, diag_00, diag_01, diag_11;
-  bool is_stokes;
+  ie_solver_config::Pde pde;
   // TODO(John) don't have the kernel store the boundary
   Boundary* boundary;
   double electric_kernel(unsigned int i, unsigned int j) const;
@@ -30,7 +31,7 @@ struct Kernel {
   double laplace_kernel(const Dof& a, const Dof& b) const;
 
   // This function stores the DoF data,  and calculates the diagonals of the mat
-  void load(Boundary* boundary, bool is_stokes_);
+  void load(Boundary* boundary, ie_solver_config::Pde pde);
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_) const;

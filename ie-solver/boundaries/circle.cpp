@@ -8,7 +8,6 @@ namespace ie_solver {
 void Circle::initialize(int N, BoundaryCondition bc) {
   if (bc == BoundaryCondition::STOKES) {
     boundary_values = ie_Mat(2 * N, 1);
-
   } else {
     boundary_values = ie_Mat(N, 1);
   }

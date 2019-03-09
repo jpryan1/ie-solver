@@ -76,7 +76,8 @@ cc_library(
 	hdrs = ["kernel.h"],
 	srcs = ["kernel.cpp"],
 	deps = [":ie_mat",
-			"//ie-solver/boundaries"]
+					":helpers",
+					"//ie-solver/boundaries"]
 )
 
 

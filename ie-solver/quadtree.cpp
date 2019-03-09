@@ -16,13 +16,13 @@ typedef std::pair<double, double> pair;
 
 unsigned int QuadTreeNode::id_count = 0;
 
-void QuadTree::initialize_tree(Boundary* boundary_, bool is_stokes_) {
+void QuadTree::initialize_tree(Boundary* boundary_, int solution_dimension_) {
   assert(boundary_->points.size() > 0
          && "number of boundary->points to init tree cannot be 0.");
   // todo(john) later we can assert that the boundary->points are a multiple of
   // dimension
   this->boundary = boundary_;
-  this->is_stokes = is_stokes_;
+  this->solution_dimension = solution_dimension_;
   QuadTreeNode::id_count = 0;
 
   min = boundary->points[0];
@@ -170,11 +170,9 @@ void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
                              unsigned int point_ind) {
   assert(node != nullptr && "recursive_add fails on null node.");
-  if (is_stokes) {
-    node->interaction_lists.original_box.push_back(2 * point_ind);
-    node->interaction_lists.original_box.push_back(2 * point_ind + 1);
-  } else {
-    node->interaction_lists.original_box.push_back(point_ind);
+  for (int i = 0; i < solution_dimension; i++) {
+    node->interaction_lists.original_box.push_back(
+      solution_dimension * point_ind + i);
   }
 
   // figure out which child
@@ -303,7 +301,7 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
 
   // Now we bring the indices from the parent's box down into its childrens
   // boxes
-  if (is_stokes) {
+  if (solution_dimension == 2) { // For the love of god come back to this
     assert(node->interaction_lists.original_box.size() % 2 == 0);
 
     for (unsigned int index = 0;
@@ -563,7 +561,7 @@ void QuadTree::reset() {
   }
   levels.clear();
   QuadTreeNode::id_count = 0;
-  initialize_tree(boundary, is_stokes);
+  initialize_tree(boundary, solution_dimension);
 }
 
 void QuadTree::reset(Boundary * boundary_) {
@@ -577,7 +575,7 @@ void QuadTree::reset(Boundary * boundary_) {
   }
   levels.clear();
   QuadTreeNode::id_count = 0;
-  initialize_tree(boundary_, is_stokes);
+  initialize_tree(boundary_, solution_dimension);
 }
 
 }  // namespace ie_solver

@@ -8,7 +8,7 @@ namespace ie_solver {
 
 double Kernel::get(unsigned int i, unsigned int j) const {
   Dof a, b;
-  if (is_stokes) {
+  if (pde == ie_solver_config::Pde::STOKES) {
     unsigned int dof_i = i / 2;
     unsigned int dof_j = j / 2;
     a.point = Vec2(boundary->points[2 * dof_i],
@@ -112,29 +112,13 @@ double Kernel::laplace_kernel(const Dof& a, const Dof& b) const {
 }
 
 // This function stores the DoF data,  and calculates the diagonals of the mat
-void Kernel::load(Boundary* boundary_, bool is_stokes_) {
+void Kernel::load(Boundary* boundary_, ie_solver_config::Pde pde_) {
   boundary = boundary_;
-  is_stokes = is_stokes_;
-  if (is_stokes) {
+  pde = pde_;
+  if (pde == ie_solver_config::Pde::STOKES) { //MOVE THIS TO KERNEL FUNCTIONS
     scale = 1 / (M_PI);
   } else {
     scale = 1 / (2 * M_PI);
-  }
-
-  if (is_stokes) {
-    // double avg = 0;
-    // for (double weight : boundary->weights) {
-    //   avg += weight;
-    // }
-    // avg /= boundary->weights.size();
-
-    // double alpha = avg / 2.0;
-    // double beta  = alpha * alpha;
-    // diag_00 = 8 * beta + 2 * beta * log(1 / (2 * beta)) - beta * M_PI;
-    // diag_01 = 0;
-    // diag_11 = diag_00;
-
-    // printf("Diagonals are %f\n", diag_00);
   }
 }
 
