@@ -16,13 +16,15 @@ typedef std::pair<double, double> pair;
 
 unsigned int QuadTreeNode::id_count = 0;
 
-void QuadTree::initialize_tree(Boundary* boundary_, int solution_dimension_) {
+void QuadTree::initialize_tree(Boundary* boundary_, int solution_dimension_,
+    int domain_dimension_) {
   assert(boundary_->points.size() > 0
          && "number of boundary->points to init tree cannot be 0.");
   // todo(john) later we can assert that the boundary->points are a multiple of
   // dimension
   this->boundary = boundary_;
   this->solution_dimension = solution_dimension_;
+  this->domain_dimension = domain_dimension_;
   QuadTreeNode::id_count = 0;
 
   min = boundary->points[0];
@@ -301,41 +303,29 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
 
   // Now we bring the indices from the parent's box down into its childrens
   // boxes
-  if (solution_dimension == 2) { // For the love of god come back to this
-    assert(node->interaction_lists.original_box.size() % 2 == 0);
-
-    for (unsigned int index = 0;
-         index < node->interaction_lists.original_box.size(); index += 2) {
-      unsigned int stokes_index = node->interaction_lists.original_box[index];
-      double x = boundary->points[stokes_index];
-      double y = boundary->points[stokes_index + 1];
-      if (x < midx && y < midy) {
-        bl->interaction_lists.original_box.push_back(stokes_index);
-        bl->interaction_lists.original_box.push_back(stokes_index + 1);
-      } else if (x < midx && y >= midy) {
-        tl->interaction_lists.original_box.push_back(stokes_index);
-        tl->interaction_lists.original_box.push_back(stokes_index + 1);
-      } else if (x >= midx && y < midy) {
-        br->interaction_lists.original_box.push_back(stokes_index);
-        br->interaction_lists.original_box.push_back(stokes_index + 1);
-      } else {
-        tr->interaction_lists.original_box.push_back(stokes_index);
-        tr->interaction_lists.original_box.push_back(stokes_index + 1);
+  for (unsigned int index = 0;
+       index < node->interaction_lists.original_box.size();
+       index += solution_dimension) {
+    unsigned int matrix_index = node->interaction_lists.original_box[index];
+    unsigned int points_vec_index = (matrix_index / solution_dimension) * domain_dimension;
+    // So we are trying to be general, but x,y implies 2D. To generalize later
+    double x = boundary->points[points_vec_index];
+    double y = boundary->points[points_vec_index + 1];
+    if (x < midx && y < midy) {
+      for(int i = 0; i < solution_dimension; i++){
+        bl->interaction_lists.original_box.push_back(matrix_index+i);
       }
-    }
-  } else {
-    // Laplace case
-    for (unsigned int index : node->interaction_lists.original_box) {
-      double x = boundary->points[2 * index];
-      double y = boundary->points[2 * index + 1];
-      if (x < midx && y < midy) {
-        bl->interaction_lists.original_box.push_back(index);
-      } else if (x < midx && y >= midy) {
-        tl->interaction_lists.original_box.push_back(index);
-      } else if (x >= midx && y < midy) {
-        br->interaction_lists.original_box.push_back(index);
-      } else {
-        tr->interaction_lists.original_box.push_back(index);
+    } else if (x < midx && y >= midy) {
+      for(int i = 0; i < solution_dimension; i++){
+        tl->interaction_lists.original_box.push_back(matrix_index+i);
+      }
+    } else if (x >= midx && y < midy) {
+      for(int i = 0; i < solution_dimension; i++){
+        br->interaction_lists.original_box.push_back(matrix_index+i);
+      }
+    } else {
+      for(int i = 0; i < solution_dimension; i++){
+        tr->interaction_lists.original_box.push_back(matrix_index+i);
       }
     }
   }
@@ -561,7 +551,7 @@ void QuadTree::reset() {
   }
   levels.clear();
   QuadTreeNode::id_count = 0;
-  initialize_tree(boundary, solution_dimension);
+  initialize_tree(boundary, solution_dimension, domain_dimension);
 }
 
 void QuadTree::reset(Boundary * boundary_) {
@@ -575,7 +565,7 @@ void QuadTree::reset(Boundary * boundary_) {
   }
   levels.clear();
   QuadTreeNode::id_count = 0;
-  initialize_tree(boundary_, solution_dimension);
+  initialize_tree(boundary_, solution_dimension, domain_dimension);
 }
 
 }  // namespace ie_solver

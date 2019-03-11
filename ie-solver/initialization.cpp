@@ -38,7 +38,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
       boundary_point.point = Vec2(points[2 * j], points[2 * j + 1]);
       boundary_point.normal = Vec2(normals[2 * j], normals[2 * j + 1]);
       boundary_point.weight = weights[j];
-      double potential = kernel->laplace_kernel(domain_point, boundary_point);
+      double potential = kernel->laplace_kernel(domain_point, boundary_point).get(0,0);
       K->set(i, j, potential);
     }
   }

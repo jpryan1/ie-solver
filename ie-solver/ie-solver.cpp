@@ -34,7 +34,8 @@ void boundary_integral_solve(const ie_solver_config& config,
   }
 
   QuadTree quadtree;
-  quadtree.initialize_tree(config.boundary.get(), solution_dimension);
+  quadtree.initialize_tree(config.boundary.get(), solution_dimension,
+    domain_dimension);
 
   if (!is_time_trial) {
     quadtree.write_quadtree_to_file();
@@ -44,7 +45,7 @@ void boundary_integral_solve(const ie_solver_config& config,
   bool strong_admissibility =
     (config.admissibility == ie_solver_config::STRONG);
   IeSolverTools ie_solver_tools(id_tol, strong_admissibility,
-                                solution_dimension);
+                                solution_dimension, domain_dimension);
 
   Kernel kernel;
   kernel.load(config.boundary.get(), config.pde);
@@ -86,12 +87,15 @@ void boundary_integral_solve(const ie_solver_config& config,
 
   write_solution_to_file("output/data/ie_solver_solution.txt", domain,
                          domain_points, solution_dimension);
-  if (solution_dimension == 1) {
-    check_laplace_solution(domain, config.id_tol, domain_points,
+  switch(config.pde){
+    case ie_solver_config::LAPLACE:
+      check_laplace_solution(domain, config.id_tol, domain_points,
                            config.boundary.get());
-  } else {
-    check_stokes_solution(domain, config.id_tol, domain_points,
+      break;
+    case ie_solver_config::STOKES:
+      check_stokes_solution(domain, config.id_tol, domain_points,
                           config.boundary.get());
+      break;
   }
 }
 
@@ -105,11 +109,7 @@ int main(int argc, char** argv) {
   if (!ie_solver::parse_input_into_config(argc, argv, &config)) {
     return 1;
   }
-  // First we init the boundary so we can correct the num_boundary_points
-  config.boundary->initialize(config.num_boundary_points,
-                              config.boundary_condition);
-  config.num_boundary_points = config.boundary->weights.size();
-
+ 
   if (config.boundary_condition
       ==  ie_solver::Boundary::BoundaryCondition::STOKES
       || config.pde == ie_solver::ie_solver_config::STOKES) {
@@ -117,6 +117,10 @@ int main(int argc, char** argv) {
     config.pde = ie_solver::ie_solver_config::STOKES;
   }
 
+ // First we init the boundary so we can correct the num_boundary_points
+  config.boundary->initialize(config.num_boundary_points,
+                              config.boundary_condition);
+  config.num_boundary_points = config.boundary->weights.size();
 
   if (!config.scaling) {
     ie_solver::boundary_integral_solve(config);

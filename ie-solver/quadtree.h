@@ -59,7 +59,7 @@ struct QuadTreeLevel {
 
 class QuadTree {
  public:
-  int solution_dimension;
+  int solution_dimension, domain_dimension;
   double min, max;
   Boundary* boundary;
   QuadTreeNode* root;
@@ -82,7 +82,8 @@ class QuadTree {
   void reset();
   void reset(Boundary* boundary_);
 
-  void initialize_tree(Boundary* boundary, int solution_dimension);
+  void initialize_tree(Boundary* boundary, int solution_dimension_,
+    int domain_dimension_);
   void recursive_add(QuadTreeNode* node, double x, double y,
                      unsigned int mat_ind);
   void get_descendent_neighbors(QuadTreeNode* big, QuadTreeNode* small);

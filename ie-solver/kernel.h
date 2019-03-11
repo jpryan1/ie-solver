@@ -23,12 +23,11 @@ struct Kernel {
   ie_solver_config::Pde pde;
   // TODO(John) don't have the kernel store the boundary
   Boundary* boundary;
-  double electric_kernel(unsigned int i, unsigned int j) const;
-
   double get(unsigned int i, unsigned int j) const;
+  ie_Mat get(const Dof& a, const Dof& b) const;
 
   ie_Mat stokes_kernel(const Dof& a, const Dof& b) const;
-  double laplace_kernel(const Dof& a, const Dof& b) const;
+  ie_Mat laplace_kernel(const Dof& a, const Dof& b) const;
 
   // This function stores the DoF data,  and calculates the diagonals of the mat
   void load(Boundary* boundary, ie_solver_config::Pde pde);
