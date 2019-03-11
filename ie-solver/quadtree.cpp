@@ -106,18 +106,6 @@ void QuadTree::initialize_tree(Boundary* boundary_, int solution_dimension_,
       }
     }
   }
-
-  for (unsigned int j = 0; j < levels.size(); j++) {
-    QuadTreeLevel* current_level = levels[j];
-    for (QuadTreeNode* node_a : current_level->nodes) {
-      for (QuadTreeNode* neighbor : node_a->neighbors) {
-        neighbor->interaction_lists.near.insert(
-          neighbor->interaction_lists.near.end(),
-          node_a->interaction_lists.original_box.begin(),
-          node_a->interaction_lists.original_box.end());
-      }
-    }
-  }
 }
 
 
