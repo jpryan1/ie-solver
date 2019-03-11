@@ -17,7 +17,7 @@
 
 #define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
 #define DEFAULT_ID_TOL 1e-6
-#define TEST_SIZE 20
+#define TEST_SIZE 100
 
 namespace ie_solver {
 
@@ -30,7 +30,7 @@ struct ie_solver_config {
     WEAK,
     STRONG
   };
-  int N = DEFAULT_NUM_DISCRETIZATION_POINTS;
+  int num_boundary_points = DEFAULT_NUM_DISCRETIZATION_POINTS;
   double id_tol = DEFAULT_ID_TOL;
   Pde pde = LAPLACE;
   Admissibility admissibility = WEAK;
@@ -50,7 +50,7 @@ void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
                           const std::vector<double>& eps_times);
 void write_solution_to_file(const std::string& filename, const ie_Mat& domain,
                             const std::vector<double>&
-                            domain_points, bool is_stokes);
+                            domain_points, int solution_dimension);
 void get_domain_points(std::vector<double>* points, double min,
                        double max);
 void check_laplace_solution(const ie_Mat& domain, double id_tol,

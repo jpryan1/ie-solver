@@ -89,23 +89,24 @@ void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
 
 void write_solution_to_file(const std::string& filename, const ie_Mat& domain,
                             const std::vector<double>&
-                            domain_points, bool is_stokes) {
+                            domain_points, int solution_dimension) {
   assert(domain.height() > 0 && domain.width() == 1);
   std::ofstream output;
   output.open(filename);
 
-  int dim = (is_stokes ? 2 : 1);
-  // if it is 2D solution, each row is 2 numbers, ie a vector. else a scalar.
-
   int points_index = 0;
 
   if (output.is_open()) {
-    for (unsigned int i = 0; i < domain.height(); i += dim) {
+    for (unsigned int i = 0; i < domain.height(); i += solution_dimension) {
       output << domain_points[points_index] << "," <<
              domain_points[points_index + 1] << ",";
-      points_index += 2;
-      output << domain.get(i, 0);
-      if (is_stokes) output << "," << domain.get(i + 1, 0);
+      points_index += 2;  // depends on domain dimension
+      for (int dim = 0; dim < solution_dimension; dim++) {
+        output << domain.get(i + dim, 0);
+        if (dim < solution_dimension - 1) {
+          output << ",";
+        }
+      }
       output << std::endl;
     }
     output.close();
@@ -127,9 +128,9 @@ void get_domain_points(std::vector<double>* points, double min, double max) {
 }
 
 
-void check_laplace_solution(const ie_Mat& domain, double id_tol,
+void check_laplace_solution(const ie_Mat & domain, double id_tol,
                             const std::vector<double>& domain_points,
-                            Boundary* boundary) {
+                            Boundary * boundary) {
   double max = 0;
   double diff_norm = 0;
   double avg = 0;
@@ -167,9 +168,9 @@ void check_laplace_solution(const ie_Mat& domain, double id_tol,
 }
 
 
-void check_stokes_solution(const ie_Mat& domain, double id_tol,
+void check_stokes_solution(const ie_Mat & domain, double id_tol,
                            const std::vector<double>& domain_points,
-                           Boundary* boundary) {
+                           Boundary * boundary) {
   if (boundary->boundary_shape != Boundary::CIRCLE) {
     return;
   }
@@ -198,7 +199,7 @@ void check_stokes_solution(const ie_Mat& domain, double id_tol,
 }
 
 
-int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
+int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
   std::string usage = "\n\tusage: ./ie-solver "
                       "-pde {LAPLACE|STOKES} "
                       "-boundary {CIRCLE|ROUNDED_SQUARE|"
@@ -232,7 +233,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
       i++;
     } else if (!strcmp(argv[i], "-N")) {
       if (i < argc - 1) {
-        config->N = std::stoi(argv[i + 1]);
+        config->num_boundary_points = std::stoi(argv[i + 1]);
       }
       i++;
     } else if (!strcmp(argv[i], "-strong")) {
@@ -299,7 +300,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config* config) {
   LOG::INFO("PDE: " + pde_name);
   LOG::INFO("Boundary: " + boundary_name);
   LOG::INFO("Boundary condition: " + boundary_condition_name);
-  LOG::INFO("Number of nodes: " + std::to_string(config->N));
+  LOG::INFO("Number of nodes: " + std::to_string(config->num_boundary_points));
   LOG::INFO("ID error tolerance: " + std::to_string(config->id_tol));
   if (config->scaling) {
     LOG::INFO("Scaling run");

@@ -20,25 +20,22 @@ namespace ie_solver {
 
 void boundary_integral_solve(const ie_solver_config& config,
                              std::vector<double>* skel_times = nullptr) {
-  bool is_stokes = false;
+  int domain_dimension = 2;
+  int solution_dimension = 1;
   if (config.pde == ie_solver_config::STOKES) {
-    is_stokes = true;
+    solution_dimension = 2;
   }
 
   bool is_time_trial = (skel_times != nullptr);
   double id_tol = config.id_tol;
 
-  // config.boundary->perturbation_size = 50;
-  config.boundary->initialize(config.N, config.boundary_condition);
-
   if (!is_time_trial) {
     write_boundary_to_file(config.boundary->points);
   }
-  int dofs = config.boundary->points.size() / 2;
-  if (is_stokes) dofs *= 2;
 
   QuadTree quadtree;
-  quadtree.initialize_tree(config.boundary.get(), is_stokes);
+  quadtree.initialize_tree(config.boundary.get(), solution_dimension,
+                           domain_dimension);
 
   if (!is_time_trial) {
     quadtree.write_quadtree_to_file();
@@ -47,10 +44,13 @@ void boundary_integral_solve(const ie_solver_config& config,
   // Consider making init instead of constructor for readability
   bool strong_admissibility =
     (config.admissibility == ie_solver_config::STRONG);
-  IeSolverTools ie_solver_tools(id_tol, strong_admissibility, is_stokes);
+  IeSolverTools ie_solver_tools(id_tol, strong_admissibility,
+                                solution_dimension, domain_dimension);
 
   Kernel kernel;
-  kernel.load(config.boundary.get(), is_stokes);
+  kernel.load(config.boundary.get(), config.pde, solution_dimension,
+              domain_dimension);
+
   if (is_time_trial) {
     double elapsed = 0;
     for (int i = 0; i < TIMING_ITERATIONS; i++) {
@@ -65,32 +65,16 @@ void boundary_integral_solve(const ie_solver_config& config,
   }
 
   ie_Mat f = config.boundary->boundary_values;
-  ie_Mat phi(dofs, 1);
-  // std::vector<unsigned int> all;
-  // for (int i = 0; i < config.boundary->points.size(); i++) {
-  //   if (!is_stokes && i == config.boundary->points.size() / 2) {
-  //     break;
-  //   }
-  //   all.push_back(i);
-  // }
-
-  // ie_Mat kern = kernel(all, all);
-
-  // kern.left_multiply_inverse(f, &phi);
+  ie_Mat phi(config.num_boundary_points * solution_dimension, 1);
   ie_solver_tools.skeletonize(kernel, &quadtree);
   ie_solver_tools.solve(kernel, quadtree, &phi, f);
 
   // This will be done as a sparse mat vec in the future, for now we do
   // dense matvec
+  ie_Mat K_domain(TEST_SIZE * TEST_SIZE * solution_dimension,
+                  config.num_boundary_points * solution_dimension);
+  ie_Mat domain(TEST_SIZE * TEST_SIZE * solution_dimension, 1);
 
-  ie_Mat K_domain, domain;
-  if (is_stokes) {
-    K_domain = ie_Mat(2 * TEST_SIZE * TEST_SIZE, dofs);
-    domain = ie_Mat(2 * TEST_SIZE * TEST_SIZE, 1);
-  } else {
-    K_domain = ie_Mat(TEST_SIZE * TEST_SIZE, dofs);
-    domain = ie_Mat(TEST_SIZE * TEST_SIZE, 1);
-  }
 
   Initialization init;
   std::vector<double> domain_points;
@@ -98,18 +82,21 @@ void boundary_integral_solve(const ie_solver_config& config,
 
   init.InitializeDomainKernel(&K_domain,
                               domain_points, TEST_SIZE, &kernel,
-                              is_stokes);
+                              solution_dimension);
 
   ie_Mat::gemv(NORMAL, 1., K_domain, phi, 0., &domain);
 
   write_solution_to_file("output/data/ie_solver_solution.txt", domain,
-                         domain_points, is_stokes);
-  if (!is_stokes) {
-    check_laplace_solution(domain, config.id_tol, domain_points,
-                           config.boundary.get());
-  } else {
-    check_stokes_solution(domain, config.id_tol, domain_points,
-                           config.boundary.get());
+                         domain_points, solution_dimension);
+  switch (config.pde) {
+    case ie_solver_config::LAPLACE:
+      check_laplace_solution(domain, config.id_tol, domain_points,
+                             config.boundary.get());
+      break;
+    case ie_solver_config::STOKES:
+      check_stokes_solution(domain, config.id_tol, domain_points,
+                            config.boundary.get());
+      break;
   }
 }
 
@@ -131,6 +118,10 @@ int main(int argc, char** argv) {
     config.pde = ie_solver::ie_solver_config::STOKES;
   }
 
+// First we init the boundary so we can correct the num_boundary_points
+  config.boundary->initialize(config.num_boundary_points,
+                              config.boundary_condition);
+  config.num_boundary_points = config.boundary->weights.size();
 
   if (!config.scaling) {
     ie_solver::boundary_integral_solve(config);
@@ -142,13 +133,13 @@ int main(int argc, char** argv) {
     double scale_eps[] = {1e-6, 1e-7, 1e-8, 1e-9, 1e-10};
 
     for (int n : scale_n) {
-      config.N = n;
+      config.num_boundary_points = n;
       config.id_tol = DEFAULT_ID_TOL;
       ie_solver::boundary_integral_solve(config, &n_times);
     }
 
     for (double eps : scale_eps) {
-      config.N = DEFAULT_NUM_DISCRETIZATION_POINTS * 10;
+      config.num_boundary_points = DEFAULT_NUM_DISCRETIZATION_POINTS * 10;
       config.id_tol = eps;
       ie_solver::boundary_integral_solve(config, &eps_times);
     }

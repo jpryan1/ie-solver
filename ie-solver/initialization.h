@@ -16,7 +16,7 @@ struct Initialization {
   void InitializeDomainKernel(ie_Mat* K,
                               const std::vector<double>& domain_points,
                               int test_size, Kernel* kernel,
-                              bool is_stokes);
+                              int solution_dimension);
 
   void Stokes_InitializeDomainKernel(ie_Mat* K,
                                      const std::vector<double>& points,

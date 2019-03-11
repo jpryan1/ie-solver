@@ -12,11 +12,12 @@ namespace ie_solver {
 // TODO(John) here and elsewhere check on passing by reference
 
 IeSolverTools::IeSolverTools(double id_tol, bool strong_admissibility_,
-                             bool is_stokes_) {
+                             int solution_dimension_, int domain_dimension_) {
   assert(id_tol > 0 && "id_tol must be greater than one to init tools.");
   this->id_tol = id_tol;
   strong_admissibility = strong_admissibility_;
-  is_stokes = is_stokes_;
+  solution_dimension = solution_dimension_;
+  domain_dimension = domain_dimension_;
 }
 
 
