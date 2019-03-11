@@ -22,7 +22,7 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
         for (unsigned int matrix_index : level_node->interaction_lists.active_box) {
           unsigned int point_index = matrix_index / solution_dimension;
           unsigned int points_vec_index = point_index * domain_dimension;
-      
+
           double x = tree->boundary->points[points_vec_index];
           double y = tree->boundary->points[points_vec_index + 1];
           double dist = sqrt(pow(cntr_x - x, 2) + pow(cntr_y - y, 2));
@@ -46,7 +46,8 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
     make_proxy_mat(kernel, &proxy, cntr_x, cntr_y, node->side_length
                    * radius_ratio, tree, node->interaction_lists.active_box);
 
-    *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 * NUM_PROXY_POINTS,
+    *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
+                  NUM_PROXY_POINTS,
                   node->interaction_lists.active_box.size());
     mat->set_submatrix(0, inner_circle.size(),
                        0, node->interaction_lists.active_box.size(),
@@ -55,7 +56,7 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
                        0, node->interaction_lists.active_box.size(),
                        box_near);
     mat->set_submatrix(2 * inner_circle.size(),
-                      solution_dimension * 2 * NUM_PROXY_POINTS + 2 * inner_circle.size(),
+                       solution_dimension * 2 * NUM_PROXY_POINTS + 2 * inner_circle.size(),
                        0, node->interaction_lists.active_box.size(), proxy);
   } else {
     *mat = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
@@ -96,12 +97,12 @@ void IeSolverTools::make_proxy_mat(const Kernel& kernel, ie_Mat* pxy,
 
       ie_Mat ab_tensor = kernel.get(a, b);
       ie_Mat ba_tensor = kernel.get(b, a);
-      
-      for(int k = 0; k < solution_dimension; k++){
+
+      for (int k = 0; k < solution_dimension; k++) {
         pxy->set(solution_dimension * i + k, j_,
-          ab_tensor.get(k, box_inds[j_] % solution_dimension));
+                 ab_tensor.get(k, box_inds[j_] % solution_dimension));
         pxy->set(solution_dimension * (i + NUM_PROXY_POINTS) + k, j_,
-          ba_tensor.get(box_inds[j_] % solution_dimension, k));
+                 ba_tensor.get(box_inds[j_] % solution_dimension, k));
       }
     }
   }

@@ -19,7 +19,9 @@ struct Dof {
 
 
 struct Kernel {
-  double scale, diag_00, diag_01, diag_11;
+  double diag_00, diag_01, diag_11;
+  int solution_dimension, domain_dimension;
+
   ie_solver_config::Pde pde;
   // TODO(John) don't have the kernel store the boundary
   Boundary* boundary;
@@ -29,8 +31,9 @@ struct Kernel {
   ie_Mat stokes_kernel(const Dof& a, const Dof& b) const;
   ie_Mat laplace_kernel(const Dof& a, const Dof& b) const;
 
-  // This function stores the DoF data,  and calculates the diagonals of the mat
-  void load(Boundary* boundary, ie_solver_config::Pde pde);
+  void load(Boundary* boundary, ie_solver_config::Pde pde, 
+    int solution_dimension, int domain_dimension);
+
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_) const;

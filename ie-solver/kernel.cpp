@@ -5,74 +5,49 @@
 #include "ie-solver/kernel.h"
 
 namespace ie_solver {
-  
-ie_Mat Kernel::get(const Dof& a, const Dof& b) const{
-   switch(pde){
+
+ie_Mat Kernel::get(const Dof& a, const Dof& b) const {
+  switch (pde) {
     case ie_solver_config::Pde::LAPLACE:
       return laplace_kernel(a, b);
       break;
     case ie_solver_config::Pde::STOKES:
-      return stokes_kernel(a,b);
-      break;
-   }
-}
-
-
-double Kernel::get(unsigned int i, unsigned int j) const {
-  Dof a, b;
-  // TODO(John) the switch should be as small as the above, a and b should
-  // be defined with solution_dimension and domain_dimension
-  switch(pde){
-    
-    case ie_solver_config::Pde::LAPLACE:
-      a.point = Vec2(boundary->points[2 * i], boundary->points[2 * i + 1]);
-      a.normal = Vec2(boundary->normals[2 * i], boundary->normals[2 * i + 1]);
-      a.curvature = boundary->curvatures[i];
-      a.weight = boundary->weights[i];
-  
-      b.point = Vec2(boundary->points[2 * j], boundary->points[2 * j + 1]);
-      b.normal = Vec2(boundary->normals[2 * j], boundary->normals[2 * j + 1]);
-      b.curvature = boundary->curvatures[j];
-      b.weight = boundary->weights[j];
-      return laplace_kernel(a, b).get(0,0);
-      break;
-    case ie_solver_config::Pde::STOKES:
-      unsigned int dof_i = i / 2;
-      unsigned int dof_j = j / 2;
-      a.point = Vec2(boundary->points[2 * dof_i],
-                     boundary->points[2 * dof_i + 1]);
-      a.normal = Vec2(boundary->normals[2 * dof_i],
-                      boundary->normals[2 * dof_i + 1]);
-      a.curvature = boundary->curvatures[dof_i];
-      a.weight = boundary->weights[dof_i];
-  
-      b.point = Vec2(boundary->points[2 * dof_j],
-                     boundary->points[2 * dof_j + 1]);
-      b.normal = Vec2(boundary->normals[2 * dof_j],
-                      boundary->normals[2 * dof_j + 1]);
-      b.curvature = boundary->curvatures[dof_j];
-      b.weight = boundary->weights[dof_j];
-      ie_Mat tensor = stokes_kernel(a, b);
-      if (i % 2 == 0) {
-        if (j % 2 == 0) {
-          return tensor.get(0, 0);
-        } else {
-          return tensor.get(0, 1);
-        }
-      } else {
-        if (j % 2 == 0) {
-          return tensor.get(1, 0);
-        } else {
-          return tensor.get(1, 1);
-        }
-      }
+      return stokes_kernel(a, b);
       break;
   }
 }
 
 
+double Kernel::get(unsigned int i, unsigned int j) const {
+  Dof a, b;
+  unsigned int i_point_index = i / solution_dimension;
+  unsigned int i_points_vec_index = i_point_index * domain_dimension;
+  unsigned int j_point_index = j / solution_dimension;
+  unsigned int j_points_vec_index = j_point_index * domain_dimension;
+
+  a.point = Vec2(boundary->points[i_points_vec_index],
+                 boundary->points[i_points_vec_index + 1]);
+  a.normal = Vec2(boundary->normals[i_points_vec_index],
+                  boundary->normals[i_points_vec_index + 1]);
+  a.curvature = boundary->curvatures[i_point_index];
+  a.weight = boundary->weights[i_point_index];
+
+  b.point = Vec2(boundary->points[j_points_vec_index],
+                 boundary->points[j_points_vec_index + 1]);
+  b.normal = Vec2(boundary->normals[j_points_vec_index],
+                  boundary->normals[j_points_vec_index + 1]);
+  b.curvature = boundary->curvatures[j_point_index];
+  b.weight = boundary->weights[j_point_index];
+
+  ie_Mat tensor = get(a, b);
+  return tensor.get(i % solution_dimension, j % solution_dimension);
+}
+
+
 ie_Mat Kernel::stokes_kernel(const Dof& a, const Dof& b) const {
   // double layer
+  double scale = 1.0 / (M_PI);
+
   ie_Mat tensor(2, 2);
 
   if (a.point.a[0] == b.point.a[0] && a.point.a[1] == b.point.a[1]) {
@@ -102,9 +77,10 @@ ie_Mat Kernel::stokes_kernel(const Dof& a, const Dof& b) const {
 }
 
 ie_Mat Kernel::laplace_kernel(const Dof& a, const Dof& b) const {
-  ie_Mat tensor(1,1);
+  double scale = 1.0 / (2 * M_PI);
+  ie_Mat tensor(1, 1);
   if (a.point.a[0] == b.point.a[0] && a.point.a[1] == b.point.a[1]) {
-    tensor.set(0,0, 0.5 + 0.5 * a.curvature * a.weight * scale);
+    tensor.set(0, 0, 0.5 + 0.5 * a.curvature * a.weight * scale);
     return tensor;
   }
   Vec2 r = a.point - b.point;
@@ -113,14 +89,12 @@ ie_Mat Kernel::laplace_kernel(const Dof& a, const Dof& b) const {
 }
 
 // This function stores the DoF data,  and calculates the diagonals of the mat
-void Kernel::load(Boundary* boundary_, ie_solver_config::Pde pde_) {
+void Kernel::load(Boundary* boundary_, ie_solver_config::Pde pde_,
+                  int solution_dimension_, int domain_dimension_) {
+  solution_dimension = solution_dimension_;
+  domain_dimension = domain_dimension_;
   boundary = boundary_;
   pde = pde_;
-  if (pde == ie_solver_config::Pde::STOKES) { //MOVE THIS TO KERNEL FUNCTIONS
-    scale = 1 / (M_PI);
-  } else {
-    scale = 1 / (2 * M_PI);
-  }
 }
 
 
