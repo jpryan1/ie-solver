@@ -161,7 +161,7 @@ void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
                              unsigned int point_ind) {
   assert(node != nullptr && "recursive_add fails on null node.");
   for (int i = 0; i < solution_dimension; i++) {
-    node->interaction_lists.original_box.push_back(
+    node->src_dof_lists.original_box.push_back(
       solution_dimension * point_ind + i);
   }
 
@@ -188,7 +188,7 @@ void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
     // do we need one?
     // if this node is exploding and needs children
     if (node->is_leaf
-        && node->interaction_lists.original_box.size() > MAX_LEAF_DOFS) {
+        && node->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
       node_subdivide(node);
     }
   }
@@ -292,42 +292,42 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
   // Now we bring the indices from the parent's box down into its childrens
   // boxes
   for (unsigned int index = 0;
-       index < node->interaction_lists.original_box.size();
+       index < node->src_dof_lists.original_box.size();
        index += solution_dimension) {
-    unsigned int matrix_index = node->interaction_lists.original_box[index];
+    unsigned int matrix_index = node->src_dof_lists.original_box[index];
     unsigned int points_vec_index = (matrix_index / solution_dimension) * domain_dimension;
     // So we are trying to be general, but x,y implies 2D. To generalize later
     double x = boundary->points[points_vec_index];
     double y = boundary->points[points_vec_index + 1];
     if (x < midx && y < midy) {
       for(int i = 0; i < solution_dimension; i++){
-        bl->interaction_lists.original_box.push_back(matrix_index+i);
+        bl->src_dof_lists.original_box.push_back(matrix_index+i);
       }
     } else if (x < midx && y >= midy) {
       for(int i = 0; i < solution_dimension; i++){
-        tl->interaction_lists.original_box.push_back(matrix_index+i);
+        tl->src_dof_lists.original_box.push_back(matrix_index+i);
       }
     } else if (x >= midx && y < midy) {
       for(int i = 0; i < solution_dimension; i++){
-        br->interaction_lists.original_box.push_back(matrix_index+i);
+        br->src_dof_lists.original_box.push_back(matrix_index+i);
       }
     } else {
       for(int i = 0; i < solution_dimension; i++){
-        tr->interaction_lists.original_box.push_back(matrix_index+i);
+        tr->src_dof_lists.original_box.push_back(matrix_index+i);
       }
     }
   }
 
-  if (bl->interaction_lists.original_box.size() > MAX_LEAF_DOFS) {
+  if (bl->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(bl);
   }
-  if (tl->interaction_lists.original_box.size() > MAX_LEAF_DOFS) {
+  if (tl->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(tl);
   }
-  if (tr->interaction_lists.original_box.size() > MAX_LEAF_DOFS) {
+  if (tr->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(tr);
   }
-  if (br->interaction_lists.original_box.size() > MAX_LEAF_DOFS) {
+  if (br->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(br);
   }
 }
@@ -341,7 +341,7 @@ void QuadTree::write_quadtree_to_file() {
       for (QuadTreeNode* node : level->nodes) {
         output << node->corners[0] << "," << node->corners[1]
                << "," << node->side_length << "," << node->id << "," <<
-               node->interaction_lists.original_box.size() <<
+               node->src_dof_lists.original_box.size() <<
                std::endl;
         //}
       }
@@ -355,19 +355,19 @@ void QuadTree::write_quadtree_to_file() {
 void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   if (node == nullptr) return;
   node->schur_updated = false;
-  node->interaction_lists.active_box.clear();
-  node->interaction_lists.skel.clear();
-  node->interaction_lists.skelnear.clear();
-  node->interaction_lists.redundant.clear();
-  node->interaction_lists.permutation.clear();
+  node->src_dof_lists.active_box.clear();
+  node->src_dof_lists.skel.clear();
+  node->src_dof_lists.skelnear.clear();
+  node->src_dof_lists.redundant.clear();
+  node->src_dof_lists.permutation.clear();
 
   for (QuadTreeNode* neighbor : node->neighbors) {
     neighbor->schur_updated = false;
-    neighbor->interaction_lists.active_box.clear();
-    neighbor->interaction_lists.skel.clear();
-    neighbor->interaction_lists.skelnear.clear();
-    neighbor->interaction_lists.redundant.clear();
-    neighbor->interaction_lists.permutation.clear();
+    neighbor->src_dof_lists.active_box.clear();
+    neighbor->src_dof_lists.skel.clear();
+    neighbor->src_dof_lists.skelnear.clear();
+    neighbor->src_dof_lists.redundant.clear();
+    neighbor->src_dof_lists.permutation.clear();
   }
   mark_neighbors_and_parents(node->parent);
 }
@@ -431,17 +431,17 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     for (QuadTreeNode* node : level->nodes) {
       std::vector<unsigned int> ob, ab, s, r, sn, n;
       if (node->is_leaf) {
-        for (unsigned int idx : node->interaction_lists.original_box) {
+        for (unsigned int idx : node->src_dof_lists.original_box) {
           std::unordered_map<int, int>::const_iterator element =
             old_index_to_new_index.find(idx);
           if (element != old_index_to_new_index.end()) {
             ob.push_back(element->second);
           }
         }
-        node->interaction_lists.original_box = ob;
+        node->src_dof_lists.original_box = ob;
       }
 
-      for (unsigned int idx : node->interaction_lists.active_box) {
+      for (unsigned int idx : node->src_dof_lists.active_box) {
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(idx);
         if (element != old_index_to_new_index.end()) {
@@ -449,7 +449,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
         }
       }
 
-      for (unsigned int idx : node->interaction_lists.skel) {
+      for (unsigned int idx : node->src_dof_lists.skel) {
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(idx);
         if (element != old_index_to_new_index.end()) {
@@ -457,7 +457,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
         }
       }
 
-      for (unsigned int idx : node->interaction_lists.redundant) {
+      for (unsigned int idx : node->src_dof_lists.redundant) {
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(idx);
         if (element != old_index_to_new_index.end()) {
@@ -465,7 +465,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
         }
       }
 
-      for (unsigned int idx : node->interaction_lists.skelnear) {
+      for (unsigned int idx : node->src_dof_lists.skelnear) {
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(idx);
         if (element != old_index_to_new_index.end()) {
@@ -473,10 +473,10 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
         }
       }
 
-      node->interaction_lists.active_box = ab;
-      node->interaction_lists.skel = s;
-      node->interaction_lists.skelnear = sn;
-      node->interaction_lists.redundant = r;
+      node->src_dof_lists.active_box = ab;
+      node->src_dof_lists.skel = s;
+      node->src_dof_lists.skelnear = sn;
+      node->src_dof_lists.redundant = r;
     }
   }
 
@@ -493,7 +493,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
                       - node->corners[1];
         if (difx < node->side_length && dify < node->side_length && difx > 0
             && dify > 0) {
-          node->interaction_lists.original_box.push_back(additions[i]);
+          node->src_dof_lists.original_box.push_back(additions[i]);
           mark_neighbors_and_parents(node);
         }
       }

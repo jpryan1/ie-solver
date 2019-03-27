@@ -29,8 +29,12 @@ struct QuadTreeNode {
   QuadTreeNode* children[4];
   std::vector<QuadTreeNode*> neighbors;
 
-  InteractionLists interaction_lists;
-  ie_Mat T, L, U, D_r, schur_update;
+  InteractionLists src_dof_lists, tgt_dof_lists;
+  // For inverse operator
+  ie_Mat T, L, U, X_rr, schur_update;
+  // For forward operator
+  ie_Mat src_T, tgt_T, X_rs, X_sr;
+
 
   // format is {BL, TL, TR, BR}
   double corners[8];

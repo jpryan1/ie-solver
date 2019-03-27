@@ -68,10 +68,10 @@ class IeSolverTools {
                       const QuadTree* tree,
                       const std::vector<unsigned int>& box_indices);
  
-  void set_rs_ranges(InteractionLists* interaction_lists,
+  void set_rs_ranges(InteractionLists* src_dof_lists,
                      const std::vector<unsigned int>& prm,
                      unsigned int sk, unsigned int rd);
-  void set_skelnear_range(InteractionLists* interaction_lists);
+  void set_skelnear_range(InteractionLists* src_dof_lists);
 };
 
 }  // namespace ie_solver

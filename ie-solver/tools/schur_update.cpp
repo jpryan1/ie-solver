@@ -43,7 +43,7 @@ void IeSolverTools::get_update(ie_Mat* update,
   // corresponding locations
   // node only updated its own BN dofs, and the redundant ones are no longer
   // relevant, so we only care about child's SN dofs
-  std::vector<unsigned int> sn = node->interaction_lists.skelnear;
+  std::vector<unsigned int> sn = node->src_dof_lists.skelnear;
   // First create a list of Dofs that are also in node's skelnear,
   // and with each one give the index in skelnear and the index in BN
   std::vector<unsigned int> BN_;

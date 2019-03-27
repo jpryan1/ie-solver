@@ -70,8 +70,8 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
       // L_T inverse changes the skel elements - it makes them equal to
       // T times the redundant elements + the skeleton elements.
       apply_sweep_matrix(current_node->T, b,
-                         current_node->interaction_lists.redundant,
-                         current_node->interaction_lists.skel,
+                         current_node->src_dof_lists.redundant,
+                         current_node->src_dof_lists.skel,
                          false);
 
 
@@ -79,8 +79,8 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
       // U inverse changes the redundant elements - it makes them equal to
       // L transpose times the skelnear elements + the redundant elements
       apply_sweep_matrix(current_node->U, b,
-                         current_node->interaction_lists.skelnear,
-                         current_node->interaction_lists.redundant, false);
+                         current_node->src_dof_lists.skelnear,
+                         current_node->src_dof_lists.redundant, false);
     }
   }
 
@@ -91,8 +91,8 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
       if (!current_node->schur_updated) {
         continue;
       }
-      apply_diag_matrix(current_node->D_r, b,
-                        current_node->interaction_lists.redundant);
+      apply_diag_matrix(current_node->X_rr, b,
+                        current_node->src_dof_lists.redundant);
     }
   }
   // We need all of the skeleton indices. This is just the negation of
@@ -100,7 +100,7 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
   // with that in mind...
 
   std::vector<unsigned int> allskel =
-    tree.root->interaction_lists.active_box;
+    tree.root->src_dof_lists.active_box;
 
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
@@ -126,15 +126,15 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
       // L inverse changes the skelnear elements - it makes them equal to
       // L times the redundant elements + the skelnear elements
       apply_sweep_matrix(current_node->L, b,
-                         current_node->interaction_lists.redundant,
-                         current_node->interaction_lists.skelnear, false);
+                         current_node->src_dof_lists.redundant,
+                         current_node->src_dof_lists.skelnear, false);
       // Finally we need to apply U_T inverse
       // U_T inverse changes the redundant elements - it makes them equal
       // to T transpose times the skeleton elements + the redundant
       // elements
       apply_sweep_matrix(current_node->T, b,
-                         current_node->interaction_lists.skel,
-                         current_node->interaction_lists.redundant, true);
+                         current_node->src_dof_lists.skel,
+                         current_node->src_dof_lists.redundant, true);
     }
   }
 }
@@ -161,11 +161,11 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
       // to T transpose times the skeleton elements + the redundant
       // elements
       apply_sweep_matrix(current_node->T, x,
-                         current_node->interaction_lists.skel,
-                         current_node->interaction_lists.redundant, true);
+                         current_node->src_dof_lists.skel,
+                         current_node->src_dof_lists.redundant, true);
       apply_sweep_matrix(current_node->L, x,
-                         current_node->interaction_lists.redundant,
-                         current_node->interaction_lists.skelnear, false);
+                         current_node->src_dof_lists.redundant,
+                         current_node->src_dof_lists.skelnear, false);
 
       current_node->L *= -1;
       current_node->T *= -1;
@@ -176,24 +176,24 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
   for (int level = lvls - 1; level >= 0; level--) {  // level>=0; level--){
     QuadTreeLevel* current_level = tree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
-      if (current_node->interaction_lists.redundant.size() == 0) continue;
+      if (current_node->src_dof_lists.redundant.size() == 0) continue;
       if (!current_node->schur_updated) {
         continue;
       }
-      double cond = current_node->D_r.condition_number();
+      double cond = current_node->X_rr.condition_number();
       // if (cond > 1000) {
-      //   std::cout << "Node " << current_node->id << " solve D_r inv -- ";
+      //   std::cout << "Node " << current_node->id << " solve X_rr inv -- ";
       //   std::cout << "Inverting w/ condition number " << cond << std::endl;
       // }
-      apply_diag_inv_matrix(current_node->D_r, x,
-                            current_node->interaction_lists.redundant);
+      apply_diag_inv_matrix(current_node->X_rr, x,
+                            current_node->src_dof_lists.redundant);
     }
   }
 
   // We need all of the skeleton indices. This is just the negation of
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
-  std::vector<unsigned int> allskel = tree.root->interaction_lists.active_box;
+  std::vector<unsigned int> allskel = tree.root->src_dof_lists.active_box;
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
@@ -224,11 +224,11 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
       // U inverse changes the redundant elements - it makes them equal to
       // L transpose times the skelnear elements + the redundant elements
       apply_sweep_matrix(current_node->U, x,
-                         current_node->interaction_lists.skelnear,
-                         current_node->interaction_lists.redundant, false);
+                         current_node->src_dof_lists.skelnear,
+                         current_node->src_dof_lists.redundant, false);
       apply_sweep_matrix(current_node->T, x,
-                         current_node->interaction_lists.redundant,
-                         current_node->interaction_lists.skel,
+                         current_node->src_dof_lists.redundant,
+                         current_node->src_dof_lists.skel,
                          false);
 
       current_node->U *= -1;

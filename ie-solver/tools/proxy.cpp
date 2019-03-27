@@ -19,7 +19,7 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
     std::vector<unsigned int> inner_circle;
     for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
       if (level_node->id != node->id) {
-        for (unsigned int matrix_index : level_node->interaction_lists.active_box) {
+        for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
           unsigned int point_index = matrix_index / solution_dimension;
           unsigned int points_vec_index = point_index * domain_dimension;
 
@@ -34,35 +34,35 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
     }
 
     ie_Mat near_box = kernel(inner_circle,
-                             node->interaction_lists.active_box);
+                             node->src_dof_lists.active_box);
     ie_Mat box_near(inner_circle.size(),
-                    node->interaction_lists.active_box.size());
-    kernel(node->interaction_lists.active_box,
+                    node->src_dof_lists.active_box.size());
+    kernel(node->src_dof_lists.active_box,
            inner_circle).transpose_into(&box_near);
 
     ie_Mat proxy = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
-                          node->interaction_lists.active_box.size());
+                          node->src_dof_lists.active_box.size());
 
     make_proxy_mat(kernel, &proxy, cntr_x, cntr_y, node->side_length
-                   * radius_ratio, tree, node->interaction_lists.active_box);
+                   * radius_ratio, tree, node->src_dof_lists.active_box);
 
     *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
                   NUM_PROXY_POINTS,
-                  node->interaction_lists.active_box.size());
+                  node->src_dof_lists.active_box.size());
     mat->set_submatrix(0, inner_circle.size(),
-                       0, node->interaction_lists.active_box.size(),
+                       0, node->src_dof_lists.active_box.size(),
                        near_box);
     mat->set_submatrix(inner_circle.size(), 2 * inner_circle.size(),
-                       0, node->interaction_lists.active_box.size(),
+                       0, node->src_dof_lists.active_box.size(),
                        box_near);
     mat->set_submatrix(2 * inner_circle.size(),
                        solution_dimension * 2 * NUM_PROXY_POINTS + 2 * inner_circle.size(),
-                       0, node->interaction_lists.active_box.size(), proxy);
+                       0, node->src_dof_lists.active_box.size(), proxy);
   } else {
     *mat = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
-                  node->interaction_lists.active_box.size());
+                  node->src_dof_lists.active_box.size());
     make_proxy_mat(kernel, mat, cntr_x, cntr_y, node->side_length * 1.5, tree,
-                   node->interaction_lists.active_box);
+                   node->src_dof_lists.active_box);
   }
 }
 
