@@ -16,13 +16,17 @@ typedef std::pair<double, double> pair;
 
 unsigned int QuadTreeNode::id_count = 0;
 
-void QuadTree::initialize_tree(Boundary* boundary_, int solution_dimension_,
-    int domain_dimension_) {
+
+void QuadTree::initialize_tree(Boundary* boundary_,
+                               const std::vector<double>& domain_points_,
+                               int solution_dimension_,
+                               int domain_dimension_) {
   assert(boundary_->points.size() > 0
          && "number of boundary->points to init tree cannot be 0.");
   // todo(john) later we can assert that the boundary->points are a multiple of
   // dimension
   this->boundary = boundary_;
+  this->domain_points = domain_points;
   this->solution_dimension = solution_dimension_;
   this->domain_dimension = domain_dimension_;
   QuadTreeNode::id_count = 0;
@@ -66,9 +70,14 @@ void QuadTree::initialize_tree(Boundary* boundary_, int solution_dimension_,
   level_one->nodes.push_back(root);
   levels.push_back(level_one);
   // all near and far ranges should be taken care of by this guy
-  for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
+  for (unsigned int i = 0; i < boundary->points.size(); i += domain_dimension) {
     recursive_add(this->root, boundary->points[i], boundary->points[i + 1],
-                  i / 2);
+                  i / domain_dimension, true);
+  }
+
+  for (unsigned int i = 0; i < domain_points.size(); i += domain_dimension) {
+    recursive_add(this->root, domain_points[i], domain_points[i + 1],
+                  i / domain_dimension, false);
   }
   // make neighbor lists in a stupid way
 
@@ -158,11 +167,16 @@ void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
 }
 
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
-                             unsigned int point_ind) {
+                             unsigned int point_ind, bool is_boundary) {
   assert(node != nullptr && "recursive_add fails on null node.");
   for (int i = 0; i < solution_dimension; i++) {
-    node->src_dof_lists.original_box.push_back(
-      solution_dimension * point_ind + i);
+    if (is_boundary) {
+      node->src_dof_lists.original_box.push_back(
+        solution_dimension * point_ind + i);
+    } else {
+      node->tgt_dof_lists.original_box.push_back(
+        solution_dimension * point_ind + i);
+    }
   }
 
   // figure out which child
@@ -183,12 +197,13 @@ void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
   }
   // does that child exist?
   if (child) {
-    recursive_add(child, x, y, point_ind);
+    recursive_add(child, x, y, point_ind, true);
   } else {
     // do we need one?
     // if this node is exploding and needs children
     if (node->is_leaf
-        && node->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
+        && node->src_dof_lists.original_box.size() +
+        node->tgt_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
       node_subdivide(node);
     }
   }
@@ -295,39 +310,73 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
        index < node->src_dof_lists.original_box.size();
        index += solution_dimension) {
     unsigned int matrix_index = node->src_dof_lists.original_box[index];
-    unsigned int points_vec_index = (matrix_index / solution_dimension) * domain_dimension;
+    unsigned int points_vec_index = (matrix_index / solution_dimension) *
+                                    domain_dimension;
     // So we are trying to be general, but x,y implies 2D. To generalize later
     double x = boundary->points[points_vec_index];
     double y = boundary->points[points_vec_index + 1];
     if (x < midx && y < midy) {
-      for(int i = 0; i < solution_dimension; i++){
-        bl->src_dof_lists.original_box.push_back(matrix_index+i);
+      for (int i = 0; i < solution_dimension; i++) {
+        bl->src_dof_lists.original_box.push_back(matrix_index + i);
       }
     } else if (x < midx && y >= midy) {
-      for(int i = 0; i < solution_dimension; i++){
-        tl->src_dof_lists.original_box.push_back(matrix_index+i);
+      for (int i = 0; i < solution_dimension; i++) {
+        tl->src_dof_lists.original_box.push_back(matrix_index + i);
       }
     } else if (x >= midx && y < midy) {
-      for(int i = 0; i < solution_dimension; i++){
-        br->src_dof_lists.original_box.push_back(matrix_index+i);
+      for (int i = 0; i < solution_dimension; i++) {
+        br->src_dof_lists.original_box.push_back(matrix_index + i);
       }
     } else {
-      for(int i = 0; i < solution_dimension; i++){
-        tr->src_dof_lists.original_box.push_back(matrix_index+i);
+      for (int i = 0; i < solution_dimension; i++) {
+        tr->src_dof_lists.original_box.push_back(matrix_index + i);
       }
     }
   }
 
-  if (bl->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
+  // Bring the tgt indices down too
+  for (unsigned int index = 0;
+       index < node->tgt_dof_lists.original_box.size();
+       index += solution_dimension) {
+    unsigned int matrix_index = node->tgt_dof_lists.original_box[index];
+    unsigned int points_vec_index = (matrix_index / solution_dimension) *
+                                    domain_dimension;
+    // So we are trying to be general, but x,y implies 2D. To generalize later
+    double x = domain_points[points_vec_index];
+    double y = domain_points[points_vec_index + 1];
+    if (x < midx && y < midy) {
+      for (int i = 0; i < solution_dimension; i++) {
+        bl->tgt_dof_lists.original_box.push_back(matrix_index + i);
+      }
+    } else if (x < midx && y >= midy) {
+      for (int i = 0; i < solution_dimension; i++) {
+        tl->tgt_dof_lists.original_box.push_back(matrix_index + i);
+      }
+    } else if (x >= midx && y < midy) {
+      for (int i = 0; i < solution_dimension; i++) {
+        br->tgt_dof_lists.original_box.push_back(matrix_index + i);
+      }
+    } else {
+      for (int i = 0; i < solution_dimension; i++) {
+        tr->tgt_dof_lists.original_box.push_back(matrix_index + i);
+      }
+    }
+  }
+
+  if (bl->src_dof_lists.original_box.size() +
+      bl->tgt_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(bl);
   }
-  if (tl->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
+  if (tl->src_dof_lists.original_box.size() +
+      tl->tgt_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(tl);
   }
-  if (tr->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
+  if (tr->src_dof_lists.original_box.size() +
+      tr->tgt_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(tr);
   }
-  if (br->src_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
+  if (br->src_dof_lists.original_box.size() +
+      br->tgt_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
     node_subdivide(br);
   }
 }
@@ -539,7 +588,8 @@ void QuadTree::reset() {
   }
   levels.clear();
   QuadTreeNode::id_count = 0;
-  initialize_tree(boundary, solution_dimension, domain_dimension);
+  initialize_tree(boundary, domain_points, solution_dimension,
+                  domain_dimension);
 }
 
 void QuadTree::reset(Boundary * boundary_) {
@@ -553,7 +603,8 @@ void QuadTree::reset(Boundary * boundary_) {
   }
   levels.clear();
   QuadTreeNode::id_count = 0;
-  initialize_tree(boundary_, solution_dimension, domain_dimension);
+  initialize_tree(boundary_, domain_points, solution_dimension,
+                  domain_dimension);
 }
 
 }  // namespace ie_solver

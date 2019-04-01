@@ -98,34 +98,54 @@ void IeSolverTools::populate_active_box(QuadTreeNode* node) {
   } else {
     node->src_dof_lists.active_box = node->src_dof_lists.original_box;
   }
+
+  node->tgt_dof_lists.skel.clear();
+  node->tgt_dof_lists.skelnear.clear();
+  node->tgt_dof_lists.redundant.clear();
+  node->tgt_dof_lists.active_box.clear();
+  if (!node->is_leaf) {
+    for (QuadTreeNode* child : node->children) {
+      if (child->schur_updated) {
+        for (unsigned int i : child->tgt_dof_lists.skel) {
+          node->tgt_dof_lists.active_box.push_back(i);
+        }
+      } else {
+        for (unsigned int i : child->tgt_dof_lists.active_box) {
+          node->tgt_dof_lists.active_box.push_back(i);
+        }
+      }
+    }
+  } else {
+    node->tgt_dof_lists.active_box = node->tgt_dof_lists.original_box;
+  }
 }
 
 // TODO(John) the permutation vector is weirdly unique among the
 // src_dof_lists and is weird to deal with in perturbing, can we just ditch
 // it somehow?
-void IeSolverTools::set_rs_ranges(InteractionLists* src_dof_lists,
+void IeSolverTools::set_rs_ranges(InteractionLists* dof_lists,
                                   const std::vector<unsigned int>& prm,
                                   unsigned int sk, unsigned int rd) {
   assert(prm.size() == sk + rd);
 
   for (unsigned int i = 0; i < sk; i++) {
-    src_dof_lists->skel.push_back(src_dof_lists->active_box[prm[i]]);
-    src_dof_lists->permutation.push_back(prm[i]);
+    dof_lists->skel.push_back(dof_lists->active_box[prm[i]]);
+    dof_lists->permutation.push_back(prm[i]);
   }
   for (unsigned int i = sk; i < sk + rd; i++) {
-    src_dof_lists->redundant.push_back(
-      src_dof_lists->active_box[prm[i]]);
-    src_dof_lists->permutation.push_back(prm[i]);
+    dof_lists->redundant.push_back(
+      dof_lists->active_box[prm[i]]);
+    dof_lists->permutation.push_back(prm[i]);
   }
 }
 
-void IeSolverTools::set_skelnear_range(InteractionLists* src_dof_lists) {
-  for (unsigned int i = 0; i < src_dof_lists->skel.size(); i++) {
-    src_dof_lists->skelnear.push_back(src_dof_lists->skel[i]);
+void IeSolverTools::set_skelnear_range(InteractionLists* dof_lists) {
+  for (unsigned int i = 0; i < dof_lists->skel.size(); i++) {
+    dof_lists->skelnear.push_back(dof_lists->skel[i]);
   }
   if (strong_admissibility) {
-    for (unsigned int i = 0; i < src_dof_lists->near.size(); i++) {
-      src_dof_lists->skelnear.push_back(src_dof_lists->near[i]);
+    for (unsigned int i = 0; i < dof_lists->near.size(); i++) {
+      dof_lists->skelnear.push_back(dof_lists->near[i]);
     }
   }
 }

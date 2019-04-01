@@ -33,6 +33,52 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       }
     }
 
+    std::vector<Dof> srcs;
+    std::vector<Dof> tgts;
+    for (unsigned int matrix_index : node->src_dof_lists.active_box) {
+      unsigned int point_index = matrix_index / solution_dimension;
+      unsigned int points_vec_index = point_index * domain_dimension;
+
+      Dof dof;
+      dof.point = Vec2(boundary->points[points_vec_index],
+                       boundary->points[points_vec_index + 1]);
+      a.normal = Vec2(boundary->normals[points_vec_index],
+                      boundary->normals[points_vec_index + 1]);
+      a.curvature = boundary->curvatures[point_index];
+      a.weight =  boundary->weights[point_index];
+      srcs.push_back(dof);
+      tgts.push_back(dof);
+    }
+
+    for (unsigned int matrix_index : inner_circle) {
+      unsigned int point_index = matrix_index / solution_dimension;
+      unsigned int points_vec_index = point_index * domain_dimension;
+
+      Dof dof;
+      dof.point = Vec2(boundary->points[points_vec_index],
+                       boundary->points[points_vec_index + 1]);
+      dof.normal = Vec2(boundary->normals[points_vec_index],
+                        boundary->normals[points_vec_index + 1]);
+      dof.curvature = boundary->curvatures[point_index];
+      dof.weight =  boundary->weights[point_index];
+      srcs.push_back(dof);
+      tgts.push_back(dof);
+    }
+
+    double r =  node->side_length * radius_ratio;
+    double proxy_weight = 2.0 * M_PI * r / NUM_PROXY_POINTS;
+    double proxy_curvature = 1.0 / r;
+    
+    for (int i = 0; i < NUM_PROXY_POINTS; i++) {
+      double ang = 2 * M_PI * i * (1.0 / NUM_PROXY_POINTS);
+      Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
+      Dof dof;
+      a.point = p;
+      a.normal = Vec2(cos(ang), sin(ang));
+      a.curvature = proxy_curvature;
+      a.weight = proxy_weight;
+    }
+
     ie_Mat near_box = kernel(inner_circle,
                              node->src_dof_lists.active_box);
     ie_Mat box_near(inner_circle.size(),
@@ -67,9 +113,14 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
 }
 
 
-void IeSolverTools::make_proxy_mat(const Kernel& kernel, ie_Mat* pxy,
+void IeSolverTools::make_interaction_mat(const std::vector<Dof>& srcs, const
+    std::vector<Dof>& tgts, ie_Mat * mat) {
+
+}
+
+void IeSolverTools::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
                                    double cntr_x, double cntr_y,
-                                   double r, const QuadTree* tree,
+                                   double r, const QuadTree * tree,
                                    const std::vector<unsigned int>& box_inds) {
   // each row is a pxy point, cols are box dofs
   double proxy_weight = 2.0 * M_PI * r / NUM_PROXY_POINTS;

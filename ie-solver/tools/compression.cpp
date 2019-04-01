@@ -33,6 +33,39 @@ int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
   return node->T.width();
 }
 
+int IeSolverTools::b2dinterpolative_decomposition(const Kernel& kernel,
+    const QuadTree* tree, QuadTreeNode* node) {
+  assert(node != nullptr && "InterpolativeDecomposition fails on null node.");
+  assert(node->src_dof_lists.active_box.size() > 0 &&
+         "Num of DOFs must be positive in InterpolativeDecomposition.");
+
+
+  // SRC TO TGT
+
+  ie_Mat src_to_tgt_pxy;
+  make_id_mat(kernel, &src_to_tgt_pxy, tree, node);
+  std::vector<unsigned int> tgt_p;
+  unsigned int numskel = src_to_tgt_pxy.id(&tgt_p, &node->tgt_T, id_tol);
+  if (numskel == 0) return 0;
+  set_rs_ranges(&node->tgt_dof_lists, tgt_p, node->tgt_T.height(),
+                node->tgt_T.width());
+  set_skelnear_range(&node->tgt_dof_lists);
+
+  // TGT TO SRC
+  ie_Mat tgt_to_src_pxy;
+  make_id_mat(kernel, &tgt_to_src_pxy, tree, node);
+  std::vector<unsigned int> src_p;
+  unsigned int numskel = tgt_to_src_pxy.id(&src_p, &node->src_T, id_tol);
+  if (numskel == 0) return 0;
+  set_rs_ranges(&node->src_dof_lists, src_p, node->src_T.height(),
+                node->src_T.width());
+  set_skelnear_range(&node->src_dof_lists);
+
+
+
+  return node->T.width();
+}
+
 
 void IeSolverTools::get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,
                                    const std::vector<unsigned int>& r,
@@ -103,7 +136,7 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
   ie_Mat update(BN.size(), BN.size());
   get_all_schur_updates(&update, BN, node, strong_admissibility);
- 
+
   K_BN -= update;
   // Generate various index ranges within BN
   std::vector<unsigned int> s, r, n, sn;
@@ -148,6 +181,50 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   // set schur update
   node->schur_update = schur;
   node->schur_updated = true;
+}
+
+void IeSolverTools::b2dskeletonize(const Kernel& kernel, QuadTree* tree) {
+
+  unsigned int lvls = tree->levels.size();
+  for (unsigned int level = lvls - 1; level > 0; level--) {
+    QuadTreeLevel* current_level = tree->levels[level];
+    // First, get all active dofs from children
+    for (QuadTreeNode * node : current_level->nodes) {
+      if (node->schur_updated) continue;
+      populate_active_box(node);
+    }
+    // Next, get all active near dofs from neighbors
+    for (QuadTreeNode* node_a : current_level->nodes) {
+      if (node_a->schur_updated) continue;
+      node_a->src_dof_lists.near.clear();
+      node_a->tgt_dof_lists.near.clear();
+      for (QuadTreeNode* neighbor : node_a->neighbors) {
+        // Some neighbors are smaller boxes from higher levels, we don't
+        // care about those, their parents have the updated information.
+        if (neighbor->level > node_a->level) {
+          continue;
+        }
+        for (unsigned int idx : neighbor->src_dof_lists.active_box) {
+          node_a->src_dof_lists.near.push_back(idx);
+        }
+        for (unsigned int idx : neighbor->tgt_dof_lists.active_box) {
+          node_a->tgt_dof_lists.near.push_back(idx);
+        }
+      }
+    }
+    for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
+      QuadTreeNode* current_node = current_level->nodes[n];
+      if (current_node->schur_updated) {
+        continue;
+      }
+      if (current_node->src_dof_lists.active_box.size() < MIN_DOFS_TO_COMPRESS
+          && current_node->tgt_dof_lists.active_box.size() < MIN_DOFS_TO_COMPRESS) {
+        continue;
+      }
+      int redundants = b2dinterpolative_decomposition(kernel, tree, current_node);
+    }
+  }
+  populate_all_active_boxes(tree);
 }
 
 

@@ -55,6 +55,11 @@ void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
 }
 
 
+void IeSolverTools::b2dsparse_matvec(const Kernel& K, const QuadTree& tree,
+                                     const ie_Mat& x, ie_Mat* b) {
+}
+
+
 void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
                                   const ie_Mat& x,
                                   ie_Mat* b) {
