@@ -34,7 +34,9 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
       Vec2 y(points[j], points[j + 1]);
 
       Dof a, b;
+      a.is_boundary = false;
       a.point = x;
+      b.is_boundary = true;
       b.point = y;
       b.normal = Vec2(normals[j], normals[j + 1]);
       b.weight = weights[j / 2];

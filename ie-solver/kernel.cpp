@@ -72,10 +72,13 @@ ie_Mat Kernel::stokes_kernel(const Dof& tgt, const Dof& src) const {
   double scale = 1.0 / (M_PI);
 
   ie_Mat tensor(2, 2);
-  double n00 = src.weight * tgt.normal.a[0] * src.normal.a[0];
-  double n01 = src.weight * tgt.normal.a[0] * src.normal.a[1];
-  double n10 = src.weight * tgt.normal.a[1] * src.normal.a[0];
-  double n11 = src.weight * tgt.normal.a[1] * src.normal.a[1];
+  double n00 = 0, n01 = 0, n10 = 0, n11 = 0;
+  if (tgt.is_boundary) {
+    n00 = src.weight * tgt.normal.a[0] * src.normal.a[0];
+    n01 = src.weight * tgt.normal.a[0] * src.normal.a[1];
+    n10 = src.weight * tgt.normal.a[1] * src.normal.a[0];
+    n11 = src.weight * tgt.normal.a[1] * src.normal.a[1];
+  }
   if (tgt.point.a[0] == src.point.a[0] && tgt.point.a[1] == src.point.a[1]) {
     // tangent
     double t0 = -src.normal.a[1];

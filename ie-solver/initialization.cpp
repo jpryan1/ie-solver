@@ -27,6 +27,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
   // #pragma omp parallel for
   for (int i = 0; i < test_size * test_size; i++) {
     Dof domain_point;
+    domain_point.is_boundary = false;
     domain_point.point = Vec2(domain_points[2 * i], domain_points[2 * i + 1]);
     bool in_domain = kernel->boundary->is_in_domain(domain_point.point);
     for (int j = 0; j < dofs; j++) {
@@ -35,6 +36,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
         continue;
       }
       Dof boundary_point;
+      boundary_point.is_boundary = true;
       boundary_point.point = Vec2(points[2 * j], points[2 * j + 1]);
       boundary_point.normal = Vec2(normals[2 * j], normals[2 * j + 1]);
       boundary_point.weight = weights[j];

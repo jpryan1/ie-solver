@@ -161,6 +161,7 @@ void IeSolverTools::make_tgt_id_mat(const Kernel& kernel, ie_Mat* mat,
     Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
     for (unsigned int j = 0; j < node->tgt_dof_lists.active_box.size(); j++) {
       Dof a, b;
+      a.is_boundary = true;
       a.point = p;
       a.normal = Vec2(cos(ang), sin(ang));
       a.curvature = proxy_curvature;
@@ -171,7 +172,7 @@ void IeSolverTools::make_tgt_id_mat(const Kernel& kernel, ie_Mat* mat,
       unsigned int points_vec_index = point_index * domain_dimension;
       b.point = Vec2(tree->domain_points[points_vec_index],
                      tree->domain_points[points_vec_index + 1]);
-
+      b.is_boundary = false;
       ie_Mat ba_tensor = kernel.get(b, a);
 
       for (int k = 0; k < solution_dimension; k++) {
@@ -233,7 +234,7 @@ void IeSolverTools::make_src_id_mat(const Kernel& kernel, ie_Mat* mat,
     for (unsigned int j = 0; j < node->src_dof_lists.active_box.size(); j++) {
       Dof a, b;
       a.point = p;
-
+      a.is_boundary = false;
       unsigned int matrix_index = node->src_dof_lists.active_box[j];
       unsigned int point_index = matrix_index / solution_dimension;
       unsigned int points_vec_index = point_index * domain_dimension;
@@ -243,7 +244,7 @@ void IeSolverTools::make_src_id_mat(const Kernel& kernel, ie_Mat* mat,
                       tree->boundary->normals[points_vec_index + 1]);
       b.curvature = tree->boundary->curvatures[point_index];
       b.weight = tree->boundary->weights[point_index];
-
+      b.is_boundary = true;
       ie_Mat ab_tensor = kernel.get(a, b);
       for (int k = 0; k < solution_dimension; k++) {
         mat->set(inner_circle.size() + solution_dimension * i + k, j,

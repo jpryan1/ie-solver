@@ -15,6 +15,7 @@ struct Dof {
   Vec2 normal;
   double curvature;
   double weight;
+  bool is_boundary;
 };  // struct
 
 
