@@ -49,8 +49,12 @@ void boundary_integral_solve(const ie_solver_config& config,
   IeSolverTools ie_solver_tools(id_tol, strong_admissibility,
                                 solution_dimension, domain_dimension);
 
+  std::vector<double> domain_points;
+  get_domain_points(&domain_points, quadtree.min, quadtree.max);
+
   Kernel kernel;
-  kernel.load(config.boundary.get(), config.pde, solution_dimension,
+  kernel.load(config.boundary.get(), domain_points, config.pde,
+              solution_dimension,
               domain_dimension);
 
   if (is_time_trial) {
@@ -73,15 +77,14 @@ void boundary_integral_solve(const ie_solver_config& config,
 
   // This will be done as a sparse mat vec in the future, for now we do
   // dense matvec
-  std::vector<double> domain_points;
-  get_domain_points(&domain_points, quadtree.min, quadtree.max);
-  QuadTree boundary_to_domain;
-  boundary_to_domain.initialize_tree(config.boundary.get(),
-                                     domain_points, solution_dimension,
-                                     domain_dimension);
-  // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
   ie_Mat domain(TEST_SIZE * TEST_SIZE * solution_dimension, 1);
 
+  // QuadTree boundary_to_domain;
+  // boundary_to_domain.initialize_tree(config.boundary.get(),
+  //                                    domain_points, solution_dimension,
+  //                                    domain_dimension);  
+  // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
+  //   double start = omp_get_wtime();
   // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, phi, &domain);
 
   ie_Mat K_domain(TEST_SIZE * TEST_SIZE * solution_dimension,

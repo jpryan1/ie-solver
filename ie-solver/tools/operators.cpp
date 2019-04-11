@@ -10,7 +10,11 @@ void IeSolverTools::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
                                        const std::vector<unsigned int>& b,
                                        bool transpose = false) {
   if (a.size()*b.size() == 0) return;
-
+  if (transpose) {
+    assert(mat.height() == a.size());
+  } else {
+    assert(mat.width() == a.size());
+  }
   // This vector is just used for indexing an Vector
   std::vector<unsigned int> ZERO_VECTOR;
   ZERO_VECTOR.push_back(0);
@@ -40,6 +44,23 @@ void IeSolverTools::apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
 }
 
 
+void IeSolverTools::b2d_apply_diag_matrix(const ie_Mat& mat,
+    const std::vector<unsigned int>& tgt,
+    const std::vector<unsigned int>& src,
+    const ie_Mat& vec_in, ie_Mat* vec_out) {
+
+  if (tgt.size()*src.size() == 0) return;
+  std::vector<unsigned int> ZERO_VECTOR;
+  ZERO_VECTOR.push_back(0);
+  ie_Mat temp = vec_in(src, ZERO_VECTOR);
+
+  ie_Mat product(tgt.size(), 1);
+  ie_Mat::gemv(NORMAL, 1., mat, temp, 0., &product);
+  product += (*vec_out)(tgt, ZERO_VECTOR);
+  vec_out->set_submatrix(tgt, ZERO_VECTOR, product);
+}
+
+
 void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
     const std::vector<unsigned int>& range) {
   if (range.size() == 0) return;
@@ -56,7 +77,279 @@ void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
 
 
 void IeSolverTools::b2dsparse_matvec(const Kernel& K, const QuadTree& tree,
-                                     const ie_Mat& x, ie_Mat* b) {
+                                     const ie_Mat& x,
+                                     ie_Mat* b) {
+  int lvls = tree.levels.size();
+
+  for (int level_ = lvls - 2; level_ > 0; level_--) {
+    ie_Mat add(b->height(), 1);
+    ie_Mat start = x;
+
+    // T _src inv
+    for (int level = lvls - 1; level > level_; level--) {
+      QuadTreeLevel* current_level = tree.levels[level];
+      for (QuadTreeNode* current_node : current_level->nodes) {
+        if (!current_node->schur_updated) continue;
+        apply_sweep_matrix(current_node->src_T, &start,
+                           current_node->src_dof_lists.redundant,
+                           current_node->src_dof_lists.skel,
+                           false);
+      }
+    }
+
+    // K_r
+    for (int level = lvls - 1; level > level_; level--) {
+      QuadTreeLevel* current_level = tree.levels[level];
+      for (QuadTreeNode* current_node : current_level->nodes) {
+        if (!current_node->schur_updated) {
+          continue;
+        }
+        if (current_node->X_rs.height() * current_node->X_rs.width() > 0) {
+          b2d_apply_diag_matrix(current_node->X_rs,
+                                current_node->tgt_dof_lists.redundant,
+                                current_node->src_dof_lists.skel,
+                                start, &add);
+        }
+        if (current_node->X_rr.height() * current_node->X_rr.width() > 0) {
+          b2d_apply_diag_matrix(current_node->X_rr,
+                                current_node->tgt_dof_lists.redundant,
+                                current_node->src_dof_lists.redundant,
+                                start, &add);
+        }
+        if (current_node->X_sr.height() * current_node->X_sr.width() > 0) {
+          b2d_apply_diag_matrix(current_node->X_sr,
+                                current_node->tgt_dof_lists.skel,
+                                current_node->src_dof_lists.redundant,
+                                start, &add);
+        }
+      }
+    }
+    std::cout << "Norm: " << add.frob_norm() << std::endl;
+
+    // T_tgt inv
+    for (int level = level_ + 1; level < lvls; level++) {
+      QuadTreeLevel* current_level = tree.levels[level];
+      for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
+        QuadTreeNode* current_node = current_level->nodes[n];
+        if (!current_node->schur_updated) continue;
+        apply_sweep_matrix(current_node->tgt_T, &add,
+                           current_node->tgt_dof_lists.skel,
+                           current_node->tgt_dof_lists.redundant, true);
+      }
+    }
+    (*b) += add;
+  }
+
+
+  ie_Mat final_start = x;
+  for (int level = lvls - 1; level >= 0; level--) {
+    QuadTreeLevel* current_level = tree.levels[level];
+    for (QuadTreeNode* current_node : current_level->nodes) {
+      if (!current_node->schur_updated) {
+        continue;
+      }
+      apply_sweep_matrix(current_node->src_T, &final_start,
+                         current_node->src_dof_lists.redundant,
+                         current_node->src_dof_lists.skel,
+                         false);
+    }
+  }
+// We need all of the skeleton indices. This is just the negation of
+// [0,b.size()] and the redundant DoFs
+// with that in mind...
+
+
+
+
+
+  ie_Mat final_add(b->height(), 1);
+
+  QuadTreeLevel* current_level = tree.levels[0];
+  for (QuadTreeNode* current_node : current_level->nodes) {
+    if (!current_node->schur_updated) {
+      continue;
+    }
+    if (current_node->X_rs.height() * current_node->X_rs.width() > 0) {
+      b2d_apply_diag_matrix(current_node->X_rs,
+                            current_node->tgt_dof_lists.redundant,
+                            current_node->src_dof_lists.skel,
+                            final_start, &final_add);
+    }
+    if (current_node->X_rr.height() * current_node->X_rr.width() > 0) {
+      b2d_apply_diag_matrix(current_node->X_rr,
+                            current_node->tgt_dof_lists.redundant,
+                            current_node->src_dof_lists.redundant,
+                            final_start, &final_add);
+    }
+    if (current_node->X_sr.height() * current_node->X_sr.width() > 0) {
+      b2d_apply_diag_matrix(current_node->X_sr,
+                            current_node->tgt_dof_lists.skel,
+                            current_node->src_dof_lists.redundant,
+                            final_start, &final_add);
+    }
+  }
+
+
+  std::vector<unsigned int> src_allskel =
+    tree.root->src_dof_lists.active_box;
+
+  std::vector<unsigned int> tgt_allskel =
+    tree.root->tgt_dof_lists.active_box;
+
+  if (src_allskel.size()*tgt_allskel.size() > 0) {
+    ie_Mat allskel_mat = K.forward_get(tgt_allskel, src_allskel);
+    b2d_apply_diag_matrix(allskel_mat,
+                          tgt_allskel,
+                          src_allskel,
+                          final_start, &final_add);
+  }
+
+
+  for (int level = 0; level < lvls; level++) {
+    QuadTreeLevel* current_level = tree.levels[level];
+    // TODO(John) record in notes and explore the following observation:
+    // changing the order of this for loop affects the accuracy of the
+    // sparse_mat_vec on a random vector, BUT NOT THE SOLUTION ERROR
+    for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
+      QuadTreeNode* current_node = current_level->nodes[n];
+      if (!current_node->schur_updated) {
+        continue;
+      }
+
+      // Finally we need to apply U_T inverse
+      // U_T inverse changes the redundant elements - it makes them equal
+      // to T transpose times the skeleton elements + the redundant
+      // elements
+      apply_sweep_matrix(current_node->tgt_T, &final_add,
+                         current_node->tgt_dof_lists.skel,
+                         current_node->tgt_dof_lists.redundant, true);
+    }
+  }
+
+  (*b) += final_add;
+
+  for (int i = 0; i < tree.domain_points.size(); i += 2) {
+    if (!tree.boundary->is_in_domain(
+          Vec2(tree.domain_points[i], tree.domain_points[i + 1]))) {
+      for (int j = 0; j < solution_dimension; j++) {
+        b->set((i / 2) * solution_dimension + j, 0, 0.0);
+      }
+    }
+  }
+
+
+
+
+
+//***************************************************************************
+
+
+
+
+  // ie_Mat s2s = x;
+  // int lvls = tree.levels.size();
+
+  // for (int level = lvls - 1; level >= 0; level--) {
+  //   QuadTreeLevel* current_level = tree.levels[level];
+  //   for (QuadTreeNode* current_node : current_level->nodes) {
+  //     if (!current_node->schur_updated) {
+  //       continue;
+  //     }
+  //     // First we need to apply L_T inverse
+  //     // L_T inverse changes the skel elements - it makes them equal to
+  //     // T times the redundant elements + the skeleton elements.
+  //     apply_sweep_matrix(current_node->src_T, &s2s,
+  //                        current_node->src_dof_lists.redundant,
+  //                        current_node->src_dof_lists.skel,
+  //                        false);
+  //   }
+  // }
+
+  // ie_Mat s2t(b->height(), 1);
+  // // ^ all zeros for now.
+
+  // for (int level = lvls - 1; level >= 0; level--) {
+  //   QuadTreeLevel* current_level = tree.levels[level];
+  //   for (QuadTreeNode* current_node : current_level->nodes) {
+  //     if (!current_node->schur_updated) {
+  //       continue;
+  //     }
+  //     if (current_node->X_rs.height() * current_node->X_rs.width() > 0) {
+  //       b2d_apply_diag_matrix(current_node->X_rs,
+  //                             current_node->tgt_dof_lists.redundant,
+  //                             current_node->src_dof_lists.skel,
+  //                             s2s, b);
+  //     }
+  //     if (current_node->X_rr.height() * current_node->X_rr.width() > 0) {
+  //       b2d_apply_diag_matrix(current_node->X_rr,
+  //                             current_node->tgt_dof_lists.redundant,
+  //                             current_node->src_dof_lists.redundant,
+  //                             s2s, b);
+  //     }
+  //     if (current_node->X_sr.height() * current_node->X_sr.width() > 0) {
+  //       b2d_apply_diag_matrix(current_node->X_sr,
+  //                             current_node->tgt_dof_lists.skel,
+  //                             current_node->src_dof_lists.redundant,
+  //                             s2s, b);
+  //     }
+  //   }
+  // }
+  // std::cout<<"Norm: "<<b->frob_norm()<<std::endl;
+
+  // // We need all of the skeleton indices. This is just the negation of
+  // // [0,b.size()] and the redundant DoFs
+  // // with that in mind...
+
+  // std::vector<unsigned int> src_allskel =
+  //   tree.root->src_dof_lists.active_box;
+
+  // std::vector<unsigned int> tgt_allskel =
+  //   tree.root->tgt_dof_lists.active_box;
+
+  // if (src_allskel.size()*tgt_allskel.size() > 0) {
+  //   ie_Mat allskel_mat = K.forward_get(tgt_allskel, src_allskel);
+  //   b2d_apply_diag_matrix(allskel_mat,
+  //                         tgt_allskel,
+  //                         src_allskel,
+  //                         s2s, b);
+  // }
+
+
+  // for (int level = 0; level < lvls; level++) {
+  //   QuadTreeLevel* current_level = tree.levels[level];
+  //   // TODO(John) record in notes and explore the following observation:
+  //   // changing the order of this for loop affects the accuracy of the
+  //   // sparse_mat_vec on a random vector, BUT NOT THE SOLUTION ERROR
+  //   for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
+  //     QuadTreeNode* current_node = current_level->nodes[n];
+  //     if (!current_node->schur_updated) {
+  //       continue;
+  //     }
+
+  //     // Finally we need to apply U_T inverse
+  //     // U_T inverse changes the redundant elements - it makes them equal
+  //     // to T transpose times the skeleton elements + the redundant
+  //     // elements
+  //     apply_sweep_matrix(current_node->tgt_T, b,
+  //                        current_node->tgt_dof_lists.skel,
+  //                        current_node->tgt_dof_lists.redundant, true);
+  //   }
+  // }
+
+
+  // for (int i = 0; i < tree.domain_points.size(); i += 2) {
+  //   if (!tree.boundary->is_in_domain(
+  //         Vec2(tree.domain_points[i], tree.domain_points[i + 1]))) {
+  //     for (int j = 0; j < solution_dimension; j++) {
+  //       b->set((i / 2) * solution_dimension + j, 0, 0.0);
+
+  //     }
+  //   }
+  // }
+
+
+
+
 }
 
 

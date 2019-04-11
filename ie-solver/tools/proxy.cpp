@@ -9,10 +9,10 @@ namespace ie_solver {
 void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
                                 const QuadTree* tree,
                                 const QuadTreeNode* node) {
-
   double cntr_x = node->corners[0] + node->side_length / 2.0;
   double cntr_y = node->corners[1] + node->side_length / 2.0;
   double radius_ratio = 1.5;
+  Boundary* boundary = tree->boundary;
 
   if (!strong_admissibility) {
     // Grab all points inside the proxy circle
@@ -31,52 +31,6 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
           }
         }
       }
-    }
-
-    std::vector<Dof> srcs;
-    std::vector<Dof> tgts;
-    for (unsigned int matrix_index : node->src_dof_lists.active_box) {
-      unsigned int point_index = matrix_index / solution_dimension;
-      unsigned int points_vec_index = point_index * domain_dimension;
-
-      Dof dof;
-      dof.point = Vec2(boundary->points[points_vec_index],
-                       boundary->points[points_vec_index + 1]);
-      a.normal = Vec2(boundary->normals[points_vec_index],
-                      boundary->normals[points_vec_index + 1]);
-      a.curvature = boundary->curvatures[point_index];
-      a.weight =  boundary->weights[point_index];
-      srcs.push_back(dof);
-      tgts.push_back(dof);
-    }
-
-    for (unsigned int matrix_index : inner_circle) {
-      unsigned int point_index = matrix_index / solution_dimension;
-      unsigned int points_vec_index = point_index * domain_dimension;
-
-      Dof dof;
-      dof.point = Vec2(boundary->points[points_vec_index],
-                       boundary->points[points_vec_index + 1]);
-      dof.normal = Vec2(boundary->normals[points_vec_index],
-                        boundary->normals[points_vec_index + 1]);
-      dof.curvature = boundary->curvatures[point_index];
-      dof.weight =  boundary->weights[point_index];
-      srcs.push_back(dof);
-      tgts.push_back(dof);
-    }
-
-    double r =  node->side_length * radius_ratio;
-    double proxy_weight = 2.0 * M_PI * r / NUM_PROXY_POINTS;
-    double proxy_curvature = 1.0 / r;
-    
-    for (int i = 0; i < NUM_PROXY_POINTS; i++) {
-      double ang = 2 * M_PI * i * (1.0 / NUM_PROXY_POINTS);
-      Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
-      Dof dof;
-      a.point = p;
-      a.normal = Vec2(cos(ang), sin(ang));
-      a.curvature = proxy_curvature;
-      a.weight = proxy_weight;
     }
 
     ie_Mat near_box = kernel(inner_circle,
@@ -102,8 +56,9 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
                        0, node->src_dof_lists.active_box.size(),
                        box_near);
     mat->set_submatrix(2 * inner_circle.size(),
-                       solution_dimension * 2 * NUM_PROXY_POINTS + 2 * inner_circle.size(),
-                       0, node->src_dof_lists.active_box.size(), proxy);
+                       solution_dimension * 2 * NUM_PROXY_POINTS +
+                       2 * inner_circle.size(), 0,
+                       node->src_dof_lists.active_box.size(), proxy);
   } else {
     *mat = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
                   node->src_dof_lists.active_box.size());
@@ -112,11 +67,6 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
   }
 }
 
-
-void IeSolverTools::make_interaction_mat(const std::vector<Dof>& srcs, const
-    std::vector<Dof>& tgts, ie_Mat * mat) {
-
-}
 
 void IeSolverTools::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
                                    double cntr_x, double cntr_y,
@@ -154,6 +104,151 @@ void IeSolverTools::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
                  ab_tensor.get(k, box_inds[j_] % solution_dimension));
         pxy->set(solution_dimension * (i + NUM_PROXY_POINTS) + k, j_,
                  ba_tensor.get(box_inds[j_] % solution_dimension, k));
+      }
+    }
+  }
+}
+
+
+void IeSolverTools::make_tgt_id_mat(const Kernel& kernel, ie_Mat* mat,
+                                    const QuadTree* tree,
+                                    const QuadTreeNode* node) {
+  // Interactions where
+  //    TGT:  Box domain points
+  //    SRC:  Far Boundary Points = inner circle boundary + pxy circle
+
+  double cntr_x = node->corners[0] + node->side_length / 2.0;
+  double cntr_y = node->corners[1] + node->side_length / 2.0;
+  double radius_ratio = 1.5;
+  double r = node->side_length * radius_ratio;
+  Boundary* boundary = tree->boundary;
+
+  // Grab all points inside the proxy circle
+  std::vector<unsigned int> inner_circle;
+  for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
+    if (level_node->id != node->id) {
+      for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
+        unsigned int point_index = matrix_index / solution_dimension;
+        unsigned int points_vec_index = point_index * domain_dimension;
+
+        double x = tree->boundary->points[points_vec_index];
+        double y = tree->boundary->points[points_vec_index + 1];
+        double dist = sqrt(pow(cntr_x - x, 2) + pow(cntr_y - y, 2));
+        if (dist < radius_ratio * node->side_length) {
+          inner_circle.push_back(matrix_index);
+        }
+      }
+    }
+  }
+
+  *mat = ie_Mat(inner_circle.size() + solution_dimension * NUM_PROXY_POINTS,
+                node->tgt_dof_lists.active_box.size());
+
+  ie_Mat near_box = kernel.forward_get(node->tgt_dof_lists.active_box,
+                                       inner_circle);
+
+  for (int i = 0; i < near_box.height(); i++) {
+    for (int j = 0; j < near_box.width(); j++) {
+      mat->set(j, i, near_box.get(i, j));
+    }
+  }
+
+  double proxy_weight = 2.0 * M_PI * r / NUM_PROXY_POINTS;
+  double proxy_curvature = 1.0 / r;
+
+  for (int i = 0; i < NUM_PROXY_POINTS; i++) {
+    double ang = 2 * M_PI * i * (1.0 / NUM_PROXY_POINTS);
+    Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
+    for (unsigned int j = 0; j < node->tgt_dof_lists.active_box.size(); j++) {
+      Dof a, b;
+      a.point = p;
+      a.normal = Vec2(cos(ang), sin(ang));
+      a.curvature = proxy_curvature;
+      a.weight = proxy_weight;
+
+      unsigned int matrix_index = node->tgt_dof_lists.active_box[j];
+      unsigned int point_index = matrix_index / solution_dimension;
+      unsigned int points_vec_index = point_index * domain_dimension;
+      b.point = Vec2(tree->domain_points[points_vec_index],
+                     tree->domain_points[points_vec_index + 1]);
+
+      ie_Mat ba_tensor = kernel.get(b, a);
+
+      for (int k = 0; k < solution_dimension; k++) {
+        mat->set(inner_circle.size() + solution_dimension * i + k, j,
+                 ba_tensor.get(node->tgt_dof_lists.active_box[j]
+                               % solution_dimension, k));
+      }
+    }
+  }
+}
+
+
+void IeSolverTools::make_src_id_mat(const Kernel& kernel, ie_Mat* mat,
+                                    const QuadTree* tree,
+                                    const QuadTreeNode* node) {
+  // Interactions where
+  //    TGT:  Far Domain Points = Pxy mat points + inner circle domain points
+  //    SRC:  Box Boundary Points
+
+  double cntr_x = node->corners[0] + node->side_length / 2.0;
+  double cntr_y = node->corners[1] + node->side_length / 2.0;
+  double radius_ratio = 1.5;
+  double r = node->side_length * radius_ratio;
+  Boundary* boundary = tree->boundary;
+
+  // Grab all points inside the proxy circle
+  std::vector<unsigned int> inner_circle;
+  for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
+    if (level_node->id != node->id) {
+      for (unsigned int matrix_index : level_node->tgt_dof_lists.active_box) {
+        unsigned int point_index = matrix_index / solution_dimension;
+        unsigned int points_vec_index = point_index * domain_dimension;
+
+        double x = tree->domain_points[points_vec_index];
+        double y = tree->domain_points[points_vec_index + 1];
+        double dist = sqrt(pow(cntr_x - x, 2) + pow(cntr_y - y, 2));
+        if (dist < radius_ratio * node->side_length) {
+          inner_circle.push_back(matrix_index);
+        }
+      }
+    }
+  }
+
+  *mat = ie_Mat(inner_circle.size() + solution_dimension * NUM_PROXY_POINTS,
+                node->src_dof_lists.active_box.size());
+
+  ie_Mat near_box = kernel.forward_get(inner_circle,
+                                       node->src_dof_lists.active_box);
+
+  for (int i = 0; i < near_box.height(); i++) {
+    for (int j = 0; j < near_box.width(); j++) {
+      mat->set(i, j, near_box.get(i, j));
+    }
+  }
+
+  for (int i = 0; i < NUM_PROXY_POINTS; i++) {
+    double ang = 2 * M_PI * i * (1.0 / NUM_PROXY_POINTS);
+    Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
+    for (unsigned int j = 0; j < node->src_dof_lists.active_box.size(); j++) {
+      Dof a, b;
+      a.point = p;
+
+      unsigned int matrix_index = node->src_dof_lists.active_box[j];
+      unsigned int point_index = matrix_index / solution_dimension;
+      unsigned int points_vec_index = point_index * domain_dimension;
+      b.point = Vec2(tree->boundary->points[points_vec_index],
+                     tree->boundary->points[points_vec_index + 1]);
+      b.normal = Vec2(tree->boundary->normals[points_vec_index],
+                      tree->boundary->normals[points_vec_index + 1]);
+      b.curvature = tree->boundary->curvatures[point_index];
+      b.weight = tree->boundary->weights[point_index];
+
+      ie_Mat ab_tensor = kernel.get(a, b);
+      for (int k = 0; k < solution_dimension; k++) {
+        mat->set(inner_circle.size() + solution_dimension * i + k, j,
+                 ab_tensor.get(k, node->src_dof_lists.active_box[j]
+                               % solution_dimension));
       }
     }
   }

@@ -163,7 +163,7 @@ ie_Mat& ie_Mat::operator+=(const ie_Mat& o) {
   assert(o.height_ == height_ && o.width_ == width_);
   for (unsigned int i = 0; i < height_; i++) {
     for (unsigned int j = 0; j < width_; j++) {
-      mat[i + lda_ * j] =  mat[i + lda_ * j] + o. mat[i + lda_ * j];
+      mat[i + lda_ * j] =  mat[i + lda_ * j] + o.mat[i + lda_ * j];
     }
   }
   return *this;
@@ -184,10 +184,10 @@ ie_Mat& ie_Mat::operator*=(double o) {
 ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
                           const std::vector<unsigned int>& J_) const {
   ie_Mat ret(I_.size(), J_.size());
-
   int olda_ = I_.size();
   for (unsigned int i = 0; i < I_.size(); i++) {
     for (unsigned int j = 0; j < J_.size(); j++) {
+      assert(I_[i] < height() && J_[j] < width());
       ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
     }
   }
@@ -299,6 +299,7 @@ double ie_Mat::condition_number() const {
 // Populates /p/ with permutation, Z with linear transformation.
 int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   ie_Mat cpy = *this;
+  assert(height() * width() > 0);
   std::vector<lapack_int> pvt(width_);
   memset(&pvt[0], 0, width_ * sizeof(lapack_int));
 
@@ -309,6 +310,7 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
                              &tau[0]);
   assert(info1 == 0);
   unsigned int skel = 0;
+
   double thresh = fabs(tol * cpy.get(0, 0));
 
   for (unsigned int i = 1; i < width_; i++) {

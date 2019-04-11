@@ -50,6 +50,10 @@ class IeSolverTools {
                          const std::vector<unsigned int>& range);
   void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
                              const std::vector<unsigned int>& range);
+  void b2d_apply_diag_matrix(const ie_Mat& mat,
+                             const std::vector<unsigned int>& tgt,
+                             const std::vector<unsigned int>& src,
+                             const ie_Mat& vec_in, ie_Mat* vec_out);
 
   void skeletonize(const Kernel& K, QuadTree* tree);
   void b2dskeletonize(const Kernel& K, QuadTree* tree);
@@ -72,8 +76,13 @@ class IeSolverTools {
                       double cntr_y, double r,
                       const QuadTree* tree,
                       const std::vector<unsigned int>& box_indices);
-  void make_interaction_mat(const std::vector<Dof>& srcs, const
-                            std::vector<Dof>& tgts);
+
+  void make_src_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
+                       const QuadTreeNode* node);
+
+  void make_tgt_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
+                       const QuadTreeNode* node);
+
   void set_rs_ranges(InteractionLists* src_dof_lists,
                      const std::vector<unsigned int>& prm,
                      unsigned int sk, unsigned int rd);

@@ -28,7 +28,7 @@ struct ie_Mat {
   // Move constructor
   ie_Mat(ie_Mat&& move);
   // Move assignment
-  ie_Mat& operator= (ie_Mat&& move);
+  ie_Mat& operator=(ie_Mat&& move);
 
   double get(unsigned int i, unsigned int j) const;
   void set(unsigned int i, unsigned int j, double a);
