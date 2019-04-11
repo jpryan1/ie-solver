@@ -27,7 +27,7 @@ double Kernel::forward_get(unsigned int tgt_ind, unsigned int src_ind) const {
 
   tgt.point = Vec2(domain_points[i_points_vec_index],
                    domain_points[i_points_vec_index + 1]);
-
+  tgt.is_boundary = false;
 
   src.point = Vec2(boundary->points[j_points_vec_index],
                    boundary->points[j_points_vec_index + 1]);
@@ -35,7 +35,7 @@ double Kernel::forward_get(unsigned int tgt_ind, unsigned int src_ind) const {
                     boundary->normals[j_points_vec_index + 1]);
   src.curvature = boundary->curvatures[j_point_index];
   src.weight = boundary->weights[j_point_index];
-
+  src.is_boundary = true;
   ie_Mat tensor = get(tgt, src);
   return tensor.get(tgt_ind % solution_dimension, src_ind % solution_dimension);
 }
@@ -54,6 +54,7 @@ double Kernel::get(unsigned int tgt_ind, unsigned int src_ind) const {
                     boundary->normals[i_points_vec_index + 1]);
   tgt.curvature = boundary->curvatures[i_point_index];
   tgt.weight = boundary->weights[i_point_index];
+  tgt.is_boundary = true;
 
   src.point = Vec2(boundary->points[j_points_vec_index],
                    boundary->points[j_points_vec_index + 1]);
@@ -61,6 +62,7 @@ double Kernel::get(unsigned int tgt_ind, unsigned int src_ind) const {
                     boundary->normals[j_points_vec_index + 1]);
   src.curvature = boundary->curvatures[j_point_index];
   src.weight = boundary->weights[j_point_index];
+  src.is_boundary = true;
 
   ie_Mat tensor = get(tgt, src);
   return tensor.get(tgt_ind % solution_dimension, src_ind % solution_dimension);
