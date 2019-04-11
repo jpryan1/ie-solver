@@ -64,8 +64,10 @@ struct QuadTreeLevel {
 class QuadTree {
  public:
   int solution_dimension, domain_dimension;
+  int no_proxy_level = -1;
   double min, max;
   Boundary* boundary;
+  std::vector<double> domain_points;
   QuadTreeNode* root;
   std::vector<QuadTreeLevel*> levels;
 
@@ -86,18 +88,19 @@ class QuadTree {
   void reset();
   void reset(Boundary* boundary_);
 
-  void initialize_tree(Boundary* boundary, int solution_dimension_,
-    int domain_dimension_);
+  void initialize_tree(Boundary* boundary,
+                       const std::vector<double>& domain_points,
+                       int solution_dimension_,
+                       int domain_dimension_);
+  // TODO(John) different scheme than bool is_boundary
   void recursive_add(QuadTreeNode* node, double x, double y,
-                     unsigned int mat_ind);
+                     unsigned int mat_ind, bool is_boundary);
   void get_descendent_neighbors(QuadTreeNode* big, QuadTreeNode* small);
-
   void node_subdivide(QuadTreeNode* node);
 
   void write_quadtree_to_file();
 
   void mark_neighbors_and_parents(QuadTreeNode* node);
-
   void perturb(const Boundary& new_boundary);
 
   // void print();

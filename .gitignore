@@ -2,3 +2,6 @@ bazel-*
 output/
 ie-solver/._*
 ie-solver/*/._*
+*.png
+*.mp4
+*.txt

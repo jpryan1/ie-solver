@@ -31,6 +31,8 @@ class IeSolverTools {
   void schur_update(const Kernel& K, QuadTreeNode* node);
   int interpolative_decomposition(const Kernel& K, const QuadTree* tree,
                                   QuadTreeNode* node);
+  int b2dinterpolative_decomposition(const Kernel& K, const QuadTree* tree,
+                                     QuadTreeNode* node);
 
   void get_all_schur_updates(ie_Mat* updates,
                              const std::vector<unsigned int>& BN,
@@ -48,11 +50,18 @@ class IeSolverTools {
                          const std::vector<unsigned int>& range);
   void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
                              const std::vector<unsigned int>& range);
+  void b2d_apply_diag_matrix(const ie_Mat& mat,
+                             const std::vector<unsigned int>& tgt,
+                             const std::vector<unsigned int>& src,
+                             const ie_Mat& vec_in, ie_Mat* vec_out);
 
   void skeletonize(const Kernel& K, QuadTree* tree);
+  void b2dskeletonize(const Kernel& K, QuadTree* tree);
 
   void sparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
                      ie_Mat* b);
+  void b2dsparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
+                        ie_Mat* b);
   void solve(const Kernel& K, const QuadTree& tree, ie_Mat* x, const ie_Mat& b);
 
   void check_factorization_against_kernel(const Kernel& kernel,
@@ -67,7 +76,13 @@ class IeSolverTools {
                       double cntr_y, double r,
                       const QuadTree* tree,
                       const std::vector<unsigned int>& box_indices);
- 
+
+  void make_src_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
+                       const QuadTreeNode* node);
+
+  void make_tgt_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
+                       const QuadTreeNode* node);
+
   void set_rs_ranges(InteractionLists* src_dof_lists,
                      const std::vector<unsigned int>& prm,
                      unsigned int sk, unsigned int rd);
