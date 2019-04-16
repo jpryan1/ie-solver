@@ -22,9 +22,6 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
   }
   // columns for phi (aka dofs), rows for spatial domain
   int dofs = points.size() / 2;
-  double scale = 1.0 / (2 * M_PI);
-  // omp_set_num_threads(4);
-  // #pragma omp parallel for
   for (int i = 0; i < test_size * test_size; i++) {
     Dof domain_point;
     domain_point.is_boundary = false;

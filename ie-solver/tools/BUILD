@@ -6,6 +6,7 @@ cc_library(
 	srcs = ["ie_solver_tools.cpp",
 			"schur_update.cpp",
 			"compression.cpp",
+			"boundary_to_domain.cpp",
 			"operators.cpp",
 			"proxy.cpp"],
 	deps = ["//ie-solver:ie_mat",

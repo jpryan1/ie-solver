@@ -113,8 +113,8 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 
 void ie_Mat::set_submatrix(int row_s, int row_e, int col_s, int col_e,
                            const ie_Mat& A) {
-  for (unsigned int i = row_s; i < row_e; i++) {
-    for (unsigned int j = col_s; j < col_e; j++) {
+  for (int i = row_s; i < row_e; i++) {
+    for (int j = col_s; j < col_e; j++) {
       set(i, j, A.get(i - row_s, j - col_s));
     }
   }
@@ -350,14 +350,11 @@ std::vector<double> ie_Mat::real_eigenvalues() {
   std::vector<double> eigvs;
   double *eigs = new double[width_];
   double *imags = new double[width_];
-  double start = omp_get_wtime();
   int info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'N', width_, mat,
                            width_, eigs, imags,
                            nullptr, 1, nullptr, 1);
-
-  double end = omp_get_wtime();
-  if (end - start > 1e-4) std::cout << (end - start) << " seconds" << std::endl;
-  for (int i = 0; i < width_; i++) {
+  assert(info == 0);
+  for (unsigned int i = 0; i < width_; i++) {
     if (fabs(imags[i]) < 1e-14) {
       eigvs.push_back(eigs[i]);
     }

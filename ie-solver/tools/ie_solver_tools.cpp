@@ -40,14 +40,14 @@ void IeSolverTools::check_factorization_against_kernel(const Kernel& kernel,
   ie_Mat basis(dofs, 1);
   ie_Mat b(dofs, 1);
 
-  for (int y = 0; y < rand_y_indices.size(); y++) {
+  for (unsigned int y = 0; y < rand_y_indices.size(); y++) {
     int rand_y_idx = rand_y_indices[y];
-    for (unsigned int i = 0; i < dofs; i++) {
+    for (int i = 0; i < dofs; i++) {
       basis.set(i, 0, 0);
     }
     basis.set(rand_y_idx, 0, 1.0);
     sparse_matvec(kernel, *tree, basis, &b);
-    for (int x = 0; x < rand_x_indices.size(); x++) {
+    for (unsigned int x = 0; x < rand_x_indices.size(); x++) {
       int rand_x_idx = rand_x_indices[x];
       A_hat.set(x, y, b.get(rand_x_idx, 0));
     }

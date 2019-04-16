@@ -49,12 +49,18 @@ void Ellipses::draw_line(int bc_index, int num_points,
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(bc_index++, 0, 1.0);
         break;
-      case BoundaryCondition::BUMP_FUNCTION:
+      case BoundaryCondition::BUMP_FUNCTION: {
         double N = boundary_values.height();
         double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
                        + (bc_index / (N - 1.0));
         potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
         boundary_values.set(bc_index++, 0, potential);
+        break;
+      }
+      case BoundaryCondition::STOKES:
+        boundary_values.set(2 * bc_index, 0, -normals[2 * i + 1]);
+        boundary_values.set(2 * bc_index + 1, 0, normals[2 * i]);
+        bc_index++;
         break;
     }
   }
@@ -143,12 +149,18 @@ void Ellipses::draw_quarter_circle(int bc_index, int num_points,
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(bc_index++, 0, 1.0);
         break;
-      case BoundaryCondition::BUMP_FUNCTION:
+      case BoundaryCondition::BUMP_FUNCTION: {
         double N = boundary_values.height();
         double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
                        + (bc_index / (N - 1.0));
         potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
         boundary_values.set(bc_index++, 0, potential);
+        break;
+      }
+      case BoundaryCondition::STOKES:
+        boundary_values.set(2 * bc_index, 0, -normals[2 * i + 1]);
+        boundary_values.set(2 * bc_index + 1, 0, normals[2 * i]);
+        bc_index++;
         break;
     }
   }
@@ -187,12 +199,17 @@ void Ellipses::draw_ellipse(int bc_index, int num_points, double c_x,
       case BoundaryCondition::ALL_ONES:
         boundary_values.set(bc_index++, 0, 0.0);
         break;
-      case BoundaryCondition::BUMP_FUNCTION:
+      case BoundaryCondition::BUMP_FUNCTION: {
         double N = boundary_values.height();
         double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
                        + (bc_index / (N - 1.0));
         potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
         boundary_values.set(bc_index++, 0, potential);
+        break;
+      } case BoundaryCondition::STOKES:
+        boundary_values.set(2 * bc_index, 0, -normals[2 * i + 1]);
+        boundary_values.set(2 * bc_index + 1, 0, normals[2 * i]);
+        bc_index++;
         break;
     }
   }

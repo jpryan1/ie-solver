@@ -64,7 +64,7 @@ struct QuadTreeLevel {
 class QuadTree {
  public:
   int solution_dimension, domain_dimension;
-  int no_proxy_level = -1;
+  unsigned int no_proxy_level = 0;
   double min, max;
   Boundary* boundary;
   std::vector<double> domain_points;

@@ -1,43 +1,114 @@
 // Copyright 2019 John Paul Ryan
 #include <string.h>
+#include <omp.h>
 #include <string>
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include "ie-solver/ie_mat.h"
+#include "ie-solver/initialization.h"
+#include "ie-solver/tools/ie_solver_tools.h"
+#include "ie-solver/quadtree.h"
+#include "ie-solver/kernel.h"
 #include "ie-solver/helpers.h"
 #include "ie-solver/log.h"
 
 namespace ie_solver {
 
-// void get_circle_stokes_solution(double min, double max, ie_Mat& domain,
-//   bool (*is_in_domain)(Vec2& a)){
-//   //min and max describe the box inside which our sample is taken.
+double boundary_integral_solve(const ie_solver_config& config,
+                               std::vector<double>* skel_times) {
+  int domain_dimension = 2;
+  int solution_dimension = 1;
+  if (config.pde == ie_solver_config::STOKES) {
+    solution_dimension = 2;
+  }
 
-//   // double total_err = 0;
-//   // double max_err   = 0;
-//   // double true_norm = 0;
+  bool is_time_trial = (skel_times != nullptr);
+  double id_tol = config.id_tol;
 
-//   for(int i=0; i<TEST_SIZE*TEST_SIZE; i++){
+  if (!is_time_trial && !config.testing) {
+    write_boundary_to_file(config.boundary->points);
+  }
 
-//     //find out the point corresponding to this index
-//     double x0 = i / TEST_SIZE;
-//     x0 = min + (x0 * (max - min)) / TEST_SIZE;
-//     double y0 = i%TEST_SIZE;
-//     y0 = min + (y0 * (max - min)) / TEST_SIZE;
-//     Vec2 v(x0,y0);
 
-//     if(!is_in_domain(v)){
-//       continue;
-//     }
-//     //now we get a radius associated with this index
-//     x0-=0.5;
-//     y0-=0.5;
-//     // double r = sqrt(x0*x0+y0*y0);
-//     domain.set(2*i  , 0, -4 * y0);
-//     domain.set(2*i+1, 0,  4 * x0);
-//   }
-// }
+  QuadTree quadtree;
+  quadtree.initialize_tree(config.boundary.get(), std::vector<double>(),
+                           solution_dimension,
+                           domain_dimension);
+
+  if (!is_time_trial && !config.testing) {
+    quadtree.write_quadtree_to_file();
+  }
+
+  // Consider making init instead of constructor for readability
+  bool strong_admissibility =
+    (config.admissibility == ie_solver_config::STRONG);
+  IeSolverTools ie_solver_tools(id_tol, strong_admissibility,
+                                solution_dimension, domain_dimension);
+
+  std::vector<double> domain_points;
+  get_domain_points(&domain_points, quadtree.min, quadtree.max);
+
+  Kernel kernel;
+  kernel.load(config.boundary.get(), domain_points, config.pde,
+              solution_dimension,
+              domain_dimension);
+
+  if (is_time_trial) {
+    double elapsed = 0;
+    for (int i = 0; i < TIMING_ITERATIONS; i++) {
+      double start = omp_get_wtime();
+      ie_solver_tools.skeletonize(kernel, &quadtree);
+      double end = omp_get_wtime();
+      elapsed += (end - start);
+      quadtree.reset();
+    }
+    skel_times->push_back(elapsed / TIMING_ITERATIONS);
+    return -1;
+  }
+
+  ie_Mat f = config.boundary->boundary_values;
+  ie_Mat phi(config.num_boundary_points * solution_dimension, 1);
+  ie_solver_tools.skeletonize(kernel, &quadtree);
+  ie_solver_tools.solve(kernel, quadtree, &phi, f);
+
+  // This will be done as a sparse mat vec in the future, for now we do
+  // dense matvec
+  ie_Mat domain(TEST_SIZE * TEST_SIZE * solution_dimension, 1);
+
+  // QuadTree boundary_to_domain;
+  // boundary_to_domain.initialize_tree(config.boundary.get(),
+  //                                    domain_points, solution_dimension,
+  //                                    domain_dimension);
+  // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
+  //   double start = omp_get_wtime();
+  // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, phi, &domain);
+
+  ie_Mat K_domain(TEST_SIZE * TEST_SIZE * solution_dimension,
+                  config.num_boundary_points * solution_dimension);
+  Initialization init;
+  init.InitializeDomainKernel(&K_domain,
+                              domain_points, TEST_SIZE, &kernel,
+                              solution_dimension);
+  ie_Mat::gemv(NORMAL, 1., K_domain, phi, 0., &domain);
+  if (!config.testing) {
+    write_solution_to_file("output/data/ie_solver_solution.txt", domain,
+                           domain_points, solution_dimension);
+  }
+  double error;
+  switch (config.pde) {
+    case ie_solver_config::LAPLACE:
+      error = laplace_error(domain, config.id_tol, domain_points,
+                            config.boundary.get());
+      break;
+    case ie_solver_config::STOKES:
+      error = stokes_error(domain, config.id_tol, domain_points,
+                           config.boundary.get());
+      break;
+  }
+  return error;
+}
 
 
 // TODO(John) put write functions in another file or something
@@ -128,9 +199,9 @@ void get_domain_points(std::vector<double>* points, double min, double max) {
 }
 
 
-void check_laplace_solution(const ie_Mat & domain, double id_tol,
-                            const std::vector<double>& domain_points,
-                            Boundary * boundary) {
+double laplace_error(const ie_Mat & domain, double id_tol,
+                     const std::vector<double>& domain_points,
+                     Boundary * boundary) {
   double max = 0;
   double diff_norm = 0;
   double avg = 0;
@@ -150,6 +221,15 @@ void check_laplace_solution(const ie_Mat & domain, double id_tol,
       case Boundary::BoundaryCondition::ALL_ONES:
         potential = 1.0;
         break;
+      case Boundary::BoundaryCondition::BUMP_FUNCTION: {
+        std::cout << "Error: check Laplace called on Bump BC;"
+                  << " no analytic solution known to check against."
+                  << std::endl;
+        break;
+      }
+      case Boundary::BoundaryCondition::STOKES:
+        std::cout << "Error: check Laplace called on Stokes BC." << std::endl;
+        break;
     }
     if (std::isnan(domain.get(i / 2, 0))) {
       continue;
@@ -162,17 +242,16 @@ void check_laplace_solution(const ie_Mat & domain, double id_tol,
   }
   avg /= domain_points.size();
   diff_norm = sqrt(diff_norm) / sqrt(norm_of_true);
-  std::cout << "Avg relative error: " << avg << "\nrelative error of solution: "
-            << "by 2norm " << diff_norm << "\nmax relative error: " << max
-            << std::endl;
+  return diff_norm;
 }
 
 
-void check_stokes_solution(const ie_Mat & domain, double id_tol,
-                           const std::vector<double>& domain_points,
-                           Boundary * boundary) {
+double stokes_error(const ie_Mat & domain, double id_tol,
+                    const std::vector<double>& domain_points,
+                    Boundary * boundary) {
   if (boundary->boundary_shape != Boundary::CIRCLE) {
-    return;
+    std::cout << "Error: cannot check stokes error on non-circle" << std::endl;
+    return -1;
   }
   double truth_size = 0;
   double total_diff = 0;
@@ -194,11 +273,10 @@ void check_stokes_solution(const ie_Mat & domain, double id_tol,
                   domain.get(i + 1, 0), 2);
     total_diff += diff;
   }
-  std::cout << "Relative error " << sqrt(total_diff) / sqrt(
-              truth_size) << std::endl;
+  return sqrt(total_diff) / sqrt(truth_size);
 }
 
-
+// TODO(John) this is missing the input of a Stokes Boundary Condition
 int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
   std::string usage = "\n\tusage: ./ie-solver "
                       "-pde {LAPLACE|STOKES} "

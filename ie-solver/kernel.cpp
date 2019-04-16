@@ -7,14 +7,16 @@
 namespace ie_solver {
 
 ie_Mat Kernel::get(const Dof& tgt, const Dof& src) const {
+  ie_Mat tensor;
   switch (pde) {
     case ie_solver_config::Pde::LAPLACE:
-      return laplace_kernel(tgt, src);
+      tensor = laplace_kernel(tgt, src);
       break;
     case ie_solver_config::Pde::STOKES:
-      return stokes_kernel(tgt, src);
+      tensor = stokes_kernel(tgt, src);
       break;
   }
+  return tensor;
 }
 
 
