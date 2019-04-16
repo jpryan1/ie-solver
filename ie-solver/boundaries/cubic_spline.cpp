@@ -161,7 +161,7 @@ void CubicSpline::interpolate() {
     }
   }
 
-  for (int i = 0; i < curvatures.size(); i++) {
+  for (unsigned int i = 0; i < curvatures.size(); i++) {
     int before = (i + curvatures.size() - 1) % curvatures.size();
     int after = (i + 1) % curvatures.size();
     double dist1 = sqrt(pow(points[2 * i] - points[2 * before], 2)

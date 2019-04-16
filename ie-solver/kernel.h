@@ -5,7 +5,7 @@
 #include <vector>
 #include "ie-solver/boundaries/boundary.h"
 #include "ie-solver/ie_mat.h"
-#include "ie-solver/helpers.h"
+#include "ie-solver/ie_solver_config.h"
 
 namespace ie_solver {
 

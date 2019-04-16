@@ -3,7 +3,8 @@ package(default_visibility = ["//visibility:public"])
 cc_binary(
 	name = "ie-solver",
 	srcs = ["ie-solver.cpp"],
-	deps = [":ie_mat",
+	deps = [
+			":ie_mat",
 			":initialization",
 			"//ie-solver/tools:ie_solver_tools",
 			":quadtree",
@@ -38,9 +39,13 @@ cc_binary(
 
 cc_library(
 	name = "helpers",
-	hdrs = ["helpers.h"],
+	hdrs = ["helpers.h",
+					"ie_solver_config.h",],
 	srcs = ["helpers.cpp"],
 	deps = [":ie_mat",
+			":initialization",
+			"//ie-solver/tools:ie_solver_tools",
+			":quadtree",
 			":log",
 			"//ie-solver/boundaries"],
 )
@@ -73,10 +78,10 @@ cc_library(
 
 cc_library(
 	name = "kernel",
-	hdrs = ["kernel.h"],
+	hdrs = ["kernel.h",
+					"ie_solver_config.h",],
 	srcs = ["kernel.cpp"],
 	deps = [":ie_mat",
-					":helpers",
 					"//ie-solver/boundaries"]
 )
 
@@ -99,4 +104,24 @@ cc_library(
 	srcs = ["quadtree.cpp"],
 	deps = [":ie_mat",
 			"//ie-solver/boundaries"]
+)
+
+cc_test(
+    name = "ie-solver-test",
+    srcs = ["ie-solver-test.cpp"],
+    deps = [
+    	":ie-solver",
+			":ie_mat",
+			":initialization",
+			"//ie-solver/tools:ie_solver_tools",
+			":quadtree",
+			"//ie-solver/boundaries",
+			":helpers",
+      "@gtest//:gtest",
+      "@gtest//:gtest_main" 
+    ],
+  	linkopts = ["-llapacke",
+			"-llapack",
+			"-lblas",
+			"-lgomp"]
 )

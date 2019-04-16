@@ -1,5 +1,6 @@
 // Copyright 2019 John Paul Ryan
 #include <cmath>
+#include <iostream>
 #include "ie-solver/boundaries/circle.h"
 #include "ie-solver/log.h"
 

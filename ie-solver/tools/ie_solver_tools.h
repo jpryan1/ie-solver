@@ -8,6 +8,9 @@
 #include "ie-solver/kernel.h"
 
 #define MIN_DOFS_TO_COMPRESS 16
+#define NUM_PROXY_POINTS 128
+#define NODE_CAP INFINITY
+#define LEVEL_CAP INFINITY
 
 namespace ie_solver {
 
@@ -18,6 +21,7 @@ class IeSolverTools {
   double id_tol;
   bool strong_admissibility;
   int solution_dimension, domain_dimension;
+
   IeSolverTools() {}
   IeSolverTools(double id_tol, bool strong_admissibility,
                 int solution_dimension, int domain_dimension);

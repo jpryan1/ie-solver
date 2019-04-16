@@ -76,23 +76,23 @@ void QuadTree::initialize_tree(Boundary* boundary_,
     QuadTreeLevel* current_level = levels[level];
     for (unsigned int k = 0; k < current_level->nodes.size(); k++) {
       QuadTreeNode* node_a = current_level->nodes[k];
-      if (level > no_proxy_level && node_a->src_dof_lists.original_box.size()
-          > 0.25 * solution_dimension *
-          (boundary->points.size() / domain_dimension)) {
-        no_proxy_level = level;
-        std::cout << "No proxy level "
-                  << no_proxy_level << " threshold " <<
-                  0.25 * solution_dimension *
-                  (boundary->points.size() /
-                   domain_dimension)  << " total " <<
-                  node_a->src_dof_lists.original_box.size()
-                  << std::endl;
-      } else {
-        std::cout << level << " " << no_proxy_level << std::endl;
-        std::cout << node_a->src_dof_lists.original_box.size()  << " > " << 0.25 *
-                  solution_dimension * (boundary->points.size() /
-                                        domain_dimension) << std::endl;
-      }
+      // if (level > no_proxy_level && node_a->src_dof_lists.original_box.size()
+      //     > 0.25 * solution_dimension *
+      //     (boundary->points.size() / domain_dimension)) {
+      //   no_proxy_level = level;
+      //   std::cout << "No proxy level "
+      //             << no_proxy_level << " threshold " <<
+      //             0.25 * solution_dimension *
+      //             (boundary->points.size() /
+      //              domain_dimension)  << " total " <<
+      //             node_a->src_dof_lists.original_box.size()
+      //             << std::endl;
+      // } else {
+      //   std::cout << level << " " << no_proxy_level << std::endl;
+      //   std::cout << node_a->src_dof_lists.original_box.size()  << " > " << 0.25 *
+      //             solution_dimension * (boundary->points.size() /
+      //                                   domain_dimension) << std::endl;
+      // }
       // first check against all nodes on this level
       for (unsigned int l = k + 1; l < current_level->nodes.size(); l++) {
         QuadTreeNode* node_b = current_level->nodes[l];
@@ -427,17 +427,17 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   std::vector<double> new_points = perturbed_boundary.points;
   // now create mapping of new_points to their point index in the new vec
   std::unordered_map<pair, int, boost::hash<pair>> point_to_new_index;
-  for (int i = 0; i < new_points.size(); i += 2) {
+  for (unsigned int i = 0; i < new_points.size(); i += 2) {
     pair new_point(new_points[i], new_points[i + 1]);
     point_to_new_index[new_point] = i / 2;
   }
   std::vector<bool> found_in_old(new_points.size() / 2);
-  for (int i = 0; i < found_in_old.size(); i++) {
+  for (unsigned int i = 0; i < found_in_old.size(); i++) {
     found_in_old[i] = false;
   }
   // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
-  for (int i = 0; i < old_points.size(); i += 2) {
+  for (unsigned int i = 0; i < old_points.size(); i += 2) {
     pair old_point(old_points[i], old_points[i + 1]);
     // Is this point also in the new points vec?
     std::unordered_map<pair, int, boost::hash<pair>>::const_iterator element =
@@ -450,7 +450,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       deletions.push_back(i / 2);
     }
   }
-  for (int i = 0; i < found_in_old.size(); i++) {
+  for (unsigned int i = 0; i < found_in_old.size(); i++) {
     if (!found_in_old[i]) {
       additions.push_back(i);
     }
@@ -516,7 +516,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       if (!node->is_leaf) {
         continue;
       }
-      for (int i = 0; i < additions.size(); i++) {
+      for (unsigned int i = 0; i < additions.size(); i++) {
         double difx = new_points[2 * additions[i]] - node->corners[0];
         double dify = new_points[2 * additions[i] + 1] - node->corners[1];
         if (difx < node->side_length && dify < node->side_length && difx > 0
@@ -534,7 +534,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       if (!node->is_leaf) {
         continue;
       }
-      for (int i = 0; i < deletions.size(); i++) {
+      for (unsigned int i = 0; i < deletions.size(); i++) {
         double difx = old_points[2 * deletions[i]] - node->corners[0];
         double dify = old_points[2 * deletions[i] + 1] - node->corners[1];
         if (difx < node->side_length && dify < node->side_length && difx > 0
