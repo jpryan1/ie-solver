@@ -20,7 +20,6 @@ int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
 
   std::vector<unsigned int> p;
   unsigned int numskel = pxy.id(&p, &node->T, id_tol);
-
   if (numskel == 0) return 0;
   set_rs_ranges(&node->src_dof_lists, p, node->T.height(),
                 node->T.width());

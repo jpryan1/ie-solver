@@ -84,7 +84,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
       //             << no_proxy_level << " threshold " <<
       //             0.25 * solution_dimension *
       //             (boundary->points.size() /
-      //              domain_dimension)  << " total " <<
+      //               domain_dimension)  << " total " <<
       //             node_a->src_dof_lists.original_box.size()
       //             << std::endl;
       // } else {

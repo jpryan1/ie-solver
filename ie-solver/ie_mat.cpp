@@ -239,7 +239,6 @@ void ie_Mat::rand_vec(unsigned int dofs) {
 void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
   // X^-1K = U
   // aka, XU = K
-
   // TODO(John) insert asserts for these functions
   ie_Mat X_copy = *this;
   *U = K;

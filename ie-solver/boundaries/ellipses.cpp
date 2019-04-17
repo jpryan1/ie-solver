@@ -207,8 +207,13 @@ void Ellipses::draw_ellipse(int bc_index, int num_points, double c_x,
         boundary_values.set(bc_index++, 0, potential);
         break;
       } case BoundaryCondition::STOKES:
-        boundary_values.set(2 * bc_index, 0, -normals[2 * i + 1]);
-        boundary_values.set(2 * bc_index + 1, 0, normals[2 * i]);
+        if (norm > 0.3) {
+          boundary_values.set(2 * bc_index, 0, -normals[2 * i + 1]);
+          boundary_values.set(2 * bc_index + 1, 0, normals[2 * i]);
+        } else {
+          boundary_values.set(2 * bc_index, 0, -normals[2 * i + 1]);
+          boundary_values.set(2 * bc_index + 1, 0, normals[2 * i]);
+        }
         bc_index++;
         break;
     }
@@ -304,7 +309,7 @@ void Ellipses::initialize(int N, BoundaryCondition bc) {
 bool Ellipses::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
-  double eps = 1e-2;
+  double eps = 1e-1;
 
   double dist = sqrt(pow(v[0] - 0.5, 2) + pow(v[1] - 0.5, 2));
   if (dist - eps < 0.15) {

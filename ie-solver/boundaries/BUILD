@@ -3,6 +3,7 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
 	name = "boundaries",
 	hdrs = ["circle.h",
+			"annulus.h",
 			"rounded_square.h",
 			"rounded_square_with_bump.h",
 			"squiggly.h",
@@ -10,6 +11,7 @@ cc_library(
 			"cubic_spline.h",
 			"boundary.h"],
 	srcs = ["circle.cpp",
+			"annulus.cpp",
 			"rounded_square.cpp",
 			"rounded_square_with_bump.cpp",
 			"squiggly.cpp",

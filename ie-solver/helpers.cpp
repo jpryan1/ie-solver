@@ -16,7 +16,44 @@
 
 namespace ie_solver {
 
-double boundary_integral_solve(const ie_solver_config& config,
+void initialize_U_mat(const std::vector<double>& tgt_points, ie_Mat* U) {
+  for (unsigned int i = 0; i < tgt_points.size(); i += 2) {
+    Vec2 r = Vec2(tgt_points[i] - 0.5, tgt_points[i + 1] - 0.5);
+    double scale = 1.0 / (4 * M_PI);
+    // TODO(John) implement tensor product to improve readability?
+    U->set(i, 0, scale *
+           (log(1 / r.norm()) +
+            (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
+    U->set(i + 1, 0, scale *
+           (log(1 / r.norm()) +
+            (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
+    U->set(i, 1, scale *
+           (log(1 / r.norm()) +
+            (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
+    U->set(i + 1, 1, scale *
+           (log(1 / r.norm()) +
+            (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
+
+    U->set(i, 2, r.a[1] * (scale / pow(r.norm(), 2)));
+    U->set(i + 1, 2, -r.a[0] * (scale / pow(r.norm(), 2)));
+  }
+}
+
+
+void initialize_Psi_mat(Boundary* boundary, ie_Mat* Psi) {
+  for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
+    Vec2 x = Vec2(boundary->points[i], boundary->points[i + 1]);
+    if ((x - Vec2(0.5, 0.5)).norm() < 0.1) {
+      Psi->set(0, i, boundary->weights[i / 2]);
+      Psi->set(1, i + 1, boundary->weights[i / 2]);
+      Psi->set(2, i, boundary->weights[i / 2]*x.a[1]);
+      Psi->set(2, i + 1, -boundary->weights[i / 2]*x.a[0]);
+    }
+  }
+}
+
+
+double boundary_integral_solve(const ie_solver_config & config,
                                std::vector<double>* skel_times) {
   int domain_dimension = 2;
   int solution_dimension = 1;
@@ -67,11 +104,107 @@ double boundary_integral_solve(const ie_solver_config& config,
     skel_times->push_back(elapsed / TIMING_ITERATIONS);
     return -1;
   }
+  ie_solver_tools.skeletonize(kernel, &quadtree);
 
   ie_Mat f = config.boundary->boundary_values;
-  ie_Mat phi(config.num_boundary_points * solution_dimension, 1);
-  ie_solver_tools.skeletonize(kernel, &quadtree);
-  ie_solver_tools.solve(kernel, quadtree, &phi, f);
+  ie_Mat mu(config.num_boundary_points * solution_dimension, 1);
+
+
+
+  ie_Mat alpha(3, 1);
+  ie_Mat U(config.num_boundary_points * solution_dimension, 3);
+  ie_Mat Psi(3, config.num_boundary_points * solution_dimension);
+  ie_Mat ident(3, 3);
+  ident.set(0, 0, 1);
+  ident.set(1, 1, 1);
+  ident.set(2, 2, 1);
+  initialize_U_mat(config.boundary->points, &U);
+  initialize_Psi_mat(config.boundary.get(), &Psi);
+
+  // std::vector<unsigned int> alldofs;
+  // for (int i = 0; i < mu.height(); i++) {
+  //   alldofs.push_back(i);
+  // }
+  // ie_Mat whole = kernel(alldofs, alldofs);
+  // ie_Mat HUGE(alldofs.size() + 3, alldofs.size() + 3);
+  // HUGE.set_submatrix(alldofs, alldofs, whole);
+  // std::vector<unsigned int> others;
+  // others.push_back(alldofs.size());
+  // others.push_back(alldofs.size() + 1);
+  // others.push_back(alldofs.size() + 2);
+  // HUGE.set_submatrix(others, alldofs, Psi);
+  // HUGE.set_submatrix(alldofs, others, U);
+  // ident *= -1;
+  // HUGE.set_submatrix(others, others, ident);
+  // ident *= -1;
+  // std::cout << "cond num at start = " << whole.condition_number() << " " <<
+  //           HUGE.condition_number() << std::endl;
+
+  // ie_Mat big_vec(alldofs.size() + 3,1);
+  // std::vector<unsigned int> ZERO;
+  // ZERO.push_back(0);
+  // big_vec.set_submatrix(alldofs, ZERO, f);
+  // ie_Mat phi(alldofs.size(), 1);
+  // HUGE.left_multiply_inverse(big_vec, &phi);
+  // mu = phi(alldofs, ZERO);
+  // alpha = phi(others, ZERO);
+
+  ie_Mat U1, U2, U3;
+  std::vector<unsigned int> rows, cols;
+  for (unsigned int i = 0; i < U.height(); i++) {
+    rows.push_back(i);
+  }
+  cols.push_back(0);
+  U1 = U(rows, cols);
+  cols.clear();
+  cols.push_back(1);
+  U2 = U(rows, cols);
+  cols.clear();
+  cols.push_back(2);
+  U3 = U(rows, cols);
+
+  ie_Mat Dinv_U1(config.num_boundary_points * solution_dimension, 1);
+  ie_Mat Dinv_U2(config.num_boundary_points * solution_dimension, 1);
+  ie_Mat Dinv_U3(config.num_boundary_points * solution_dimension, 1);
+  ie_solver_tools.solve(kernel, quadtree, &Dinv_U1, U1);
+  ie_solver_tools.solve(kernel, quadtree, &Dinv_U2, U2);
+  ie_solver_tools.solve(kernel, quadtree, &Dinv_U3, U3);
+
+  ie_Mat Dinv_U(config.num_boundary_points * solution_dimension, 3);
+  cols.clear();
+  cols.push_back(0);
+  Dinv_U.set_submatrix(rows, cols, Dinv_U1);
+  cols.clear();
+  cols.push_back(1);
+  Dinv_U.set_submatrix(rows, cols, Dinv_U2);
+  cols.clear();
+  cols.push_back(2);
+  Dinv_U.set_submatrix(rows, cols, Dinv_U3);
+
+  ie_Mat Psi_Dinv_U(3, 3);
+  ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
+
+  ie_Mat S = ident;
+  S += Psi_Dinv_U;
+  S *= -1.;
+
+  ie_Mat Dinv_u(config.num_boundary_points * solution_dimension, 1);
+  ie_solver_tools.solve(kernel, quadtree, &Dinv_u, f);
+
+  ie_Mat Psi_Dinv_u(3, 1);
+  ie_Mat::gemv(NORMAL, 1., Psi, Dinv_u, 0., &Psi_Dinv_u);
+
+  ie_Mat Sinv_Psi_Dinv_u(3, 1);
+
+  S.left_multiply_inverse(Psi_Dinv_u, &Sinv_Psi_Dinv_u);
+  alpha = Sinv_Psi_Dinv_u;
+  alpha *= -1.;
+
+  ie_Mat right_vec(config.num_boundary_points * solution_dimension, 1);
+  ie_Mat::gemv(NORMAL, 1., U, Sinv_Psi_Dinv_u, 0., &right_vec);
+
+  right_vec += f;
+  ie_solver_tools.solve(kernel, quadtree, &mu, right_vec);
 
   // This will be done as a sparse mat vec in the future, for now we do
   // dense matvec
@@ -79,11 +212,10 @@ double boundary_integral_solve(const ie_solver_config& config,
 
   // QuadTree boundary_to_domain;
   // boundary_to_domain.initialize_tree(config.boundary.get(),
-  //                                    domain_points, solution_dimension,
-  //                                    domain_dimension);
+  //                                     domain_points, solution_dimension,
+  //                                     domain_dimension);
   // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
-  //   double start = omp_get_wtime();
-  // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, phi, &domain);
+  // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, mu, &domain);
 
   ie_Mat K_domain(TEST_SIZE * TEST_SIZE * solution_dimension,
                   config.num_boundary_points * solution_dimension);
@@ -91,11 +223,28 @@ double boundary_integral_solve(const ie_solver_config& config,
   init.InitializeDomainKernel(&K_domain,
                               domain_points, TEST_SIZE, &kernel,
                               solution_dimension);
-  ie_Mat::gemv(NORMAL, 1., K_domain, phi, 0., &domain);
-  if (!config.testing) {
-    write_solution_to_file("output/data/ie_solver_solution.txt", domain,
-                           domain_points, solution_dimension);
+  ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., &domain);
+
+  ie_Mat U_forward(domain.height(), 3);
+  initialize_U_mat(domain_points, &U_forward);
+  for (int i = 0; i < domain.height(); i += 2) {
+    Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
+    if (!config.boundary->is_in_domain(point)) {
+      U_forward.set(i, 0, 0);
+      U_forward.set(i + 1, 0, 0);
+      U_forward.set(i, 1, 0);
+      U_forward.set(i + 1, 1, 0);
+      U_forward.set(i, 2, 0);
+      U_forward.set(i + 1, 2, 0);
+    }
   }
+
+  ie_Mat U_forward_alpha(domain.height(), 1);
+  ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
+
+  domain += U_forward_alpha;
+
+
   double error;
   switch (config.pde) {
     case ie_solver_config::LAPLACE:
@@ -106,6 +255,11 @@ double boundary_integral_solve(const ie_solver_config& config,
       error = stokes_error(domain, config.id_tol, domain_points,
                            config.boundary.get());
       break;
+  }
+
+  if (!config.testing) {
+    write_solution_to_file("output/data/ie_solver_solution.txt", domain,
+                           domain_points, solution_dimension);
   }
   return error;
 }
@@ -132,7 +286,7 @@ void write_potential_to_file() {
 
 
 void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
-                          double* scale_eps,
+                          double * scale_eps,
                           const std::vector<double>& eps_times) {
   std::ofstream n_output, e_output;
   n_output.open("output/data/ie_solver_n_scaling.txt");
@@ -158,7 +312,7 @@ void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
 }
 
 
-void write_solution_to_file(const std::string& filename, const ie_Mat& domain,
+void write_solution_to_file(const std::string & filename, const ie_Mat & domain,
                             const std::vector<double>&
                             domain_points, int solution_dimension) {
   assert(domain.height() > 0 && domain.width() == 1);
@@ -246,7 +400,7 @@ double laplace_error(const ie_Mat & domain, double id_tol,
 }
 
 
-double stokes_error(const ie_Mat & domain, double id_tol,
+double stokes_error(ie_Mat & domain_solution, double id_tol,
                     const std::vector<double>& domain_points,
                     Boundary * boundary) {
   if (boundary->boundary_shape != Boundary::CIRCLE) {
@@ -263,17 +417,33 @@ double stokes_error(const ie_Mat & domain, double id_tol,
       continue;
     }
     Vec2 center(0.5, 0.5);
+
+
+
     Vec2 r = x - center;
-    double temp = r.a[0];
-    r.a[0] = -r.a[1];
-    r.a[1] = temp;
-    r = r * 4;
-    truth_size += pow(r.norm(), 2);
-    double diff = pow(r.a[0] - domain.get(i, 0) , 2) + pow(r.a[1] -
-                  domain.get(i + 1, 0), 2);
+    Vec2 sol = Vec2(domain_solution.get(i, 0), domain_solution.get(i + 1, 0));
+
+    Vec2 truth = Vec2(-r.a[1], r.a[0]);
+    truth = truth * (1 / truth.norm());
+    double om1 = -30;
+    double om2 = 4;
+    double r1 = 0.05;
+    double r2 = 0.25;
+    double c1 = (om2 * pow(r2, 2) - om1 * pow(r1, 2)) / (pow(r2, 2) - pow(r1, 2));
+    double c2 = ((om1 - om2) * pow(r2, 2) * pow(r1, 2)) / (pow(r2, 2) - pow(r1, 2));
+
+    double truth_length = c1 * r.norm() + (c2 / r.norm());
+
+    truth = truth * truth_length;
+    domain_solution.set(i, 0, truth.a[0]);
+    domain_solution.set(i + 1, 0, truth.a[1]);
+
+    double diff = (truth - sol).norm();
+    truth_size += fabs(truth_length);
     total_diff += diff;
   }
-  return sqrt(total_diff) / sqrt(truth_size);
+
+  return total_diff / truth_size;
 }
 
 // TODO(John) this is missing the input of a Stokes Boundary Condition
@@ -339,6 +509,8 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
           config->boundary.reset(new Squiggly());
         } else if (!strcmp(argv[i + 1], "ELLIPSES")) {
           config->boundary.reset(new Ellipses());
+        } else if (!strcmp(argv[i + 1], "ANNULUS")) {
+          config->boundary.reset(new Annulus());
         } else if (!strcmp(argv[i + 1], "CUBIC_SPLINE")) {
           config->boundary.reset(new CubicSpline());
         } else {

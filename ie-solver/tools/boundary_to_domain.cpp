@@ -74,7 +74,6 @@ void IeSolverTools::b2dsparse_matvec(const Kernel& K, const QuadTree& tree,
         }
       }
     }
-    std::cout << "Norm: " << add.frob_norm() << std::endl;
 
     // T_tgt inv
     for (int level = level_ + 1; level < lvls; level++) {
@@ -184,7 +183,7 @@ void IeSolverTools::b2dsparse_matvec(const Kernel& K, const QuadTree& tree,
 
 void IeSolverTools::b2dskeletonize(const Kernel& kernel, QuadTree* tree) {
   unsigned int lvls = tree->levels.size();
-  for (unsigned int level = lvls - 1; level > 0; level--) {
+  for (unsigned int level = lvls - 1; level > 4; level--) {
     QuadTreeLevel* current_level = tree->levels[level];
     // First, get all active dofs from children
     for (QuadTreeNode * node : current_level->nodes) {
@@ -243,6 +242,7 @@ int IeSolverTools::b2dinterpolative_decomposition(const Kernel& kernel,
   if (tgt_pxy.width() * tgt_pxy.height() != 0) {
     std::vector<unsigned int> tgt_p;
     unsigned int tgt_numskel = tgt_pxy.id(&tgt_p, &node->tgt_T, id_tol);
+
     if (tgt_numskel == 0) return 0;
     set_rs_ranges(&node->tgt_dof_lists, tgt_p, node->tgt_T.height(),
                   node->tgt_T.width());
@@ -310,6 +310,31 @@ void IeSolverTools::make_tgt_id_mat(const Kernel& kernel, ie_Mat* mat,
   double cntr_y = node->corners[1] + node->side_length / 2.0;
   double radius_ratio = 1.5;
   double r = node->side_length * radius_ratio;
+
+  if(true){//node->level <= tree->no_proxy_level){
+      // No proxy circle
+    std::vector<unsigned int> far;
+    for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
+      if (level_node->id != node->id) {
+        for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
+        far.push_back(matrix_index);
+        }
+      }
+    }
+    
+    *mat = ie_Mat(far.size(),
+                    node->tgt_dof_lists.active_box.size());
+    ie_Mat box_far = kernel.forward_get(node->tgt_dof_lists.active_box, far);
+    for(int i=0; i<box_far.height(); i++){
+      for(int j=0; j<box_far.width(); j++){
+        mat->set(j,i, box_far.get(i,j));
+      }
+    }
+
+    return;
+  }
+
+
 
   // Grab all points inside the proxy circle
   std::vector<unsigned int> inner_circle;
@@ -384,6 +409,27 @@ void IeSolverTools::make_src_id_mat(const Kernel& kernel, ie_Mat* mat,
   double cntr_y = node->corners[1] + node->side_length / 2.0;
   double radius_ratio = 1.5;
   double r = node->side_length * radius_ratio;
+
+if(true){//node->level <= tree->no_proxy_level){
+    // No proxy circle
+    std::vector<unsigned int> far;
+    for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
+      if (level_node->id != node->id) {
+        for (unsigned int matrix_index : level_node->tgt_dof_lists.active_box) {
+        far.push_back(matrix_index);
+        }
+      }
+    }
+    *mat = ie_Mat(far.size(), node->src_dof_lists.active_box.size());
+    ie_Mat far_box = kernel.forward_get(far, node->src_dof_lists.active_box);
+    for(int i=0; i<far_box.height(); i++){
+      for(int j=0; j<far_box.width(); j++){
+        mat->set(i,j, far_box.get(i,j));
+      }
+    }
+    return;
+  }
+ 
 
   // Grab all points inside the proxy circle
   std::vector<unsigned int> inner_circle;
