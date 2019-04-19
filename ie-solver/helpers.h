@@ -30,7 +30,7 @@ void get_domain_points(std::vector<double>* points, double min,
 double laplace_error(const ie_Mat& domain, double id_tol,
                      const std::vector<double>& domain_points,
                      Boundary* boundary);
-double stokes_error(const ie_Mat& domain, double id_tol,
+double stokes_error(const ie_Mat& domain_solution, double id_tol,
                     const std::vector<double>& domain_points,
                     Boundary* boundary);
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config);

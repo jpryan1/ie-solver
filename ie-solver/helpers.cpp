@@ -18,7 +18,6 @@
 #include "ie-solver/boundaries/rounded_square.h"
 #include "ie-solver/boundaries/rounded_square_with_bump.h"
 #include "ie-solver/boundaries/squiggly.h"
-#include "ie-solver/boundaries/ellipses.h"
 #include "ie-solver/boundaries/annulus.h"
 #include "ie-solver/boundaries/cubic_spline.h"
 
@@ -464,7 +463,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
   std::string usage = "\n\tusage: ./ie-solver "
                       "-pde {LAPLACE|STOKES} "
                       "-boundary {CIRCLE|ROUNDED_SQUARE|"
-                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|ELLIPSES|CUBIC_SPLINE "
+                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|CUBIC_SPLINE "
                       "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
                       "BUMP_FUNCTION} "
                       "-N {number of nodes} "
@@ -520,9 +519,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
           config->boundary.reset(new RoundedSquareWithBump());
         } else if (!strcmp(argv[i + 1], "SQUIGGLY")) {
           config->boundary.reset(new Squiggly());
-        } else if (!strcmp(argv[i + 1], "ELLIPSES")) {
-          config->boundary.reset(new Ellipses());
-        } else if (!strcmp(argv[i + 1], "ANNULUS")) {
+        }  else if (!strcmp(argv[i + 1], "ANNULUS")) {
           config->boundary.reset(new Annulus());
         } else if (!strcmp(argv[i + 1], "CUBIC_SPLINE")) {
           config->boundary.reset(new CubicSpline());

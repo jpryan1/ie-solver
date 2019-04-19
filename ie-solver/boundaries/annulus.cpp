@@ -7,6 +7,20 @@
 namespace ie_solver {
 
 void Annulus::initialize(int N, BoundaryCondition bc) {
+  //            SHAPE PROTOCOL
+  //
+  // Except in trivial cases, we need to be careful if we want to evenly
+  // distribute discretization points on the boundary, while compartmentalizing
+  // drawing functions. For that purpose, we establish a SCALE_UNIT and require
+  // that all draw functions take some multiple of this unit. For example, if
+  // the ratio of shape A's points to shape B's points should be x/y, then shape
+  // A can have x SCALE_UNIT's and shape B can have y.
+  //
+  //      Annulus
+  // Since we allow the holder of this boundary to change it, we will not
+  // enforce rigid units here, but instead opt to let N define the num of nodes
+  // on the outer boundary, then add nodes to inner boundaries as necessary
+
   boundary_condition = bc;
   points.clear();
   normals.clear();
@@ -15,14 +29,12 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 
   if (holes.size() == 0) {
     Hole hole;
-    hole.center = Vec2(0.35, 0.35);
-    hole.radius = 0.05;
-    holes.push_back(hole);
-    hole.center = Vec2(0.65, 0.65);
+    hole.center = Vec2(0.5, 0.5);
     hole.radius = 0.05;
     holes.push_back(hole);
   }
-  int hole_dofs = 300;
+
+  int hole_dofs = N / 5;;
   int num_points = N + hole_dofs * holes.size();
 
   if (bc == BoundaryCondition::STOKES) {
@@ -47,10 +59,10 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
     normals.push_back(sin(ang));
     curvatures.push_back(4);
     weights.push_back(0.5 * M_PI / N);
-
-    double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
+    double potential;
     switch (boundary_condition) {
       case BoundaryCondition::SINGLE_ELECTRON:
+        potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
         boundary_values.set(i, 0, potential);
         break;
       case BoundaryCondition::ALL_ONES:
@@ -82,12 +94,13 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
       points.push_back(y);
       normals.push_back(-cos(ang));
       normals.push_back(-sin(ang));
-      curvatures.push_back(-1.0 / hole.radius); // 1/r, r=0.05
+      curvatures.push_back(-1.0 / hole.radius);  // 1/r
       weights.push_back((2 * hole.radius * M_PI) / (end_idx - start_idx));
 
-      double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
+      double potential;
       switch (boundary_condition) {
         case BoundaryCondition::SINGLE_ELECTRON:
+          potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
           boundary_values.set(i, 0, potential);
           break;
         case BoundaryCondition::ALL_ONES:
@@ -104,7 +117,6 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
         case BoundaryCondition::STOKES:
           boundary_values.set(2 * i , 0, -1.5 * normals[2 * i  + 1]);
           boundary_values.set(2 * i  + 1, 0, 1.5 * normals[2 * i ]);
-
           break;
       }
     }

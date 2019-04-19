@@ -37,9 +37,10 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
     if (i != 0) {
       weights.push_back(weight);
     }
-    double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
+    double potential;
     switch (boundary_condition) {
       case BoundaryCondition::SINGLE_ELECTRON:
+        potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
         boundary_values.set(bc_index++, 0, potential);
         break;
       case BoundaryCondition::ALL_ONES:
@@ -137,9 +138,10 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
     if (i != 0) {
       weights.push_back(weight);
     }
-    double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
+    double potential;
     switch (boundary_condition) {
       case BoundaryCondition::SINGLE_ELECTRON:
+        potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
         boundary_values.set(bc_index++, 0, potential);
         break;
       case BoundaryCondition::ALL_ONES:

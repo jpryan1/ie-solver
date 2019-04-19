@@ -121,10 +121,11 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
   for (unsigned int i = 0; i < points.size(); i += 2) {
     points[i] = (1.05 + points[i]) * (0.9 / (3 * M_PI + 2.05));
     points[i + 1] = (1.05 + points[i + 1]) * (0.9 / (3 * M_PI + 2.05));
-    double potential = log(sqrt(pow(points[i] + 2, 2) +
-                                pow(points[i + 1] + 2, 2))) / (2 * M_PI);
+    double potential;
     switch (boundary_condition) {
       case BoundaryCondition::SINGLE_ELECTRON:
+        potential = log(sqrt(pow(points[i] + 2, 2) +
+                             pow(points[i + 1] + 2, 2))) / (2 * M_PI);
         boundary_values.set(i / 2, 0, potential);
         break;
       case BoundaryCondition::ALL_ONES:
