@@ -3,26 +3,16 @@
 #define IE_SOLVER_HELPERS_H_
 
 #include <vector>
-#include <memory>
 #include <string>
-#include <fstream>
-#include "ie-solver/ie_mat.h"
 #include "ie-solver/ie_solver_config.h"
 #include "ie-solver/boundaries/boundary.h"
-#include "ie-solver/boundaries/circle.h"
-#include "ie-solver/boundaries/rounded_square.h"
-#include "ie-solver/boundaries/rounded_square_with_bump.h"
-#include "ie-solver/boundaries/squiggly.h"
-#include "ie-solver/boundaries/ellipses.h"
-#include "ie-solver/boundaries/annulus.h"
-#include "ie-solver/boundaries/cubic_spline.h"
 
-#define TEST_SIZE 30
+#define TEST_SIZE 20
 #define TIMING_ITERATIONS 5
 
 namespace ie_solver {
 
-double boundary_integral_solve(const ie_solver_config& config,
+double boundary_integral_solve(ie_solver_config& config,
                                std::vector<double>* skel_times = nullptr);
 
 // void get_circle_stokes_solution(double min, double max, ie_Mat& domain,
@@ -40,7 +30,7 @@ void get_domain_points(std::vector<double>* points, double min,
 double laplace_error(const ie_Mat& domain, double id_tol,
                      const std::vector<double>& domain_points,
                      Boundary* boundary);
-double stokes_error( ie_Mat& domain, double id_tol,
+double stokes_error(const ie_Mat& domain, double id_tol,
                     const std::vector<double>& domain_points,
                     Boundary* boundary);
 int parse_input_into_config(int argc, char** argv, ie_solver_config* config);

@@ -125,7 +125,8 @@ ie_Mat Kernel::laplace_kernel(const Dof& tgt, const Dof& src) const {
 // This function stores the DoF data,  and calculates the diagonals of the mat
 void Kernel::load(Boundary* boundary_,
                   const std::vector<double>& domain_points_,
-                  ie_solver_config::Pde pde_, int solution_dimension_, int domain_dimension_) {
+                  ie_solver_config::Pde pde_, int solution_dimension_,
+                  int domain_dimension_) {
   solution_dimension = solution_dimension_;
   domain_points = domain_points_;
   domain_dimension = domain_dimension_;

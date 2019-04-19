@@ -311,23 +311,23 @@ void IeSolverTools::make_tgt_id_mat(const Kernel& kernel, ie_Mat* mat,
   double radius_ratio = 1.5;
   double r = node->side_length * radius_ratio;
 
-  if(true){//node->level <= tree->no_proxy_level){
-      // No proxy circle
+  if (true) {  // node->level <= tree->no_proxy_level){
+    // No proxy circle
     std::vector<unsigned int> far;
     for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
       if (level_node->id != node->id) {
         for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
-        far.push_back(matrix_index);
+          far.push_back(matrix_index);
         }
       }
     }
-    
+
     *mat = ie_Mat(far.size(),
-                    node->tgt_dof_lists.active_box.size());
+                  node->tgt_dof_lists.active_box.size());
     ie_Mat box_far = kernel.forward_get(node->tgt_dof_lists.active_box, far);
-    for(int i=0; i<box_far.height(); i++){
-      for(int j=0; j<box_far.width(); j++){
-        mat->set(j,i, box_far.get(i,j));
+    for (unsigned int i = 0; i < box_far.height(); i++) {
+      for (unsigned int j = 0; j < box_far.width(); j++) {
+        mat->set(j, i, box_far.get(i, j));
       }
     }
 
@@ -410,26 +410,26 @@ void IeSolverTools::make_src_id_mat(const Kernel& kernel, ie_Mat* mat,
   double radius_ratio = 1.5;
   double r = node->side_length * radius_ratio;
 
-if(true){//node->level <= tree->no_proxy_level){
+  if (true) {  // node->level <= tree->no_proxy_level){
     // No proxy circle
     std::vector<unsigned int> far;
     for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
       if (level_node->id != node->id) {
         for (unsigned int matrix_index : level_node->tgt_dof_lists.active_box) {
-        far.push_back(matrix_index);
+          far.push_back(matrix_index);
         }
       }
     }
     *mat = ie_Mat(far.size(), node->src_dof_lists.active_box.size());
     ie_Mat far_box = kernel.forward_get(far, node->src_dof_lists.active_box);
-    for(int i=0; i<far_box.height(); i++){
-      for(int j=0; j<far_box.width(); j++){
-        mat->set(i,j, far_box.get(i,j));
+    for (unsigned int i = 0; i < far_box.height(); i++) {
+      for (unsigned int j = 0; j < far_box.width(); j++) {
+        mat->set(i, j, far_box.get(i, j));
       }
     }
     return;
   }
- 
+
 
   // Grab all points inside the proxy circle
   std::vector<unsigned int> inner_circle;

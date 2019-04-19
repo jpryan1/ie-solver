@@ -1,5 +1,4 @@
 // Copyright 2019 John Paul Ryan
-
 #include <string.h>
 #include <lapacke.h>
 #include <omp.h>
@@ -133,6 +132,20 @@ void ie_Mat::transpose_into(ie_Mat* transpose) const {
     for (unsigned int j = 0; j < width_; j++) {
       transpose->set(j, i, get(i, j));
     }
+  }
+}
+
+
+void ie_Mat::eye(unsigned int n) {
+  if (width_ != n || height_ != n || lda_ != n) {
+    if (mat) delete[] mat;
+    lda_    = n;
+    height_ = n;
+    width_  = n;
+    mat     = new double[height_ * width_];
+  }
+  for (unsigned int i = 0; i < n; i++) {
+    set(i, i, 1.0);
   }
 }
 

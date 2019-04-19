@@ -89,7 +89,8 @@ void QuadTree::initialize_tree(Boundary* boundary_,
       //             << std::endl;
       // } else {
       //   std::cout << level << " " << no_proxy_level << std::endl;
-      //   std::cout << node_a->src_dof_lists.original_box.size()  << " > " << 0.25 *
+      //   std::cout << node_a->src_dof_lists.original_box.size()  <<
+      //  " > " << 0.25 *
       //             solution_dimension * (boundary->points.size() /
       //                                   domain_dimension) << std::endl;
       // }
@@ -574,7 +575,9 @@ void QuadTree::reset(Boundary * boundary_) {
     if (level) {
       delete level;
     }
-  } levels.clear(); QuadTreeNode::id_count = 0;
+  }
+  levels.clear();
+  QuadTreeNode::id_count = 0;
   initialize_tree(boundary_, domain_points, solution_dimension,
                   domain_dimension);
 }

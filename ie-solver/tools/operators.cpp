@@ -8,7 +8,7 @@ namespace ie_solver {
 void IeSolverTools::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
                                        const std::vector<unsigned int>& a,
                                        const std::vector<unsigned int>& b,
-                                       bool transpose = false) {
+                                       bool transpose = false) const{
   if (a.size()*b.size() == 0) return;
   if (transpose) {
     assert(mat.height() == a.size());
@@ -16,52 +16,58 @@ void IeSolverTools::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
     assert(mat.width() == a.size());
   }
   // This vector is just used for indexing an Vector
-  std::vector<unsigned int> ZERO_VECTOR;
-  ZERO_VECTOR.push_back(0);
-  ie_Mat temp = (*vec)(a, ZERO_VECTOR);
-  ie_Mat product(b.size(), 1);
+  std::vector<unsigned int> COL_RANGE;
+  for (int i = 0; i < vec->width(); i++) {
+    COL_RANGE.push_back(i);
+  }
+  ie_Mat temp = (*vec)(a, COL_RANGE);
+  ie_Mat product(b.size(), COL_RANGE.size());
 
   if (transpose) {
-    ie_Mat::gemv(TRANSPOSE, 1., mat, temp, 0., &product);
+    ie_Mat::gemm(TRANSPOSE, NORMAL, 1., mat, temp, 0., &product);
   } else {
-    ie_Mat::gemv(NORMAL, 1., mat, temp, 0., &product);
+    ie_Mat::gemm(NORMAL,  NORMAL, 1., mat, temp, 0., &product);
   }
-  product += (*vec)(b, ZERO_VECTOR);
-  vec->set_submatrix(b, ZERO_VECTOR, product);
+  product += (*vec)(b, COL_RANGE);
+  vec->set_submatrix(b, COL_RANGE, product);
 }
 
 
 // Sets vec(range) = mat * vec(range)
 void IeSolverTools::apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
-                                      const std::vector<unsigned int>& range) {
+                                      const std::vector<unsigned int>& range) const{
   if (range.size() == 0) return;
-  std::vector<unsigned int> ZERO_VECTOR;
-  ZERO_VECTOR.push_back(0);
-  ie_Mat temp = (*vec)(range, ZERO_VECTOR);
+  std::vector<unsigned int> COL_RANGE;
+  for (int i = 0; i < vec->width(); i++) {
+    COL_RANGE.push_back(i);
+  }
+  ie_Mat temp = (*vec)(range, COL_RANGE);
   ie_Mat product(range.size(), 1);
-  ie_Mat::gemv(NORMAL, 1., mat, temp, 0., &product);
-  vec->set_submatrix(range, ZERO_VECTOR, product);
+  ie_Mat::gemm(NORMAL, NORMAL, 1., mat, temp, 0., &product);
+  vec->set_submatrix(range, COL_RANGE, product);
 }
 
 
 void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
-    const std::vector<unsigned int>& range) {
+    const std::vector<unsigned int>& range) const {
   if (range.size() == 0) return;
 
-  std::vector<unsigned int> ZERO_VECTOR;
-  ZERO_VECTOR.push_back(0);
-  ie_Mat temp = (*vec)(range, ZERO_VECTOR);
-  ie_Mat product(range.size(), 1);
+  std::vector<unsigned int> COL_RANGE;
+  for (int i = 0; i < vec->width(); i++) {
+    COL_RANGE.push_back(i);
+  }
+  ie_Mat temp = (*vec)(range, COL_RANGE);
+  ie_Mat product(range.size(), COL_RANGE.size());
 
   mat.left_multiply_inverse(temp, &product);
 
-  vec->set_submatrix(range, ZERO_VECTOR, product);
+  vec->set_submatrix(range, COL_RANGE, product);
 }
 
 
 void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
                                   const ie_Mat& x,
-                                  ie_Mat* b) {
+                                  ie_Mat* b) const {
   *b = x;
   int lvls = tree.levels.size();
   for (int level = lvls - 1; level >= 0; level--) {
@@ -144,7 +150,7 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
 
 
 void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
-                          const ie_Mat& b) {
+                          const ie_Mat& b) const{
   assert(x->height() == b.height());
   int lvls = tree.levels.size();
   *x = b;

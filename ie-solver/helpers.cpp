@@ -1,11 +1,10 @@
 // Copyright 2019 John Paul Ryan
 #include <string.h>
 #include <omp.h>
-#include <string>
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include <algorithm>
+#include <vector>
 #include "ie-solver/ie_mat.h"
 #include "ie-solver/initialization.h"
 #include "ie-solver/tools/ie_solver_tools.h"
@@ -13,47 +12,167 @@
 #include "ie-solver/kernel.h"
 #include "ie-solver/helpers.h"
 #include "ie-solver/log.h"
+#include "ie-solver/ie_solver_config.h"
+#include "ie-solver/boundaries/boundary.h"
+#include "ie-solver/boundaries/circle.h"
+#include "ie-solver/boundaries/rounded_square.h"
+#include "ie-solver/boundaries/rounded_square_with_bump.h"
+#include "ie-solver/boundaries/squiggly.h"
+#include "ie-solver/boundaries/ellipses.h"
+#include "ie-solver/boundaries/annulus.h"
+#include "ie-solver/boundaries/cubic_spline.h"
+
 
 namespace ie_solver {
 
-void initialize_U_mat(const std::vector<double>& tgt_points, ie_Mat* U) {
+void initialize_U_mat(const std::vector<Hole>& holes,
+                      const std::vector<double>& tgt_points, ie_Mat* U) {
   for (unsigned int i = 0; i < tgt_points.size(); i += 2) {
-    Vec2 r = Vec2(tgt_points[i] - 0.5, tgt_points[i + 1] - 0.5);
-    double scale = 1.0 / (4 * M_PI);
-    // TODO(John) implement tensor product to improve readability?
-    U->set(i, 0, scale *
-           (log(1 / r.norm()) +
-            (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
-    U->set(i + 1, 0, scale *
-           (log(1 / r.norm()) +
-            (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
-    U->set(i, 1, scale *
-           (log(1 / r.norm()) +
-            (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
-    U->set(i + 1, 1, scale *
-           (log(1 / r.norm()) +
-            (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
+    for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+      Hole hole = holes[hole_idx];
 
-    U->set(i, 2, r.a[1] * (scale / pow(r.norm(), 2)));
-    U->set(i + 1, 2, -r.a[0] * (scale / pow(r.norm(), 2)));
-  }
-}
+      Vec2 r = Vec2(tgt_points[i], tgt_points[i + 1]) - hole.center;
+      double scale = 1.0 / (4 * M_PI);
+      // TODO(John) implement tensor product to improve readability?
+      U->set(i, 3 * hole_idx, scale *
+             (log(1 / r.norm()) +
+              (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
+      U->set(i + 1, 3 * hole_idx, scale *
+             (log(1 / r.norm()) +
+              (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
+      U->set(i, 3 * hole_idx + 1, scale *
+             (log(1 / r.norm()) +
+              (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
+      U->set(i + 1, 3 * hole_idx + 1, scale *
+             (log(1 / r.norm()) +
+              (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
 
-
-void initialize_Psi_mat(Boundary* boundary, ie_Mat* Psi) {
-  for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
-    Vec2 x = Vec2(boundary->points[i], boundary->points[i + 1]);
-    if ((x - Vec2(0.5, 0.5)).norm() < 0.1) {
-      Psi->set(0, i, boundary->weights[i / 2]);
-      Psi->set(1, i + 1, boundary->weights[i / 2]);
-      Psi->set(2, i, boundary->weights[i / 2]*x.a[1]);
-      Psi->set(2, i + 1, -boundary->weights[i / 2]*x.a[0]);
+      U->set(i, 3 * hole_idx + 2, r.a[1] * (scale / pow(r.norm(), 2)));
+      U->set(i + 1, 3 * hole_idx + 2, -r.a[0] * (scale / pow(r.norm(), 2)));
     }
   }
 }
 
 
-double boundary_integral_solve(const ie_solver_config & config,
+void initialize_Psi_mat(const std::vector<Hole>& holes,
+                        Boundary* boundary, ie_Mat* Psi) {
+  for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
+    Vec2 x = Vec2(boundary->points[i], boundary->points[i + 1]);
+    for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+      Hole hole = holes[hole_idx];
+      if ((x - hole.center).norm() < hole.radius + 1e-8) {
+        Psi->set(3 * hole_idx, i, boundary->weights[i / 2]);
+        Psi->set(3 * hole_idx + 1, i + 1, boundary->weights[i / 2]);
+        Psi->set(3 * hole_idx + 2, i, boundary->weights[i / 2]*x.a[1]);
+        Psi->set(3 * hole_idx + 2, i + 1, -boundary->weights[i / 2]*x.a[0]);
+        break;
+      }
+    }
+  }
+}
+
+
+// TODO clean up this mess
+void schur_solve(const ie_solver_config & config,
+                 const Kernel& kernel, const IeSolverTools& ie_solver_tools,
+                 const QuadTree& quadtree, const std::vector<double>& domain_points,
+                 ie_Mat* solution) {
+  int domain_dimension = 2;
+  int solution_dimension = 1;
+  if (config.pde == ie_solver_config::STOKES) {
+    solution_dimension = 2;
+  }
+  ie_Mat f = config.boundary->boundary_values;
+  ie_Mat mu(config.num_boundary_points * solution_dimension, 1);
+
+  std::vector<Hole> holes = config.boundary->holes;
+  int num_holes = holes.size();
+  ie_Mat alpha(3 * num_holes, 1);
+  ie_Mat U(config.num_boundary_points * solution_dimension, 3 * num_holes);
+  ie_Mat Psi(3 * num_holes, config.num_boundary_points * solution_dimension);
+
+  ie_Mat ident;
+  ident.eye(3 * num_holes);
+
+  initialize_U_mat(holes, config.boundary->points, &U);
+  initialize_Psi_mat(holes, config.boundary.get(), &Psi);
+
+  ie_Mat Dinv_U(config.num_boundary_points * solution_dimension, 3 * num_holes);
+
+  ie_solver_tools.solve(kernel, quadtree, &Dinv_U, U);
+
+  ie_Mat Psi_Dinv_U(3 * num_holes, 3 * num_holes);
+  ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
+
+  ie_Mat S = ident;
+  S += Psi_Dinv_U;
+  S *= -1.;
+
+  ie_Mat Dinv_u(config.num_boundary_points * solution_dimension, 1);
+  ie_solver_tools.solve(kernel, quadtree, &Dinv_u, f);
+
+  ie_Mat Psi_Dinv_u(3 * num_holes, 1);
+  ie_Mat::gemv(NORMAL, 1., Psi, Dinv_u, 0., &Psi_Dinv_u);
+
+  ie_Mat Sinv_Psi_Dinv_u(3 * num_holes, 1);
+
+  S.left_multiply_inverse(Psi_Dinv_u, &Sinv_Psi_Dinv_u);
+  alpha = Sinv_Psi_Dinv_u;
+  alpha *= -1.;
+
+  ie_Mat right_vec(config.num_boundary_points * solution_dimension, 1);
+  ie_Mat::gemv(NORMAL, 1., U, Sinv_Psi_Dinv_u, 0., &right_vec);
+
+  right_vec += f;
+  ie_solver_tools.solve(kernel, quadtree, &mu, right_vec);
+
+  // This will be done as a sparse mat vec in the future, for now we do
+  // dense matvec
+
+  // QuadTree boundary_to_domain;
+  // boundary_to_domain.initialize_tree(config.boundary.get(),
+  //                                     domain_points, solution_dimension,
+  //                                     domain_dimension);
+  // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
+  // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, mu, &domain);
+
+  ie_Mat K_domain(TEST_SIZE * TEST_SIZE * solution_dimension,
+                  config.num_boundary_points * solution_dimension);
+  Initialization init;
+  init.InitializeDomainKernel(&K_domain,
+                              domain_points, TEST_SIZE, kernel,
+                              solution_dimension);
+
+  ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
+
+  ie_Mat U_forward(solution->height(), 3 * num_holes);
+
+  initialize_U_mat(holes, domain_points, &U_forward);
+
+  for (unsigned int i = 0; i < solution->height(); i += 2) {
+    Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
+    if (!config.boundary->is_in_domain(point)) {
+      for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+        U_forward.set(i, 3 * hole_idx, 0);
+        U_forward.set(i + 1, 3 * hole_idx, 0);
+        U_forward.set(i, 3 * hole_idx + 1, 0);
+        U_forward.set(i + 1, 3 * hole_idx + 1, 0);
+        U_forward.set(i, 3 * hole_idx + 2, 0);
+        U_forward.set(i + 1, 3 * hole_idx + 2, 0);
+      }
+    }
+  }
+  ie_Mat U_forward_alpha(solution->height(), 1);
+  ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
+
+  (*solution) += U_forward_alpha;
+}
+
+// TODO so config should be constant, currently the animation is hacked together,
+// some mild refactoring should be done to handle the perturbation of the boundary
+// which belongs to this constant class. The likely scenario is going to be to
+// remove the boundary from the config altogether. THIS IS URGENT.
+double boundary_integral_solve(ie_solver_config & config,
                                std::vector<double>* skel_times) {
   int domain_dimension = 2;
   int solution_dimension = 1;
@@ -104,164 +223,56 @@ double boundary_integral_solve(const ie_solver_config & config,
     skel_times->push_back(elapsed / TIMING_ITERATIONS);
     return -1;
   }
-  ie_solver_tools.skeletonize(kernel, &quadtree);
-
-  ie_Mat f = config.boundary->boundary_values;
-  ie_Mat mu(config.num_boundary_points * solution_dimension, 1);
 
 
+  for (int frame = 0; frame < 60; frame++) {
 
-  ie_Mat alpha(3, 1);
-  ie_Mat U(config.num_boundary_points * solution_dimension, 3);
-  ie_Mat Psi(3, config.num_boundary_points * solution_dimension);
-  ie_Mat ident(3, 3);
-  ident.set(0, 0, 1);
-  ident.set(1, 1, 1);
-  ident.set(2, 2, 1);
-  initialize_U_mat(config.boundary->points, &U);
-  initialize_Psi_mat(config.boundary.get(), &Psi);
+    double x = 0.35 + 0.3 * (frame / 60);
+    double y = 0.35 ;
 
-  // std::vector<unsigned int> alldofs;
-  // for (int i = 0; i < mu.height(); i++) {
-  //   alldofs.push_back(i);
+    config.boundary->holes[0].center = Vec2(x, y);
+
+
+    double x1 = 0.65 - 0.3 * (frame / 60);
+    double y1 = 0.65;
+
+    config.boundary->holes[1].center = Vec2(x1, y1);
+
+
+
+    config.boundary->initialize(1000,
+                                config.boundary_condition);
+    config.num_boundary_points = config.boundary->weights.size();
+    quadtree.reset();
+    ie_solver_tools.skeletonize(kernel, &quadtree);
+    ie_Mat domain(TEST_SIZE * TEST_SIZE * solution_dimension, 1);
+
+    schur_solve(config, kernel, ie_solver_tools, quadtree, domain_points, &domain);
+    std::string filename = "output/bake/sol/" + std::to_string(frame)
+                           + ".txt";
+    write_solution_to_file(filename, domain, domain_points, solution_dimension);
+  }
+
+
+
+  // double error;
+  // switch (config.pde) {
+  //   case ie_solver_config::LAPLACE:
+  //     error = laplace_error(domain, config.id_tol, domain_points,
+  //                           config.boundary.get());
+  //     break;
+  //   case ie_solver_config::STOKES:
+  //     error = stokes_error(domain, config.id_tol, domain_points,
+  //                          config.boundary.get());
+  //     break;
   // }
-  // ie_Mat whole = kernel(alldofs, alldofs);
-  // ie_Mat HUGE(alldofs.size() + 3, alldofs.size() + 3);
-  // HUGE.set_submatrix(alldofs, alldofs, whole);
-  // std::vector<unsigned int> others;
-  // others.push_back(alldofs.size());
-  // others.push_back(alldofs.size() + 1);
-  // others.push_back(alldofs.size() + 2);
-  // HUGE.set_submatrix(others, alldofs, Psi);
-  // HUGE.set_submatrix(alldofs, others, U);
-  // ident *= -1;
-  // HUGE.set_submatrix(others, others, ident);
-  // ident *= -1;
-  // std::cout << "cond num at start = " << whole.condition_number() << " " <<
-  //           HUGE.condition_number() << std::endl;
 
-  // ie_Mat big_vec(alldofs.size() + 3,1);
-  // std::vector<unsigned int> ZERO;
-  // ZERO.push_back(0);
-  // big_vec.set_submatrix(alldofs, ZERO, f);
-  // ie_Mat phi(alldofs.size(), 1);
-  // HUGE.left_multiply_inverse(big_vec, &phi);
-  // mu = phi(alldofs, ZERO);
-  // alpha = phi(others, ZERO);
-
-  ie_Mat U1, U2, U3;
-  std::vector<unsigned int> rows, cols;
-  for (unsigned int i = 0; i < U.height(); i++) {
-    rows.push_back(i);
-  }
-  cols.push_back(0);
-  U1 = U(rows, cols);
-  cols.clear();
-  cols.push_back(1);
-  U2 = U(rows, cols);
-  cols.clear();
-  cols.push_back(2);
-  U3 = U(rows, cols);
-
-  ie_Mat Dinv_U1(config.num_boundary_points * solution_dimension, 1);
-  ie_Mat Dinv_U2(config.num_boundary_points * solution_dimension, 1);
-  ie_Mat Dinv_U3(config.num_boundary_points * solution_dimension, 1);
-  ie_solver_tools.solve(kernel, quadtree, &Dinv_U1, U1);
-  ie_solver_tools.solve(kernel, quadtree, &Dinv_U2, U2);
-  ie_solver_tools.solve(kernel, quadtree, &Dinv_U3, U3);
-
-  ie_Mat Dinv_U(config.num_boundary_points * solution_dimension, 3);
-  cols.clear();
-  cols.push_back(0);
-  Dinv_U.set_submatrix(rows, cols, Dinv_U1);
-  cols.clear();
-  cols.push_back(1);
-  Dinv_U.set_submatrix(rows, cols, Dinv_U2);
-  cols.clear();
-  cols.push_back(2);
-  Dinv_U.set_submatrix(rows, cols, Dinv_U3);
-
-  ie_Mat Psi_Dinv_U(3, 3);
-  ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
-
-  ie_Mat S = ident;
-  S += Psi_Dinv_U;
-  S *= -1.;
-
-  ie_Mat Dinv_u(config.num_boundary_points * solution_dimension, 1);
-  ie_solver_tools.solve(kernel, quadtree, &Dinv_u, f);
-
-  ie_Mat Psi_Dinv_u(3, 1);
-  ie_Mat::gemv(NORMAL, 1., Psi, Dinv_u, 0., &Psi_Dinv_u);
-
-  ie_Mat Sinv_Psi_Dinv_u(3, 1);
-
-  S.left_multiply_inverse(Psi_Dinv_u, &Sinv_Psi_Dinv_u);
-  alpha = Sinv_Psi_Dinv_u;
-  alpha *= -1.;
-
-  ie_Mat right_vec(config.num_boundary_points * solution_dimension, 1);
-  ie_Mat::gemv(NORMAL, 1., U, Sinv_Psi_Dinv_u, 0., &right_vec);
-
-  right_vec += f;
-  ie_solver_tools.solve(kernel, quadtree, &mu, right_vec);
-
-  // This will be done as a sparse mat vec in the future, for now we do
-  // dense matvec
-  ie_Mat domain(TEST_SIZE * TEST_SIZE * solution_dimension, 1);
-
-  // QuadTree boundary_to_domain;
-  // boundary_to_domain.initialize_tree(config.boundary.get(),
-  //                                     domain_points, solution_dimension,
-  //                                     domain_dimension);
-  // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
-  // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, mu, &domain);
-
-  ie_Mat K_domain(TEST_SIZE * TEST_SIZE * solution_dimension,
-                  config.num_boundary_points * solution_dimension);
-  Initialization init;
-  init.InitializeDomainKernel(&K_domain,
-                              domain_points, TEST_SIZE, &kernel,
-                              solution_dimension);
-  ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., &domain);
-
-  ie_Mat U_forward(domain.height(), 3);
-  initialize_U_mat(domain_points, &U_forward);
-  for (int i = 0; i < domain.height(); i += 2) {
-    Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
-    if (!config.boundary->is_in_domain(point)) {
-      U_forward.set(i, 0, 0);
-      U_forward.set(i + 1, 0, 0);
-      U_forward.set(i, 1, 0);
-      U_forward.set(i + 1, 1, 0);
-      U_forward.set(i, 2, 0);
-      U_forward.set(i + 1, 2, 0);
-    }
-  }
-
-  ie_Mat U_forward_alpha(domain.height(), 1);
-  ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
-
-  domain += U_forward_alpha;
-
-
-  double error;
-  switch (config.pde) {
-    case ie_solver_config::LAPLACE:
-      error = laplace_error(domain, config.id_tol, domain_points,
-                            config.boundary.get());
-      break;
-    case ie_solver_config::STOKES:
-      error = stokes_error(domain, config.id_tol, domain_points,
-                           config.boundary.get());
-      break;
-  }
-
-  if (!config.testing) {
-    write_solution_to_file("output/data/ie_solver_solution.txt", domain,
-                           domain_points, solution_dimension);
-  }
-  return error;
+  // if (!config.testing) {
+  //   write_solution_to_file("output/data/ie_solver_solution.txt", domain,
+  //                          domain_points, solution_dimension);
+  // }
+  // return error;
+  return 0;
 }
 
 
@@ -400,7 +411,7 @@ double laplace_error(const ie_Mat & domain, double id_tol,
 }
 
 
-double stokes_error(ie_Mat & domain_solution, double id_tol,
+double stokes_error(const ie_Mat & domain_solution, double id_tol,
                     const std::vector<double>& domain_points,
                     Boundary * boundary) {
   if (boundary->boundary_shape != Boundary::CIRCLE) {
@@ -429,14 +440,16 @@ double stokes_error(ie_Mat & domain_solution, double id_tol,
     double om2 = 4;
     double r1 = 0.05;
     double r2 = 0.25;
-    double c1 = (om2 * pow(r2, 2) - om1 * pow(r1, 2)) / (pow(r2, 2) - pow(r1, 2));
-    double c2 = ((om1 - om2) * pow(r2, 2) * pow(r1, 2)) / (pow(r2, 2) - pow(r1, 2));
+    double c1 = (om2 * pow(r2, 2) - om1 * pow(r1, 2))
+                / (pow(r2, 2) - pow(r1, 2));
+    double c2 = ((om1 - om2) * pow(r2, 2) * pow(r1, 2))
+                / (pow(r2, 2) - pow(r1, 2));
 
     double truth_length = c1 * r.norm() + (c2 / r.norm());
 
     truth = truth * truth_length;
-    domain_solution.set(i, 0, truth.a[0]);
-    domain_solution.set(i + 1, 0, truth.a[1]);
+    // domain_solution.set(i, 0, truth.a[0]);
+    // domain_solution.set(i + 1, 0, truth.a[1]);
 
     double diff = (truth - sol).norm();
     truth_size += fabs(truth_length);

@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
   if (!config.scaling) {
     double error = ie_solver::boundary_integral_solve(
                      config);
-    std::cout << "Error: " << error << std::endl;;
+    // std::cout << "Error: " << error << std::endl;;
   }
 
   if (config.scaling) {

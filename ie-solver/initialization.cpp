@@ -9,11 +9,11 @@ namespace ie_solver {
 // TODO(John) now points vec might need to be boundary_points instead
 void Initialization::InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& domain_points, int test_size,
-    Kernel* kernel, int solution_dimension) {
+    const Kernel& kernel, int solution_dimension) {
   // is stokes TODO
-  std::vector<double> points = kernel->boundary->points;
-  std::vector<double> normals = kernel->boundary->normals;
-  std::vector<double> weights = kernel->boundary->weights;
+  std::vector<double> points = kernel.boundary->points;
+  std::vector<double> normals = kernel.boundary->normals;
+  std::vector<double> weights = kernel.boundary->weights;
 
   if (solution_dimension == 2) {
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
@@ -26,7 +26,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     Dof domain_point;
     domain_point.is_boundary = false;
     domain_point.point = Vec2(domain_points[2 * i], domain_points[2 * i + 1]);
-    bool in_domain = kernel->boundary->is_in_domain(domain_point.point);
+    bool in_domain = kernel.boundary->is_in_domain(domain_point.point);
     for (int j = 0; j < dofs; j++) {
       if (!in_domain) {
         K->set(i, j, 0);
@@ -37,17 +37,10 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
       boundary_point.point = Vec2(points[2 * j], points[2 * j + 1]);
       boundary_point.normal = Vec2(normals[2 * j], normals[2 * j + 1]);
       boundary_point.weight = weights[j];
-      double potential = kernel->laplace_kernel(domain_point, boundary_point).get(0,0);
+      double potential =
+        kernel.laplace_kernel(domain_point, boundary_point).get(0, 0);
       K->set(i, j, potential);
     }
-  }
-}
-
-
-void Initialization::Electric_InitializeBoundary(ie_Mat* f,
-    const std::vector<double>& points) {
-  for (unsigned int i = 0; i < f->height(); i++) {
-    f->set(i, 0, 1);
   }
 }
 

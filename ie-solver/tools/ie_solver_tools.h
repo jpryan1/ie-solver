@@ -40,20 +40,20 @@ class IeSolverTools {
 
   void get_all_schur_updates(ie_Mat* updates,
                              const std::vector<unsigned int>& BN,
-                             const QuadTreeNode* node, bool get_neighbors);
+                             const QuadTreeNode* node, bool get_neighbors) const;
   void get_descendents_updates(ie_Mat* updates,
                                const std::vector<unsigned int>& BN,
-                               const QuadTreeNode* node);
+                               const QuadTreeNode* node) const;
   void get_update(ie_Mat* updates, const std::vector<unsigned int>& BN,
-                  const QuadTreeNode* node);
+                  const QuadTreeNode* node) const;
 
   void apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
                           const std::vector<unsigned int>& a,
-                          const std::vector<unsigned int>& b, bool transpose);
+                          const std::vector<unsigned int>& b, bool transpose) const;
   void apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
-                         const std::vector<unsigned int>& range);
+                         const std::vector<unsigned int>& range) const;
   void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
-                             const std::vector<unsigned int>& range);
+                             const std::vector<unsigned int>& range) const ;
   void b2d_apply_diag_matrix(const ie_Mat& mat,
                              const std::vector<unsigned int>& tgt,
                              const std::vector<unsigned int>& src,
@@ -63,10 +63,10 @@ class IeSolverTools {
   void b2dskeletonize(const Kernel& K, QuadTree* tree);
 
   void sparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
-                     ie_Mat* b);
+                     ie_Mat* b)const ;
   void b2dsparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
                         ie_Mat* b);
-  void solve(const Kernel& K, const QuadTree& tree, ie_Mat* x, const ie_Mat& b);
+  void solve(const Kernel& K, const QuadTree& tree, ie_Mat* x, const ie_Mat& b) const;
 
   void check_factorization_against_kernel(const Kernel& kernel,
                                           QuadTree* tree);

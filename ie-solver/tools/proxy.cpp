@@ -3,6 +3,7 @@
 #include <iostream>
 #include "ie-solver/tools/ie_solver_tools.h"
 #include "ie-solver/kernel.h"
+
 namespace ie_solver {
 
 void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
@@ -13,22 +14,23 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
   double radius_ratio = 1.5;
 
   if (!strong_admissibility) {
-    if(true){//node->level <= tree->no_proxy_level){
+    if (false) {  // node->level <= tree->no_proxy_level){
       // No proxy circle
       std::vector<unsigned int> far;
       for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
         if (level_node->id != node->id) {
-          for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
-           far.push_back(matrix_index);
+          for (unsigned int matrix_index :
+               level_node->src_dof_lists.active_box) {
+            far.push_back(matrix_index);
           }
         }
       }
-      
+
       ie_Mat far_box = kernel(far, node->src_dof_lists.active_box);
       ie_Mat box_far(far.size(),
-                      node->src_dof_lists.active_box.size());
+                     node->src_dof_lists.active_box.size());
       kernel(node->src_dof_lists.active_box, far).transpose_into(&box_far);
-             
+
       *mat = ie_Mat(2 * far.size() ,
                     node->src_dof_lists.active_box.size());
       mat->set_submatrix(0, far.size(),
@@ -41,7 +43,7 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
     }
     // Grab all points inside the proxy circle
     std::vector<unsigned int> inner_circle;
-    
+
     for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
       if (level_node->id != node->id) {
         for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
