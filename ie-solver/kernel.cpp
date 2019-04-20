@@ -93,8 +93,7 @@ ie_Mat Kernel::stokes_kernel(const Dof& tgt, const Dof& src) const {
     tensor.set(0, 1, potential * t0 * t1);
     tensor.set(1, 0, potential * t1 * t0);
 
-    tensor += normop;
-    return tensor;
+    return tensor + normop;
   }
   Vec2 r = tgt.point - src.point;
   double r0 = r.a[0];
@@ -105,8 +104,7 @@ ie_Mat Kernel::stokes_kernel(const Dof& tgt, const Dof& src) const {
   tensor.set(1, 1, potential * r1 * r1);
   tensor.set(0, 1, potential * r0 * r1);
   tensor.set(1, 0, potential * r1 * r0);
-  tensor += normop;
-  return tensor;
+  return tensor + normop;
 }
 
 

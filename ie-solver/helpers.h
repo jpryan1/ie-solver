@@ -7,7 +7,6 @@
 #include "ie-solver/ie_solver_config.h"
 #include "ie-solver/boundaries/boundary.h"
 
-#define TEST_SIZE 20
 #define TIMING_ITERATIONS 5
 
 namespace ie_solver {
@@ -25,7 +24,8 @@ void write_times_to_files(int* scale_n, const std::vector<double>& n_times,
 void write_solution_to_file(const std::string& filename, const ie_Mat& domain,
                             const std::vector<double>&
                             domain_points, int solution_dimension);
-void get_domain_points(std::vector<double>* points, double min,
+void get_domain_points(unsigned int domain_size, std::vector<double>* points,
+                       double min,
                        double max);
 double laplace_error(const ie_Mat& domain, double id_tol,
                      const std::vector<double>& domain_points,

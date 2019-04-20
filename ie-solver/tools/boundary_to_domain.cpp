@@ -17,12 +17,11 @@ void IeSolverTools::b2d_apply_diag_matrix(const ie_Mat& mat,
   }
   std::vector<unsigned int> ZERO_VECTOR;
   ZERO_VECTOR.push_back(0);
-  ie_Mat temp = vec_in(src, ZERO_VECTOR);
 
   ie_Mat product(tgt.size(), 1);
-  ie_Mat::gemv(NORMAL, 1., mat, temp, 0., &product);
-  product += (*vec_out)(tgt, ZERO_VECTOR);
-  vec_out->set_submatrix(tgt, ZERO_VECTOR, product);
+  ie_Mat::gemv(NORMAL, 1., mat, vec_in(src, ZERO_VECTOR), 0., &product);
+  vec_out->set_submatrix(tgt, ZERO_VECTOR,
+                         product + (*vec_out)(tgt, ZERO_VECTOR));
 }
 
 

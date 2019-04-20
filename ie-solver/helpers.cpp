@@ -71,12 +71,11 @@ void initialize_Psi_mat(const std::vector<Hole>& holes,
 }
 
 
-// TODO clean up this mess
+// TODO(John) clean up this mess
 void schur_solve(const ie_solver_config & config,
                  const Kernel& kernel, const IeSolverTools& ie_solver_tools,
-                 const QuadTree& quadtree, const std::vector<double>& domain_points,
-                 ie_Mat* solution) {
-  int domain_dimension = 2;
+                 const QuadTree& quadtree,
+                 const std::vector<double>& domain_points, ie_Mat* solution) {
   int solution_dimension = 1;
   if (config.pde == ie_solver_config::STOKES) {
     solution_dimension = 2;
@@ -103,9 +102,7 @@ void schur_solve(const ie_solver_config & config,
   ie_Mat Psi_Dinv_U(3 * num_holes, 3 * num_holes);
   ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
 
-  ie_Mat S = ident;
-  S += Psi_Dinv_U;
-  S *= -1.;
+  ie_Mat S = -ident - Psi_Dinv_U;
 
   ie_Mat Dinv_u(config.num_boundary_points * solution_dimension, 1);
   ie_solver_tools.solve(kernel, quadtree, &Dinv_u, f);
@@ -116,8 +113,7 @@ void schur_solve(const ie_solver_config & config,
   ie_Mat Sinv_Psi_Dinv_u(3 * num_holes, 1);
 
   S.left_multiply_inverse(Psi_Dinv_u, &Sinv_Psi_Dinv_u);
-  alpha = Sinv_Psi_Dinv_u;
-  alpha *= -1.;
+  alpha = -Sinv_Psi_Dinv_u;
 
   ie_Mat right_vec(config.num_boundary_points * solution_dimension, 1);
   ie_Mat::gemv(NORMAL, 1., U, Sinv_Psi_Dinv_u, 0., &right_vec);
@@ -135,11 +131,11 @@ void schur_solve(const ie_solver_config & config,
   // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
   // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, mu, &domain);
 
-  ie_Mat K_domain(TEST_SIZE * TEST_SIZE * solution_dimension,
+  ie_Mat K_domain(config.domain_size * config.domain_size * solution_dimension,
                   config.num_boundary_points * solution_dimension);
   Initialization init;
   init.InitializeDomainKernel(&K_domain,
-                              domain_points, TEST_SIZE, kernel,
+                              domain_points, config.domain_size, kernel,
                               solution_dimension);
 
   ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
@@ -203,7 +199,8 @@ double boundary_integral_solve(ie_solver_config & config,
                                 solution_dimension, domain_dimension);
 
   std::vector<double> domain_points;
-  get_domain_points(&domain_points, quadtree.min, quadtree.max);
+  get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max);
 
   Kernel kernel;
   kernel.load(config.boundary.get(), domain_points, config.pde,
@@ -224,54 +221,59 @@ double boundary_integral_solve(ie_solver_config & config,
   }
 
 
-  for (int frame = 0; frame < 60; frame++) {
+  // for (int frame = 0; frame < 60; frame++) {
 
-    double x = 0.35 + 0.3 * (frame / 60);
-    double y = 0.35 ;
+  //   double x = 0.35 + 0.3 * (frame / 60);
+  //   double y = 0.35 ;
 
-    config.boundary->holes[0].center = Vec2(x, y);
-
-
-    double x1 = 0.65 - 0.3 * (frame / 60);
-    double y1 = 0.65;
-
-    config.boundary->holes[1].center = Vec2(x1, y1);
+  //   config.boundary->holes[0].center = Vec2(x, y);
 
 
+  //   double x1 = 0.65 - 0.3 * (frame / 60);
+  //   double y1 = 0.65;
 
-    config.boundary->initialize(1000,
-                                config.boundary_condition);
-    config.num_boundary_points = config.boundary->weights.size();
-    quadtree.reset();
-    ie_solver_tools.skeletonize(kernel, &quadtree);
-    ie_Mat domain(TEST_SIZE * TEST_SIZE * solution_dimension, 1);
+  //   config.boundary->holes[1].center = Vec2(x1, y1);
 
-    schur_solve(config, kernel, ie_solver_tools, quadtree, domain_points, &domain);
-    std::string filename = "output/bake/sol/" + std::to_string(frame)
-                           + ".txt";
-    write_solution_to_file(filename, domain, domain_points, solution_dimension);
+
+
+  //   config.boundary->initialize(1000,
+  //                               config.boundary_condition);
+  //   config.num_boundary_points = config.boundary->weights.size();
+  //   quadtree.reset();
+  //   ie_solver_tools.skeletonize(kernel, &quadtree);
+  //   ie_Mat domain(config.domain_size * config.domain_size * solution_dimension, 1);
+
+  //   schur_solve(config, kernel, ie_solver_tools, quadtree, domain_points, &domain);
+  //   std::string filename = "output/bake/sol/" + std::to_string(frame)
+  //                          + ".txt";
+  //   write_solution_to_file(filename, domain, domain_points, solution_dimension);
+  // }
+
+  ie_solver_tools.skeletonize(kernel, &quadtree);
+
+  ie_Mat domain_solution(config.domain_size * config.domain_size *
+                         solution_dimension, 1);
+
+  schur_solve(config, kernel, ie_solver_tools, quadtree, domain_points,
+              &domain_solution);
+
+  double error;
+  switch (config.pde) {
+    case ie_solver_config::LAPLACE:
+      error = laplace_error(domain_solution, config.id_tol, domain_points,
+                            config.boundary.get());
+      break;
+    case ie_solver_config::STOKES:
+      error = stokes_error(domain_solution, config.id_tol, domain_points,
+                           config.boundary.get());
+      break;
   }
 
-
-
-  // double error;
-  // switch (config.pde) {
-  //   case ie_solver_config::LAPLACE:
-  //     error = laplace_error(domain, config.id_tol, domain_points,
-  //                           config.boundary.get());
-  //     break;
-  //   case ie_solver_config::STOKES:
-  //     error = stokes_error(domain, config.id_tol, domain_points,
-  //                          config.boundary.get());
-  //     break;
-  // }
-
-  // if (!config.testing) {
-  //   write_solution_to_file("output/data/ie_solver_solution.txt", domain,
-  //                          domain_points, solution_dimension);
-  // }
-  // return error;
-  return 0;
+  if (!config.testing) {
+    write_solution_to_file("output/data/ie_solver_solution.txt", domain_solution,
+                           domain_points, solution_dimension);
+  }
+  return error;
 }
 
 
@@ -351,11 +353,12 @@ void write_solution_to_file(const std::string & filename, const ie_Mat & domain,
 }
 
 
-void get_domain_points(std::vector<double>* points, double min, double max) {
-  for (int i = 0; i < TEST_SIZE; i++) {
-    double x = min + ((i + 0.0) / TEST_SIZE) * (max - min);
-    for (int j = 0; j < TEST_SIZE; j++) {
-      double y = min + ((j + 0.0) / TEST_SIZE) * (max - min);
+void get_domain_points(unsigned int domain_size, std::vector<double>* points,
+                       double min, double max) {
+  for (unsigned int i = 0; i < domain_size; i++) {
+    double x = min + ((i + 0.0) / domain_size) * (max - min);
+    for (int j = 0; j < domain_size; j++) {
+      double y = min + ((j + 0.0) / domain_size) * (max - min);
       points->push_back(x);
       points->push_back(y);
     }
@@ -463,10 +466,11 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
   std::string usage = "\n\tusage: ./ie-solver "
                       "-pde {LAPLACE|STOKES} "
                       "-boundary {CIRCLE|ROUNDED_SQUARE|"
-                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|CUBIC_SPLINE "
+                      "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|CUBIC_SPLINE|ANNULUS "
                       "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
-                      "BUMP_FUNCTION} "
+                      "BUMP_FUNCTION|STOKES} "
                       "-N {number of nodes} "
+                      "-D {side length of square domain grid} "
                       "-e {ID error tolerance} "
                       "{-scaling} {-strong}"
                       "\nOmitting an arg triggers a default value.";
@@ -485,8 +489,8 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
           config->pde = ie_solver_config::LAPLACE;
         } else {
           LOG::ERROR("Unrecognized pde: " + std::string(argv[i + 1])
-                     + "\n Acceptable pdes: STOKES, LAPLACE");
-          return 0;
+                     + "\n Acceptable pdes: LAPLACE, STOKES");
+          return -1;
         }
         pde_name = argv[i + 1];
       }
@@ -496,6 +500,11 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
         config->num_boundary_points = std::stoi(argv[i + 1]);
       }
       i++;
+    } else if (!strcmp(argv[i], "-D")) {
+      if (i < argc - 1) {
+        config->domain_size = std::stoi(argv[i + 1]);
+      }
+      i++;
     } else if (!strcmp(argv[i], "-strong")) {
       config->admissibility = ie_solver_config::STRONG;
     } else if (!strcmp(argv[i], "-scaling")) {
@@ -503,7 +512,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
     } else if (!strcmp(argv[i], "-h")) {
       LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
       LOG::INFO(usage);
-      return 0;
+      return -1;
     } else if (!strcmp(argv[i], "-e")) {
       if (i < argc - 1) {
         config->id_tol = std::stof(argv[i + 1]);
@@ -526,7 +535,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])
                      + usage);
-          return 0;
+          return -1;
         }
         boundary_name = argv[i + 1];
       }
@@ -541,26 +550,40 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
         } else if (!strcmp(argv[i + 1], "BUMP_FUNCTION")) {
           config->boundary_condition =
             Boundary::BoundaryCondition::BUMP_FUNCTION;
+        } else if (!strcmp(argv[i + 1], "STOKES")) {
+          config->boundary_condition =
+            Boundary::BoundaryCondition::STOKES;
         } else {
           LOG::ERROR("Unrecognized boundary_condition: " +
                      std::string(argv[i + 1]) + "\n Acceptable "
                      "boundary_conditions: SINGLE_ELECTRON, ALL_ONES,"
-                     "BUMP_FUNCTION");
-          return 0;
+                     "BUMP_FUNCTION, STOKES");
+          return -1;
         }
         boundary_condition_name = argv[i + 1];
       }
       i++;
     } else {
       LOG::ERROR("Unrecognized argument: " + std::string(argv[i]) + usage);
-      return 0;
+      return -1;
     }
+  }
+
+  if (config->boundary_condition
+      ==  ie_solver::Boundary::BoundaryCondition::STOKES
+      || config->pde == ie_solver::ie_solver_config::STOKES) {
+    config->boundary_condition =  ie_solver::Boundary::BoundaryCondition::STOKES;
+    config->pde = ie_solver::ie_solver_config::STOKES;
+    boundary_condition_name = "STOKES";
+    pde_name = "STOKES";
   }
 
   LOG::INFO("PDE: " + pde_name);
   LOG::INFO("Boundary: " + boundary_name);
   LOG::INFO("Boundary condition: " + boundary_condition_name);
   LOG::INFO("Number of nodes: " + std::to_string(config->num_boundary_points));
+  LOG::INFO("Side length of square domain grid: " + std::to_string(
+              config->domain_size));
   LOG::INFO("ID error tolerance: " + std::to_string(config->id_tol));
   if (config->scaling) {
     LOG::INFO("Scaling run");
@@ -571,7 +594,7 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
     LOG::INFO("Weak admissibility");
   }
 
-  return 1;
+  return 0;
   // TODO(John) after parsing, print out input configuration
 }
 

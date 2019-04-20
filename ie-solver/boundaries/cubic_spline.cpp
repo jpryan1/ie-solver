@@ -147,8 +147,8 @@ void CubicSpline::interpolate() {
           break;
         case BoundaryCondition::BUMP_FUNCTION: {
           double N = boundary_values.height();
-          double x_val = -1 * ((N - 1.0 - bc_index) / (N - 1.0))
-                         + (bc_index / (N - 1.0));
+          // This x_val is -1 at i=0 and +1 at i=N-1
+          double x_val = ((2.0 * i + 1.0 - N) / (N - 1.0));
           potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
           boundary_values.set(bc_index++, 0, potential);
           break;

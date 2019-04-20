@@ -35,7 +35,14 @@ struct ie_Mat {
   void addset(unsigned int i, unsigned int j, double a);
   void set_submatrix(const std::vector<unsigned int>& I_,
                      const std::vector<unsigned int>& J_, const ie_Mat& A);
-  void set_submatrix(int row_s, int row_e, int col_s, int col_e,
+  void set_submatrix(unsigned int row_s, unsigned int row_e, unsigned int col_s,
+                     unsigned int col_e,
+                     const ie_Mat& A);
+  void set_submatrix(const std::vector<unsigned int>& I_, unsigned int col_s,
+                     unsigned int col_e,
+                     const ie_Mat& A);
+  void set_submatrix(unsigned int row_s, unsigned int row_e,
+                     const std::vector<unsigned int>& J_,
                      const ie_Mat& A);
 
   void transpose_into(ie_Mat* transpose) const;
@@ -47,8 +54,21 @@ struct ie_Mat {
   ie_Mat& operator-=(const ie_Mat& o);
   ie_Mat& operator+=(const ie_Mat& o);
   ie_Mat& operator*=(double o);
+  
+  ie_Mat operator-() const;
+  ie_Mat operator-(const ie_Mat& o) const;
+  ie_Mat operator+(const ie_Mat& o) const;
+  ie_Mat operator*(double o) const;
+
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_) const;
+  ie_Mat operator()(const std::vector<unsigned int>& I_,
+                    unsigned int col_s, unsigned int col_e) const;
+  ie_Mat operator()(unsigned int row_s, unsigned int row_e,
+                    const std::vector<unsigned int>& J_) const;
+  ie_Mat operator()(unsigned int row_s, unsigned int row_e, unsigned int col_s,
+                    unsigned int col_e) const;
+
 
   double one_norm() const;
   double frob_norm() const;

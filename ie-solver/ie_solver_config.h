@@ -7,6 +7,7 @@
 
 #define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
 #define DEFAULT_ID_TOL 1e-6
+#define DEFAULT_DOMAIN_SIZE 20
 
 namespace ie_solver {
 struct ie_solver_config {
@@ -19,6 +20,7 @@ struct ie_solver_config {
     STRONG
   };
   int num_boundary_points = DEFAULT_NUM_DISCRETIZATION_POINTS;
+  int domain_size = DEFAULT_DOMAIN_SIZE;
   double id_tol = DEFAULT_ID_TOL;
   Pde pde = LAPLACE;
   Admissibility admissibility = WEAK;

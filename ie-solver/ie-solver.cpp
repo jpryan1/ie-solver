@@ -19,15 +19,8 @@ int main(int argc, char** argv) {
   srand(0);  // omp_get_wtime());
 
   ie_solver::ie_solver_config config;
-  if (!ie_solver::parse_input_into_config(argc, argv, &config)) {
+  if (ie_solver::parse_input_into_config(argc, argv, &config)) {
     return 1;
-  }
-
-  if (config.boundary_condition
-      ==  ie_solver::Boundary::BoundaryCondition::STOKES
-      || config.pde == ie_solver::ie_solver_config::STOKES) {
-    config.boundary_condition =  ie_solver::Boundary::BoundaryCondition::STOKES;
-    config.pde = ie_solver::ie_solver_config::STOKES;
   }
 
 // First we init the boundary so we can correct the num_boundary_points
@@ -38,7 +31,7 @@ int main(int argc, char** argv) {
   if (!config.scaling) {
     double error = ie_solver::boundary_integral_solve(
                      config);
-    // std::cout << "Error: " << error << std::endl;;
+    std::cout << "Error: " << error << std::endl;;
   }
 
   if (config.scaling) {

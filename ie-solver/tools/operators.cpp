@@ -8,60 +8,44 @@ namespace ie_solver {
 void IeSolverTools::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
                                        const std::vector<unsigned int>& a,
                                        const std::vector<unsigned int>& b,
-                                       bool transpose = false) const{
+                                       bool transpose = false) const {
   if (a.size()*b.size() == 0) return;
   if (transpose) {
     assert(mat.height() == a.size());
   } else {
     assert(mat.width() == a.size());
   }
-  // This vector is just used for indexing an Vector
-  std::vector<unsigned int> COL_RANGE;
-  for (int i = 0; i < vec->width(); i++) {
-    COL_RANGE.push_back(i);
-  }
-  ie_Mat temp = (*vec)(a, COL_RANGE);
-  ie_Mat product(b.size(), COL_RANGE.size());
+  ie_Mat product(b.size(),  vec->width());
 
   if (transpose) {
-    ie_Mat::gemm(TRANSPOSE, NORMAL, 1., mat, temp, 0., &product);
+    ie_Mat::gemm(TRANSPOSE, NORMAL, 1., mat, (*vec)(a, 0, vec->width()), 0.,
+                 &product);
   } else {
-    ie_Mat::gemm(NORMAL,  NORMAL, 1., mat, temp, 0., &product);
+    ie_Mat::gemm(NORMAL,  NORMAL, 1., mat, (*vec)(a, 0, vec->width()), 0.,
+                 &product);
   }
-  product += (*vec)(b, COL_RANGE);
-  vec->set_submatrix(b, COL_RANGE, product);
+  vec->set_submatrix(b, 0, vec->width(), product + (*vec)(b, 0, vec->width()));
 }
 
 
 // Sets vec(range) = mat * vec(range)
 void IeSolverTools::apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
-                                      const std::vector<unsigned int>& range) const{
+                                      const std::vector<unsigned int>& range)
+const {
   if (range.size() == 0) return;
-  std::vector<unsigned int> COL_RANGE;
-  for (int i = 0; i < vec->width(); i++) {
-    COL_RANGE.push_back(i);
-  }
-  ie_Mat temp = (*vec)(range, COL_RANGE);
-  ie_Mat product(range.size(), 1);
-  ie_Mat::gemm(NORMAL, NORMAL, 1., mat, temp, 0., &product);
-  vec->set_submatrix(range, COL_RANGE, product);
+  ie_Mat product(range.size(), vec->width());
+  ie_Mat::gemm(NORMAL, NORMAL, 1., mat, (*vec)(range, 0, vec->width()), 0.,
+               &product);
+  vec->set_submatrix(range,  0, vec->width(), product);
 }
 
 
 void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
     const std::vector<unsigned int>& range) const {
   if (range.size() == 0) return;
-
-  std::vector<unsigned int> COL_RANGE;
-  for (int i = 0; i < vec->width(); i++) {
-    COL_RANGE.push_back(i);
-  }
-  ie_Mat temp = (*vec)(range, COL_RANGE);
-  ie_Mat product(range.size(), COL_RANGE.size());
-
-  mat.left_multiply_inverse(temp, &product);
-
-  vec->set_submatrix(range, COL_RANGE, product);
+  ie_Mat product(range.size(),  vec->width());
+  mat.left_multiply_inverse((*vec)(range,  0, vec->width()), &product);
+  vec->set_submatrix(range,  0, vec->width(), product);
 }
 
 
@@ -116,8 +100,7 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
 
     get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
 
-    allskel_mat *= -1;
-    allskel_mat += K(allskel, allskel);
+    allskel_mat = K(allskel, allskel) - allskel_mat;
     apply_diag_matrix(allskel_mat, b, allskel);
   }
 
@@ -150,7 +133,7 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
 
 
 void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
-                          const ie_Mat& b) const{
+                          const ie_Mat& b) const {
   assert(x->height() == b.height());
   int lvls = tree.levels.size();
   *x = b;
@@ -163,21 +146,17 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
       // Next we need to apply L inverse
       // L inverse changes the skelnear elements - it makes them equal to
       // L times the redundant elements + the skelnear elements
-      current_node->L *= -1;
-      current_node->T *= -1;
+
       // Finally we need to apply U_T inverse
       // U_T inverse changes the redundant elements - it makes them equal
       // to T transpose times the skeleton elements + the redundant
       // elements
-      apply_sweep_matrix(current_node->T, x,
+      apply_sweep_matrix(-current_node->T, x,
                          current_node->src_dof_lists.skel,
                          current_node->src_dof_lists.redundant, true);
-      apply_sweep_matrix(current_node->L, x,
+      apply_sweep_matrix(-current_node->L, x,
                          current_node->src_dof_lists.redundant,
                          current_node->src_dof_lists.skelnear, false);
-
-      current_node->L *= -1;
-      current_node->T *= -1;
     }
   }
   // This can go through the tree in any order, is parallelizable
@@ -206,8 +185,7 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
-    allskel_mat *= -1;
-    allskel_mat += K(allskel, allskel);
+    allskel_mat = K(allskel, allskel) - allskel_mat;
     double cond2 = allskel_mat.condition_number();
     if (cond2 > 1000) {
       std::cout << "Allskel inv -- ";
@@ -224,24 +202,19 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
       if (!current_node->schur_updated) {
         continue;
       }
-      current_node->U *= -1;
-      current_node->T *= -1;
       // First we need to apply L_T inverse
       // L_T inverse changes the skel elements - it makes them equal to T
       // times the redundant elements + the skeleton elements.
       // Next we need to apply U inverse
       // U inverse changes the redundant elements - it makes them equal to
       // L transpose times the skelnear elements + the redundant elements
-      apply_sweep_matrix(current_node->U, x,
+      apply_sweep_matrix(-current_node->U, x,
                          current_node->src_dof_lists.skelnear,
                          current_node->src_dof_lists.redundant, false);
-      apply_sweep_matrix(current_node->T, x,
+      apply_sweep_matrix(-current_node->T, x,
                          current_node->src_dof_lists.redundant,
                          current_node->src_dof_lists.skel,
                          false);
-
-      current_node->U *= -1;
-      current_node->T *= -1;
     }
   }
 }

@@ -110,13 +110,52 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
   }
 }
 
-void ie_Mat::set_submatrix(int row_s, int row_e, int col_s, int col_e,
+
+void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
+                           unsigned int col_s, unsigned int col_e,
                            const ie_Mat& A) {
-  for (int i = row_s; i < row_e; i++) {
-    for (int j = col_s; j < col_e; j++) {
-      set(i, j, A.get(i - row_s, j - col_s));
+  assert(row_e - row_s == A.height_ && col_e - col_s == A.width_);
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      set(i + row_s, j + col_s, A.get(i, j));
     }
   }
+}
+
+
+void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
+                           unsigned int col_s, unsigned int col_e,
+                           const ie_Mat& A) {
+  assert(I_.size() == A.height_ &&  col_e - col_s  == A.width_);
+  for (unsigned int i = 0; i < I_.size(); i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      set(I_[i], j + col_s, A.get(i, j));
+    }
+  }
+}
+
+
+void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
+                           const std::vector<unsigned int>& J_,
+                           const ie_Mat& A) {
+  assert(row_e - row_s == A.height_ && J_.size() == A.width_);
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < J_.size(); j++) {
+      set(i + row_s, J_[j], A.get(i, j));
+    }
+  }
+}
+
+
+ie_Mat ie_Mat::operator()(unsigned int row_s, unsigned int row_e,
+                          unsigned int col_s, unsigned int col_e) const {
+  ie_Mat submatrix(row_e - row_s, col_e - col_s);
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      submatrix.set(i, j, this->get(i + row_s, j + col_s));
+    }
+  }
+  return submatrix;
 }
 
 
@@ -193,6 +232,52 @@ ie_Mat& ie_Mat::operator*=(double o) {
 }
 
 
+ie_Mat ie_Mat::operator-() const {
+  ie_Mat result(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      result.set(i, j, -this->get(i, j));
+    }
+  }
+  return result;
+}
+
+
+ie_Mat ie_Mat::operator-(const ie_Mat& o) const {
+  assert(o.height_ == height_ && o.width_ == width_);
+  ie_Mat result(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      result.set(i, j, this->get(i, j) - o.get(i, j));
+    }
+  }
+  return result;
+}
+
+
+ie_Mat ie_Mat::operator+(const ie_Mat& o) const {
+  assert(o.height_ == height_ && o.width_ == width_);
+  ie_Mat sum(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      sum.set(i, j, this->get(i, j) + o.get(i, j));
+    }
+  }
+  return sum;
+}
+
+
+ie_Mat ie_Mat::operator*(double o) const {
+  ie_Mat result(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      result.set(i, j, this->get(i, j) *o);
+    }
+  }
+  return result;
+}
+
+
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
 ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
                           const std::vector<unsigned int>& J_) const {
@@ -202,6 +287,34 @@ ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
     for (unsigned int j = 0; j < J_.size(); j++) {
       assert(I_[i] < height() && J_[j] < width());
       ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
+    }
+  }
+  return ret;
+}
+
+
+ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
+                          unsigned int col_s, unsigned int col_e) const {
+  ie_Mat ret(I_.size(), col_e - col_s);
+  int olda_ = I_.size();
+  for (unsigned int i = 0; i < I_.size(); i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      assert(I_[i] < height() && col_s + j < width());
+      ret.mat[i + olda_ * j] = get(I_[i], col_s + j);
+    }
+  }
+  return ret;
+}
+
+
+ie_Mat ie_Mat::operator()(unsigned int row_s, unsigned int row_e,
+                          const std::vector<unsigned int>& J_) const {
+  ie_Mat ret(row_e - row_s, J_.size());
+  int olda_ = row_e - row_s;
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < J_.size(); j++) {
+      assert(row_s + i < height() && J_[j] < width());
+      ret.mat[i + olda_ * j] = get(row_s + i, J_[j]);
     }
   }
   return ret;
@@ -349,11 +462,7 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
                              cpy.lda_);
 
   assert(info2 == 0);
-  std::vector<unsigned int> I_;
-  std::vector<unsigned int> J_;
-  for (unsigned int i = 0; i < skel; i++) I_.push_back(i);
-  for (unsigned int i = skel; i < skel + redund; i++) J_.push_back(i);
-  *Z = cpy(I_, J_);
+  *Z = cpy(0, skel, skel, skel + redund);
   return skel;
 }
 
