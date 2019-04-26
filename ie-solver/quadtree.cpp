@@ -15,6 +15,20 @@ namespace ie_solver {
 typedef std::pair<double, double> pair;
 unsigned int QuadTreeNode::id_count = 0;
 
+QuadTree::~QuadTree() {
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      delete node;
+    }
+  }
+  for (QuadTreeLevel* level : levels) {
+    if (level) {
+      delete level;
+    }
+  }
+  levels.clear();
+}
+
 
 void QuadTree::initialize_tree(Boundary* boundary_,
                                const std::vector<double>& domain_points_,

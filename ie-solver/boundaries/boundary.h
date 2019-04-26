@@ -24,7 +24,7 @@ class Boundary {
     ROUNDED_SQUARE,
     ROUNDED_SQUARE_WITH_BUMP,
     SQUIGGLY,
-    ELLIPSES,
+    ANNULUS,
     CUBIC_SPLINE
   };
   enum BoundaryCondition {

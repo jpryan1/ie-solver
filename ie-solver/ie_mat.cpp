@@ -5,6 +5,7 @@
 #include <string>
 #include <cassert>
 #include <iostream>
+#include <fstream>
 #include "ie-solver/ie_mat.h"
 #include "ie-solver/log.h"
 
@@ -419,7 +420,8 @@ double ie_Mat::condition_number() const {
   return 1.0 / rcond;
 }
 
-// Performs interpolative decomposition, and eturns number of skeleton columns.
+
+// Performs interpolative decomposition, and returns number of skeleton columns.
 // Takes double /tol/, tolerance factorfor error in CPQR factorization.
 // Populates /p/ with permutation, Z with linear transformation.
 int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
@@ -437,7 +439,6 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   unsigned int skel = 0;
 
   double thresh = fabs(tol * cpy.get(0, 0));
-
   for (unsigned int i = 1; i < width_; i++) {
     // check if R_{i,i} / R_{0,0} < tol
     if (fabs(cpy.get(i, i)) < thresh) {
@@ -499,6 +500,29 @@ void ie_Mat::print() const {
 }
 
 
+void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
+  std::ofstream output;
+  output.open(filename);
+
+  ie_Mat cpy = *this;
+  std::vector<double> superb(height());
+  std::vector<double> sing(height());
+  lapack_int info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'N', 'N',
+                                   height(), width(), cpy.mat,
+                                   lda_, &(sing[0]), nullptr,
+                                   height(), nullptr, width(),
+                                   &(superb[0]));
+  if (output.is_open()) {
+    for (unsigned int i = 0; i < sing.size(); i++) {
+      output << sing[i] << std::endl;
+    }
+    output.close();
+  } else {
+    printf("Failed to open singular values output file!\n");
+  }
+}
+
+
 void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
                   const ie_Mat& x, double beta, ie_Mat* b) {
   assert(A.height()*A.width()*x.height()*x.width() != 0 &&
@@ -512,6 +536,7 @@ void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
   cblas_dgemv(CblasColMajor, trans0, A.height(), A.width(), alpha, A.mat,
               A.lda_, x.mat, 1, beta, b->mat, 1);
 }
+
 
 void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
                   double alpha, const ie_Mat& A, const ie_Mat& B, double beta,

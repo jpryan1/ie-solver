@@ -42,12 +42,6 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
   } else {
     boundary_values = ie_Mat(num_points, 1);
   }
-  boundary_condition = bc;
-  points.clear();
-  normals.clear();
-  weights.clear();
-  curvatures.clear();
-
 
   for (int i = 0; i < N; i++) {
     double ang = i * 2.0 * M_PI / N;
@@ -82,6 +76,7 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
         break;
     }
   }
+  
   for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
     Hole hole = holes[hole_idx];
     int start_idx = N + hole_dofs * hole_idx;

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include "ie-solver/ie_mat.h"
 #include "ie-solver/initialization.h"
 #include "ie-solver/tools/ie_solver_tools.h"
@@ -24,8 +25,11 @@
 
 namespace ie_solver {
 
-void initialize_U_mat(const std::vector<Hole>& holes,
-                      const std::vector<double>& tgt_points, ie_Mat* U) {
+// Note, the following function as well as many others probably will need
+// to have dimension info given to it to handle more than just Stokes.
+ie_Mat initialize_U_mat(const std::vector<Hole>& holes,
+                        const std::vector<double>& tgt_points) {
+  ie_Mat U(tgt_points.size(), 3 * holes.size());
   for (unsigned int i = 0; i < tgt_points.size(); i += 2) {
     for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
       Hole hole = holes[hole_idx];
@@ -33,121 +37,114 @@ void initialize_U_mat(const std::vector<Hole>& holes,
       Vec2 r = Vec2(tgt_points[i], tgt_points[i + 1]) - hole.center;
       double scale = 1.0 / (4 * M_PI);
       // TODO(John) implement tensor product to improve readability?
-      U->set(i, 3 * hole_idx, scale *
-             (log(1 / r.norm()) +
-              (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
-      U->set(i + 1, 3 * hole_idx, scale *
-             (log(1 / r.norm()) +
-              (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
-      U->set(i, 3 * hole_idx + 1, scale *
-             (log(1 / r.norm()) +
-              (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
-      U->set(i + 1, 3 * hole_idx + 1, scale *
-             (log(1 / r.norm()) +
-              (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
+      U.set(i, 3 * hole_idx, scale *
+            (log(1 / r.norm()) +
+             (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
+      U.set(i + 1, 3 * hole_idx, scale *
+            (log(1 / r.norm()) +
+             (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
+      U.set(i, 3 * hole_idx + 1, scale *
+            (log(1 / r.norm()) +
+             (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
+      U.set(i + 1, 3 * hole_idx + 1, scale *
+            (log(1 / r.norm()) +
+             (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
 
-      U->set(i, 3 * hole_idx + 2, r.a[1] * (scale / pow(r.norm(), 2)));
-      U->set(i + 1, 3 * hole_idx + 2, -r.a[0] * (scale / pow(r.norm(), 2)));
+      U.set(i, 3 * hole_idx + 2, r.a[1] * (scale / pow(r.norm(), 2)));
+      U.set(i + 1, 3 * hole_idx + 2, -r.a[0] * (scale / pow(r.norm(), 2)));
     }
   }
+  return U;
 }
 
 
-void initialize_Psi_mat(const std::vector<Hole>& holes,
-                        Boundary* boundary, ie_Mat* Psi) {
+ie_Mat initialize_Psi_mat(const std::vector<Hole>& holes, Boundary* boundary) {
+  ie_Mat Psi(3 * holes.size(), boundary->points.size());
   for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
     Vec2 x = Vec2(boundary->points[i], boundary->points[i + 1]);
     for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
       Hole hole = holes[hole_idx];
       if ((x - hole.center).norm() < hole.radius + 1e-8) {
-        Psi->set(3 * hole_idx, i, boundary->weights[i / 2]);
-        Psi->set(3 * hole_idx + 1, i + 1, boundary->weights[i / 2]);
-        Psi->set(3 * hole_idx + 2, i, boundary->weights[i / 2]*x.a[1]);
-        Psi->set(3 * hole_idx + 2, i + 1, -boundary->weights[i / 2]*x.a[0]);
+        Psi.set(3 * hole_idx, i, boundary->weights[i / 2]);
+        Psi.set(3 * hole_idx + 1, i + 1, boundary->weights[i / 2]);
+        Psi.set(3 * hole_idx + 2, i, boundary->weights[i / 2]*x.a[1]);
+        Psi.set(3 * hole_idx + 2, i + 1, -boundary->weights[i / 2]*x.a[0]);
         break;
       }
     }
   }
+  return Psi;
 }
 
 
 // TODO(John) clean up this mess
-void schur_solve(const ie_solver_config & config,
-                 const Kernel& kernel, const IeSolverTools& ie_solver_tools,
-                 const QuadTree& quadtree,
-                 const std::vector<double>& domain_points, ie_Mat* solution) {
-  int solution_dimension = 1;
-  if (config.pde == ie_solver_config::STOKES) {
-    solution_dimension = 2;
-  }
-  ie_Mat f = config.boundary->boundary_values;
-  ie_Mat mu(config.num_boundary_points * solution_dimension, 1);
+void schur_solve(const QuadTree& quadtree, const ie_Mat& U, const ie_Mat& Psi,
+                 const ie_Mat& f, const ie_Mat& K_domain,
+                 const ie_Mat& U_forward,  ie_Mat* solution) {
+  ie_Mat ident(U.width(), U.width()), alpha(U.width(), 1),
+         Dinv_U(U.height(), U.width()), Psi_Dinv_U(U.width(), U.width()),
+         Dinv_u(U.height(), 1), Psi_Dinv_u(U.width(), 1),
+         right_vec(U.height(), 1), mu(U.height(),  1),
+         U_forward_alpha(solution->height(), 1);
 
-  std::vector<Hole> holes = config.boundary->holes;
-  int num_holes = holes.size();
-  ie_Mat alpha(3 * num_holes, 1);
-  ie_Mat U(config.num_boundary_points * solution_dimension, 3 * num_holes);
-  ie_Mat Psi(3 * num_holes, config.num_boundary_points * solution_dimension);
-
-  ie_Mat ident;
-  ident.eye(3 * num_holes);
-
-  initialize_U_mat(holes, config.boundary->points, &U);
-  initialize_Psi_mat(holes, config.boundary.get(), &Psi);
-
-  ie_Mat Dinv_U(config.num_boundary_points * solution_dimension, 3 * num_holes);
-
-  ie_solver_tools.solve(kernel, quadtree, &Dinv_U, U);
-
-  ie_Mat Psi_Dinv_U(3 * num_holes, 3 * num_holes);
+  ident.eye(U.width());
+  quadtree.solve(&Dinv_U, U);
   ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
-
   ie_Mat S = -ident - Psi_Dinv_U;
-
-  ie_Mat Dinv_u(config.num_boundary_points * solution_dimension, 1);
-  ie_solver_tools.solve(kernel, quadtree, &Dinv_u, f);
-
-  ie_Mat Psi_Dinv_u(3 * num_holes, 1);
+  quadtree.solve(&Dinv_u, f);
   ie_Mat::gemv(NORMAL, 1., Psi, Dinv_u, 0., &Psi_Dinv_u);
-
-  ie_Mat Sinv_Psi_Dinv_u(3 * num_holes, 1);
-
-  S.left_multiply_inverse(Psi_Dinv_u, &Sinv_Psi_Dinv_u);
-  alpha = -Sinv_Psi_Dinv_u;
-
-  ie_Mat right_vec(config.num_boundary_points * solution_dimension, 1);
-  ie_Mat::gemv(NORMAL, 1., U, Sinv_Psi_Dinv_u, 0., &right_vec);
-
+  S.left_multiply_inverse(Psi_Dinv_u, &alpha);
+  ie_Mat::gemv(NORMAL, 1., U, alpha, 0., &right_vec);
   right_vec += f;
-  ie_solver_tools.solve(kernel, quadtree, &mu, right_vec);
-
-  // This will be done as a sparse mat vec in the future, for now we do
-  // dense matvec
-
-  // QuadTree boundary_to_domain;
-  // boundary_to_domain.initialize_tree(config.boundary.get(),
-  //                                     domain_points, solution_dimension,
-  //                                     domain_dimension);
-  // ie_solver_tools.b2dskeletonize(kernel, &boundary_to_domain);
-  // ie_solver_tools.b2dsparse_matvec(kernel, boundary_to_domain, mu, &domain);
-
-  ie_Mat K_domain(config.domain_size * config.domain_size * solution_dimension,
-                  config.num_boundary_points * solution_dimension);
-  Initialization init;
-  init.InitializeDomainKernel(&K_domain,
-                              domain_points, config.domain_size, kernel,
-                              solution_dimension);
-
+  quadtree.solve(&mu, right_vec);
   ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
+  ie_Mat::gemv(NORMAL, 1., U_forward, -alpha, 0., &U_forward_alpha);
+  (*solution) += U_forward_alpha;
+}
 
-  ie_Mat U_forward(solution->height(), 3 * num_holes);
 
-  initialize_U_mat(holes, domain_points, &U_forward);
+// TODO(John) so config should be constant, currently the animation is hacked
+// together, some mild refactoring should be done to handle the perturbation of
+// the boundary which belongs to this constant class. The likely scenario is
+// going to be to remove the boundary from the config altogether.
+ie_Mat boundary_integral_solve(const ie_solver_config & config,
+                               Boundary* boundary, QuadTree* quadtree,
+                               const std::vector<double>& domain_points,
+                               bool is_time_trial) {
+  // Consider making init instead of constructor for readability
+  IeSolverTools ie_solver_tools(config.id_tol, config.is_strong_admissibility,
+                                config.solution_dimension,
+                                config.domain_dimension);
 
-  for (unsigned int i = 0; i < solution->height(); i += 2) {
+  Kernel kernel;
+  kernel.load(boundary, domain_points, config.pde,
+              config.solution_dimension, config.domain_dimension);
+
+  ie_solver_tools.skeletonize(kernel, quadtree);
+  if (is_time_trial) {
+    return ie_Mat(0, 0);
+  }
+  ie_Mat f = boundary->boundary_values;
+
+  int num_holes = boundary->holes.size();
+
+  ie_Mat U = initialize_U_mat(boundary->holes, boundary->points);
+  ie_Mat Psi = initialize_Psi_mat(boundary->holes,
+                                  boundary);
+  ie_Mat U_forward = initialize_U_mat(boundary->holes, domain_points);
+
+  ie_Mat K_domain(config.domain_size * config.domain_size *
+                  config.solution_dimension,
+                  boundary->weights.size() * config.solution_dimension);
+  Initialization init;
+  init.InitializeDomainKernel(&K_domain, domain_points,
+                              config.domain_size, kernel,
+                              config.solution_dimension);
+
+  for (unsigned int i = 0; i < U_forward.height(); i += 2) {
     Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
-    if (!config.boundary->is_in_domain(point)) {
-      for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+    if (!boundary->is_in_domain(point)) {
+      for (unsigned int hole_idx = 0; hole_idx < num_holes; hole_idx++) {
         U_forward.set(i, 3 * hole_idx, 0);
         U_forward.set(i + 1, 3 * hole_idx, 0);
         U_forward.set(i, 3 * hole_idx + 1, 0);
@@ -157,123 +154,10 @@ void schur_solve(const ie_solver_config & config,
       }
     }
   }
-  ie_Mat U_forward_alpha(solution->height(), 1);
-  ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
-
-  (*solution) += U_forward_alpha;
-}
-
-// TODO so config should be constant, currently the animation is hacked together,
-// some mild refactoring should be done to handle the perturbation of the boundary
-// which belongs to this constant class. The likely scenario is going to be to
-// remove the boundary from the config altogether. THIS IS URGENT.
-double boundary_integral_solve(ie_solver_config & config,
-                               std::vector<double>* skel_times) {
-  int domain_dimension = 2;
-  int solution_dimension = 1;
-  if (config.pde == ie_solver_config::STOKES) {
-    solution_dimension = 2;
-  }
-
-  bool is_time_trial = (skel_times != nullptr);
-  double id_tol = config.id_tol;
-
-  if (!is_time_trial && !config.testing) {
-    write_boundary_to_file(config.boundary->points);
-  }
-
-
-  QuadTree quadtree;
-  quadtree.initialize_tree(config.boundary.get(), std::vector<double>(),
-                           solution_dimension,
-                           domain_dimension);
-
-  if (!is_time_trial && !config.testing) {
-    quadtree.write_quadtree_to_file();
-  }
-
-  // Consider making init instead of constructor for readability
-  bool strong_admissibility =
-    (config.admissibility == ie_solver_config::STRONG);
-  IeSolverTools ie_solver_tools(id_tol, strong_admissibility,
-                                solution_dimension, domain_dimension);
-
-  std::vector<double> domain_points;
-  get_domain_points(config.domain_size, &domain_points, quadtree.min,
-                    quadtree.max);
-
-  Kernel kernel;
-  kernel.load(config.boundary.get(), domain_points, config.pde,
-              solution_dimension,
-              domain_dimension);
-
-  if (is_time_trial) {
-    double elapsed = 0;
-    for (int i = 0; i < TIMING_ITERATIONS; i++) {
-      double start = omp_get_wtime();
-      ie_solver_tools.skeletonize(kernel, &quadtree);
-      double end = omp_get_wtime();
-      elapsed += (end - start);
-      quadtree.reset();
-    }
-    skel_times->push_back(elapsed / TIMING_ITERATIONS);
-    return -1;
-  }
-
-
-  // for (int frame = 0; frame < 60; frame++) {
-
-  //   double x = 0.35 + 0.3 * (frame / 60);
-  //   double y = 0.35 ;
-
-  //   config.boundary->holes[0].center = Vec2(x, y);
-
-
-  //   double x1 = 0.65 - 0.3 * (frame / 60);
-  //   double y1 = 0.65;
-
-  //   config.boundary->holes[1].center = Vec2(x1, y1);
-
-
-
-  //   config.boundary->initialize(1000,
-  //                               config.boundary_condition);
-  //   config.num_boundary_points = config.boundary->weights.size();
-  //   quadtree.reset();
-  //   ie_solver_tools.skeletonize(kernel, &quadtree);
-  //   ie_Mat domain(config.domain_size * config.domain_size * solution_dimension, 1);
-
-  //   schur_solve(config, kernel, ie_solver_tools, quadtree, domain_points, &domain);
-  //   std::string filename = "output/bake/sol/" + std::to_string(frame)
-  //                          + ".txt";
-  //   write_solution_to_file(filename, domain, domain_points, solution_dimension);
-  // }
-
-  ie_solver_tools.skeletonize(kernel, &quadtree);
-
   ie_Mat domain_solution(config.domain_size * config.domain_size *
-                         solution_dimension, 1);
-
-  schur_solve(config, kernel, ie_solver_tools, quadtree, domain_points,
-              &domain_solution);
-
-  double error;
-  switch (config.pde) {
-    case ie_solver_config::LAPLACE:
-      error = laplace_error(domain_solution, config.id_tol, domain_points,
-                            config.boundary.get());
-      break;
-    case ie_solver_config::STOKES:
-      error = stokes_error(domain_solution, config.id_tol, domain_points,
-                           config.boundary.get());
-      break;
-  }
-
-  if (!config.testing) {
-    write_solution_to_file("output/data/ie_solver_solution.txt", domain_solution,
-                           domain_points, solution_dimension);
-  }
-  return error;
+                         config.solution_dimension, 1);
+  schur_solve(*quadtree, U, Psi, f, K_domain, U_forward, &domain_solution);
+  return domain_solution;
 }
 
 
@@ -291,6 +175,7 @@ void write_boundary_to_file(const std::vector<double>& points) {
     LOG::ERROR("Failed to open boundary output file!");
   }
 }
+
 
 void write_potential_to_file() {
   std::cout << "unimplemented" << std::endl;
@@ -413,7 +298,7 @@ double laplace_error(const ie_Mat & domain, double id_tol,
 }
 
 
-double stokes_error(const ie_Mat & domain_solution, double id_tol,
+double stokes_error(const ie_Mat& domain_solution, double id_tol,
                     const std::vector<double>& domain_points,
                     Boundary * boundary) {
   if (boundary->boundary_shape != Boundary::CIRCLE) {
@@ -461,6 +346,7 @@ double stokes_error(const ie_Mat & domain_solution, double id_tol,
   return total_diff / truth_size;
 }
 
+
 // TODO(John) this is missing the input of a Stokes Boundary Condition
 int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
   std::string usage = "\n\tusage: ./ie-solver "
@@ -472,13 +358,12 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
                       "-N {number of nodes} "
                       "-D {side length of square domain grid} "
                       "-e {ID error tolerance} "
-                      "{-scaling} {-strong}"
+                      "{-scaling} {-strong} {-animation}"
                       "\nOmitting an arg triggers a default value.";
   std::string boundary_name = "CIRCLE";
   std::string pde_name = "LAPLACE";
   std::string boundary_condition_name = "SINGLE_ELECTRON";
   // The default boundary is Circle, set it here.
-  config->boundary.reset(new Circle());
 
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-pde")) {
@@ -506,9 +391,11 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
       }
       i++;
     } else if (!strcmp(argv[i], "-strong")) {
-      config->admissibility = ie_solver_config::STRONG;
+      config->is_strong_admissibility = true;
     } else if (!strcmp(argv[i], "-scaling")) {
       config->scaling = true;
+    } else if (!strcmp(argv[i], "-animation")) {
+      config->animation = true;
     } else if (!strcmp(argv[i], "-h")) {
       LOG::log_level_ = LOG::LOG_LEVEL::INFO_;
       LOG::INFO(usage);
@@ -521,17 +408,18 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
     } else if (!strcmp(argv[i], "-boundary")) {
       if (i < argc - 1) {
         if (!strcmp(argv[i + 1], "CIRCLE")) {
-          config->boundary.reset(new Circle());
+          config->boundary_shape = Boundary::BoundaryShape::CIRCLE;
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE")) {
-          config->boundary.reset(new RoundedSquare());
+          config->boundary_shape = Boundary::BoundaryShape::ROUNDED_SQUARE;
         } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE_WITH_BUMP")) {
-          config->boundary.reset(new RoundedSquareWithBump());
+          config->boundary_shape =
+            Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP;
         } else if (!strcmp(argv[i + 1], "SQUIGGLY")) {
-          config->boundary.reset(new Squiggly());
+          config->boundary_shape = Boundary::BoundaryShape::SQUIGGLY;
         }  else if (!strcmp(argv[i + 1], "ANNULUS")) {
-          config->boundary.reset(new Annulus());
+          config->boundary_shape = Boundary::BoundaryShape::ANNULUS;
         } else if (!strcmp(argv[i + 1], "CUBIC_SPLINE")) {
-          config->boundary.reset(new CubicSpline());
+          config->boundary_shape = Boundary::BoundaryShape::CUBIC_SPLINE;
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])
                      + usage);
@@ -572,10 +460,12 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
   if (config->boundary_condition
       ==  ie_solver::Boundary::BoundaryCondition::STOKES
       || config->pde == ie_solver::ie_solver_config::STOKES) {
-    config->boundary_condition =  ie_solver::Boundary::BoundaryCondition::STOKES;
+    config->boundary_condition =
+      ie_solver::Boundary::BoundaryCondition::STOKES;
     config->pde = ie_solver::ie_solver_config::STOKES;
     boundary_condition_name = "STOKES";
     pde_name = "STOKES";
+    config->solution_dimension = 2;
   }
 
   LOG::INFO("PDE: " + pde_name);
@@ -588,14 +478,16 @@ int parse_input_into_config(int argc, char** argv, ie_solver_config * config) {
   if (config->scaling) {
     LOG::INFO("Scaling run");
   }
-  if (config->admissibility == ie_solver_config::STRONG) {
+  if (config->animation) {
+    LOG::INFO("Animation run");
+  }
+  if (config->is_strong_admissibility) {
     LOG::INFO("Strong admissibility");
   } else {
     LOG::INFO("Weak admissibility");
   }
 
   return 0;
-  // TODO(John) after parsing, print out input configuration
 }
 
 }  // namespace ie_solver

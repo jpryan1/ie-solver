@@ -1,14 +1,14 @@
 // Copyright 2019 John Paul Ryan
 #include <iostream>
 #include <cassert>
-#include "ie-solver/tools/ie_solver_tools.h"
+#include "ie-solver/quadtree.h"
 namespace ie_solver {
 
 // Sets vec(b) = vec(b) + mat*vec(a)
-void IeSolverTools::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
-                                       const std::vector<unsigned int>& a,
-                                       const std::vector<unsigned int>& b,
-                                       bool transpose = false) const {
+void QuadTree::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
+                                  const std::vector<unsigned int>& a,
+                                  const std::vector<unsigned int>& b,
+                                  bool transpose = false) const {
   if (a.size()*b.size() == 0) return;
   if (transpose) {
     assert(mat.height() == a.size());
@@ -29,8 +29,8 @@ void IeSolverTools::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
 
 
 // Sets vec(range) = mat * vec(range)
-void IeSolverTools::apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
-                                      const std::vector<unsigned int>& range)
+void QuadTree::apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
+                                 const std::vector<unsigned int>& range)
 const {
   if (range.size() == 0) return;
   ie_Mat product(range.size(), vec->width());
@@ -40,8 +40,8 @@ const {
 }
 
 
-void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
-    const std::vector<unsigned int>& range) const {
+void QuadTree::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
+                                     const std::vector<unsigned int>& range) const {
   if (range.size() == 0) return;
   ie_Mat product(range.size(),  vec->width());
   mat.left_multiply_inverse((*vec)(range,  0, vec->width()), &product);
@@ -49,13 +49,11 @@ void IeSolverTools::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
 }
 
 
-void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
-                                  const ie_Mat& x,
-                                  ie_Mat* b) const {
+void QuadTree::sparse_matvec(const ie_Mat& x, ie_Mat* b) const {
   *b = x;
-  int lvls = tree.levels.size();
+  int lvls = levels.size();
   for (int level = lvls - 1; level >= 0; level--) {
-    QuadTreeLevel* current_level = tree.levels[level];
+    QuadTreeLevel* current_level = levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (!current_node->schur_updated) {
         continue;
@@ -79,7 +77,7 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
 
   // This can go through the tree in any order, is parallelizable
   for (int level = lvls - 1; level >= 0; level--) {
-    QuadTreeLevel* current_level = tree.levels[level];
+    QuadTreeLevel* current_level = levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (!current_node->schur_updated) {
         continue;
@@ -93,19 +91,14 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
   // with that in mind...
 
   std::vector<unsigned int> allskel =
-    tree.root->src_dof_lists.active_box;
+    root->src_dof_lists.active_box;
 
   if (allskel.size() > 0) {
-    ie_Mat allskel_mat(allskel.size(), allskel.size());
-
-    get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
-
-    allskel_mat = K(allskel, allskel) - allskel_mat;
     apply_diag_matrix(allskel_mat, b, allskel);
   }
 
   for (int level = 0; level < lvls; level++) {
-    QuadTreeLevel* current_level = tree.levels[level];
+    QuadTreeLevel* current_level = levels[level];
     // TODO(John) record in notes and explore the following observation:
     // changing the order of this for loop affects the accuracy of the
     // sparse_mat_vec on a random vector, BUT NOT THE SOLUTION ERROR
@@ -132,13 +125,12 @@ void IeSolverTools::sparse_matvec(const Kernel& K, const QuadTree& tree,
 }
 
 
-void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
-                          const ie_Mat& b) const {
+void QuadTree::solve(ie_Mat* x, const ie_Mat& b) const {
   assert(x->height() == b.height());
-  int lvls = tree.levels.size();
+  int lvls = levels.size();
   *x = b;
   for (int level = lvls - 1; level >= 0; level--) {
-    QuadTreeLevel* current_level = tree.levels[level];
+    QuadTreeLevel* current_level = levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (!current_node->schur_updated) {
         continue;
@@ -162,7 +154,7 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
   // This can go through the tree in any order, is parallelizable
 
   for (int level = lvls - 1; level >= 0; level--) {  // level>=0; level--){
-    QuadTreeLevel* current_level = tree.levels[level];
+    QuadTreeLevel* current_level = levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (current_node->src_dof_lists.redundant.size() == 0) continue;
       if (!current_node->schur_updated) {
@@ -181,11 +173,9 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
   // We need all of the skeleton indices. This is just the negation of
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
-  std::vector<unsigned int> allskel = tree.root->src_dof_lists.active_box;
+  std::vector<unsigned int> allskel = root->src_dof_lists.active_box;
+  allskel_mat.write_singular_values_to_file("allskel_sing_vals.txt");
   if (allskel.size() > 0) {
-    ie_Mat allskel_mat(allskel.size(), allskel.size());
-    get_all_schur_updates(&allskel_mat, allskel, tree.root, false);
-    allskel_mat = K(allskel, allskel) - allskel_mat;
     double cond2 = allskel_mat.condition_number();
     if (cond2 > 1000) {
       std::cout << "Allskel inv -- ";
@@ -194,7 +184,7 @@ void IeSolverTools::solve(const Kernel& K, const QuadTree& tree, ie_Mat* x,
     apply_diag_inv_matrix(allskel_mat, x, allskel);
   }
   for (int level = 0; level < lvls; level++) {
-    QuadTreeLevel* current_level = tree.levels[level];
+    QuadTreeLevel* current_level = levels[level];
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
       // for(unsigned int n = 0; n < current_level->nodes.size(); n++){
 

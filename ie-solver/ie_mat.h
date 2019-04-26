@@ -4,6 +4,7 @@
 
 #include <cblas.h>
 #include <vector>
+#include <string>
 
 #define NORMAL CblasNoTrans
 #define TRANSPOSE CblasTrans
@@ -15,7 +16,6 @@ struct ie_Mat {
   // storage is column major, so by default lda is the height.
   double *mat;
   unsigned int lda_, height_, width_;
-
   ie_Mat();
   ~ie_Mat();
 
@@ -54,7 +54,7 @@ struct ie_Mat {
   ie_Mat& operator-=(const ie_Mat& o);
   ie_Mat& operator+=(const ie_Mat& o);
   ie_Mat& operator*=(double o);
-  
+
   ie_Mat operator-() const;
   ie_Mat operator-(const ie_Mat& o) const;
   ie_Mat operator+(const ie_Mat& o) const;
@@ -72,6 +72,8 @@ struct ie_Mat {
 
   double one_norm() const;
   double frob_norm() const;
+  void write_singular_values_to_file(const std::string& filename) const;
+
 
   // This function stores the DoF data, and calculates the diagonals of the
   // mat.

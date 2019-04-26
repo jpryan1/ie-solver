@@ -70,24 +70,13 @@ class QuadTree {
   std::vector<double> domain_points;
   QuadTreeNode* root;
   std::vector<QuadTreeLevel*> levels;
-
-  ~QuadTree() {
-    for (QuadTreeLevel* level : levels) {
-      for (QuadTreeNode* node : level->nodes) {
-        delete node;
-      }
-    }
-    for (QuadTreeLevel* level : levels) {
-      if (level) {
-        delete level;
-      }
-    }
-    levels.clear();
-  }
-
-  void reset();
-  void reset(Boundary* boundary_);
-
+  ie_Mat allskel_mat;
+  
+  //////////////////////
+  // TREE CONSTRUCTION
+  //////////////////////
+  
+  ~QuadTree();
   void initialize_tree(Boundary* boundary,
                        const std::vector<double>& domain_points,
                        int solution_dimension_,
@@ -97,14 +86,36 @@ class QuadTree {
                      unsigned int mat_ind, bool is_boundary);
   void get_descendent_neighbors(QuadTreeNode* big, QuadTreeNode* small);
   void node_subdivide(QuadTreeNode* node);
+  void reset();
+  void reset(Boundary* boundary_);
 
+  ////////////////
+  // PRINTING
+  ////////////////
+  
   void write_quadtree_to_file();
+
+  ////////////////
+  // UPDATING
+  ////////////////
 
   void mark_neighbors_and_parents(QuadTreeNode* node);
   void perturb(const Boundary& new_boundary);
 
-  // void print();
-  // void rec_print(QuadTreeNode*);
+  ////////////////
+  // SOLVING
+  ////////////////
+  
+  void apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
+                          const std::vector<unsigned int>& a,
+                          const std::vector<unsigned int>& b, bool transpose) const;
+  void apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
+                         const std::vector<unsigned int>& range) const;
+  void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
+                             const std::vector<unsigned int>& range) const ;
+  void sparse_matvec(const ie_Mat& x, ie_Mat* b) const ;
+  
+  void solve(ie_Mat* x, const ie_Mat& b) const;
 };
 
 }  // namespace ie_solver

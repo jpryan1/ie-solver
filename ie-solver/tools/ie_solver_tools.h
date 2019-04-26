@@ -35,8 +35,8 @@ class IeSolverTools {
   void schur_update(const Kernel& K, QuadTreeNode* node);
   int interpolative_decomposition(const Kernel& K, const QuadTree* tree,
                                   QuadTreeNode* node);
-  int b2dinterpolative_decomposition(const Kernel& K, const QuadTree* tree,
-                                     QuadTreeNode* node);
+  // int b2dinterpolative_decomposition(const Kernel& K, const QuadTree* tree,
+  //                                   QuadTreeNode* node);
 
   void get_all_schur_updates(ie_Mat* updates,
                              const std::vector<unsigned int>& BN,
@@ -47,26 +47,20 @@ class IeSolverTools {
   void get_update(ie_Mat* updates, const std::vector<unsigned int>& BN,
                   const QuadTreeNode* node) const;
 
-  void apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
-                          const std::vector<unsigned int>& a,
-                          const std::vector<unsigned int>& b, bool transpose) const;
-  void apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
-                         const std::vector<unsigned int>& range) const;
-  void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
-                             const std::vector<unsigned int>& range) const ;
-  void b2d_apply_diag_matrix(const ie_Mat& mat,
-                             const std::vector<unsigned int>& tgt,
-                             const std::vector<unsigned int>& src,
-                             const ie_Mat& vec_in, ie_Mat* vec_out);
+ 
+  // void b2d_apply_diag_matrix(const ie_Mat& mat,
+  //                           const std::vector<unsigned int>& tgt,
+  //                           const std::vector<unsigned int>& src,
+  //                           const ie_Mat& vec_in, ie_Mat* vec_out);
 
   void skeletonize(const Kernel& K, QuadTree* tree);
-  void b2dskeletonize(const Kernel& K, QuadTree* tree);
+  // void b2dskeletonize(const Kernel& K, QuadTree* tree);
 
-  void sparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
+  void sparse_matvec(const QuadTree& tree, const ie_Mat& x,
                      ie_Mat* b)const ;
-  void b2dsparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
-                        ie_Mat* b);
-  void solve(const Kernel& K, const QuadTree& tree, ie_Mat* x, const ie_Mat& b) const;
+  // void b2dsparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
+  //                       ie_Mat* b);
+  void solve(const QuadTree& tree, ie_Mat* x, const ie_Mat& b) const;
 
   void check_factorization_against_kernel(const Kernel& kernel,
                                           QuadTree* tree);

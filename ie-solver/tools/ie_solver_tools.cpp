@@ -46,7 +46,7 @@ void IeSolverTools::check_factorization_against_kernel(const Kernel& kernel,
       basis.set(i, 0, 0);
     }
     basis.set(rand_y_idx, 0, 1.0);
-    sparse_matvec(kernel, *tree, basis, &b);
+    tree->sparse_matvec(basis, &b);
     for (unsigned int x = 0; x < rand_x_indices.size(); x++) {
       int rand_x_idx = rand_x_indices[x];
       A_hat.set(x, y, b.get(rand_x_idx, 0));

@@ -101,7 +101,9 @@ cc_library(
 cc_library(
 	name = "quadtree",
 	hdrs = ["quadtree.h"],
-	srcs = ["quadtree.cpp"],
+	srcs = ["quadtree.cpp",
+			"operators.cpp",
+],
 	deps = [":ie_mat",
 			"//ie-solver/boundaries"]
 )
@@ -118,7 +120,7 @@ cc_test(
 			"//ie-solver/boundaries",
 			":helpers",
       "@gtest//:gtest",
-      "@gtest//:gtest_main" 
+      "@gtest//:gtest_main"
     ],
   	linkopts = ["-llapacke",
 			"-llapack",

@@ -15,19 +15,19 @@ struct ie_solver_config {
     LAPLACE,
     STOKES
   };
-  enum Admissibility {
-    WEAK,
-    STRONG
-  };
   int num_boundary_points = DEFAULT_NUM_DISCRETIZATION_POINTS;
   int domain_size = DEFAULT_DOMAIN_SIZE;
+  int domain_dimension = 2;
+  int solution_dimension = 1;
   double id_tol = DEFAULT_ID_TOL;
   Pde pde = LAPLACE;
-  Admissibility admissibility = WEAK;
-  std::unique_ptr<Boundary> boundary;
+  bool is_strong_admissibility = false;
   Boundary::BoundaryCondition boundary_condition =
     Boundary::BoundaryCondition::SINGLE_ELECTRON;
+  Boundary::BoundaryShape boundary_shape =
+    Boundary::BoundaryShape::CIRCLE;
   bool scaling = false;
+  bool animation = false;
   bool testing = false;
   std::ofstream n_scaling_output, error_scaling_output;
 };
