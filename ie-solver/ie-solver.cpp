@@ -126,8 +126,23 @@ void run_single_solve(const ie_solver_config & config) {
 
   ie_Mat solution = boundary_integral_solve(config, boundary.get(), &quadtree,
                     domain_points);
-  double error = stokes_error(solution, config.id_tol, domain_points,
-                              boundary.get());
+
+  write_solution_to_file("output/data/ie_solver_solution.txt", solution,
+                         domain_points, config.solution_dimension);
+  write_boundary_to_file(boundary->points);
+  quadtree.write_quadtree_to_file();
+
+  double error;
+  switch (config.pde) {
+    case ie_solver_config::Pde::LAPLACE:
+      error = laplace_error(solution, config.id_tol, domain_points,
+                            boundary.get());
+      break;
+    case ie_solver_config::Pde::STOKES:
+      error = stokes_error(solution, config.id_tol, domain_points,
+                           boundary.get());
+      break;
+  }
   std::cout << "Error: " << error << std::endl;
 }
 

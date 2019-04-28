@@ -76,7 +76,7 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
         break;
     }
   }
-  
+
   for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
     Hole hole = holes[hole_idx];
     int start_idx = N + hole_dofs * hole_idx;
