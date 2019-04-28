@@ -28,9 +28,10 @@ void Circle::initialize(int N, BoundaryCondition bc) {
     curvatures.push_back(4);  // 1/r, r=0.25
     weights.push_back(M_PI / (N * 2));
 
-    double potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
+    double potential;
     switch (boundary_condition) {
       case BoundaryCondition::SINGLE_ELECTRON:
+        potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
         boundary_values.set(i, 0, potential);
         break;
       case BoundaryCondition::ALL_ONES:
@@ -38,8 +39,8 @@ void Circle::initialize(int N, BoundaryCondition bc) {
         break;
       case BoundaryCondition::BUMP_FUNCTION: {
         double N = boundary_values.height();
-        double x_val = -1 * ((N - 1.0 - i) / (N - 1.0))
-                       + (i / (N - 1.0));
+        // This x_val is -1 at i=0 and +1 at i=N-1
+        double x_val = ((2.0 * i + 1.0 - N) / (N - 1.0));
         potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
         boundary_values.set(i, 0, potential);
         break;

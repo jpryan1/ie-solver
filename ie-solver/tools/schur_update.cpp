@@ -7,7 +7,7 @@ namespace ie_solver {
 
 void IeSolverTools::get_all_schur_updates(ie_Mat* updates,
     const std::vector<unsigned int>& BN, const QuadTreeNode* node,
-    bool get_neighbors) {
+    bool get_neighbors) const {
   assert(node != nullptr && "get_all_schur_updates fails on null node.");
   assert(BN.size() > 0 && "get_all_schur_updates needs positive num of DOFs");
   if (!node->is_leaf) get_descendents_updates(updates, BN, node);
@@ -23,7 +23,7 @@ void IeSolverTools::get_all_schur_updates(ie_Mat* updates,
 
 
 void IeSolverTools::get_descendents_updates(ie_Mat* updates,
-    const std::vector<unsigned int>& BN, const QuadTreeNode* node) {
+    const std::vector<unsigned int>& BN, const QuadTreeNode* node)  const {
   assert(node != nullptr && "get_descendents_updates fails on null node.");
   assert(!node->is_leaf &&
          "get_descendents_updates must be called on non-leaf.");
@@ -38,7 +38,7 @@ void IeSolverTools::get_descendents_updates(ie_Mat* updates,
 
 void IeSolverTools::get_update(ie_Mat* update,
                                const std::vector<unsigned int>& BN,
-                               const QuadTreeNode* node) {
+                               const QuadTreeNode* node)  const {
   // node needs to check all its dofs against BN, enter interactions into
   // corresponding locations
   // node only updated its own BN dofs, and the redundant ones are no longer

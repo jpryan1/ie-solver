@@ -1,11 +1,11 @@
 // Copyright 2019 John Paul Ryan
-
 #include <string.h>
 #include <lapacke.h>
 #include <omp.h>
 #include <string>
 #include <cassert>
 #include <iostream>
+#include <fstream>
 #include "ie-solver/ie_mat.h"
 #include "ie-solver/log.h"
 
@@ -111,13 +111,52 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
   }
 }
 
-void ie_Mat::set_submatrix(int row_s, int row_e, int col_s, int col_e,
+
+void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
+                           unsigned int col_s, unsigned int col_e,
                            const ie_Mat& A) {
-  for (int i = row_s; i < row_e; i++) {
-    for (int j = col_s; j < col_e; j++) {
-      set(i, j, A.get(i - row_s, j - col_s));
+  assert(row_e - row_s == A.height_ && col_e - col_s == A.width_);
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      set(i + row_s, j + col_s, A.get(i, j));
     }
   }
+}
+
+
+void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
+                           unsigned int col_s, unsigned int col_e,
+                           const ie_Mat& A) {
+  assert(I_.size() == A.height_ &&  col_e - col_s  == A.width_);
+  for (unsigned int i = 0; i < I_.size(); i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      set(I_[i], j + col_s, A.get(i, j));
+    }
+  }
+}
+
+
+void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
+                           const std::vector<unsigned int>& J_,
+                           const ie_Mat& A) {
+  assert(row_e - row_s == A.height_ && J_.size() == A.width_);
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < J_.size(); j++) {
+      set(i + row_s, J_[j], A.get(i, j));
+    }
+  }
+}
+
+
+ie_Mat ie_Mat::operator()(unsigned int row_s, unsigned int row_e,
+                          unsigned int col_s, unsigned int col_e) const {
+  ie_Mat submatrix(row_e - row_s, col_e - col_s);
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      submatrix.set(i, j, this->get(i + row_s, j + col_s));
+    }
+  }
+  return submatrix;
 }
 
 
@@ -133,6 +172,20 @@ void ie_Mat::transpose_into(ie_Mat* transpose) const {
     for (unsigned int j = 0; j < width_; j++) {
       transpose->set(j, i, get(i, j));
     }
+  }
+}
+
+
+void ie_Mat::eye(unsigned int n) {
+  if (width_ != n || height_ != n || lda_ != n) {
+    if (mat) delete[] mat;
+    lda_    = n;
+    height_ = n;
+    width_  = n;
+    mat     = new double[height_ * width_];
+  }
+  for (unsigned int i = 0; i < n; i++) {
+    set(i, i, 1.0);
   }
 }
 
@@ -180,6 +233,52 @@ ie_Mat& ie_Mat::operator*=(double o) {
 }
 
 
+ie_Mat ie_Mat::operator-() const {
+  ie_Mat result(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      result.set(i, j, -this->get(i, j));
+    }
+  }
+  return result;
+}
+
+
+ie_Mat ie_Mat::operator-(const ie_Mat& o) const {
+  assert(o.height_ == height_ && o.width_ == width_);
+  ie_Mat result(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      result.set(i, j, this->get(i, j) - o.get(i, j));
+    }
+  }
+  return result;
+}
+
+
+ie_Mat ie_Mat::operator+(const ie_Mat& o) const {
+  assert(o.height_ == height_ && o.width_ == width_);
+  ie_Mat sum(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      sum.set(i, j, this->get(i, j) + o.get(i, j));
+    }
+  }
+  return sum;
+}
+
+
+ie_Mat ie_Mat::operator*(double o) const {
+  ie_Mat result(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      result.set(i, j, this->get(i, j) *o);
+    }
+  }
+  return result;
+}
+
+
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
 ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
                           const std::vector<unsigned int>& J_) const {
@@ -189,6 +288,34 @@ ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
     for (unsigned int j = 0; j < J_.size(); j++) {
       assert(I_[i] < height() && J_[j] < width());
       ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
+    }
+  }
+  return ret;
+}
+
+
+ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
+                          unsigned int col_s, unsigned int col_e) const {
+  ie_Mat ret(I_.size(), col_e - col_s);
+  int olda_ = I_.size();
+  for (unsigned int i = 0; i < I_.size(); i++) {
+    for (unsigned int j = 0; j < col_e - col_s; j++) {
+      assert(I_[i] < height() && col_s + j < width());
+      ret.mat[i + olda_ * j] = get(I_[i], col_s + j);
+    }
+  }
+  return ret;
+}
+
+
+ie_Mat ie_Mat::operator()(unsigned int row_s, unsigned int row_e,
+                          const std::vector<unsigned int>& J_) const {
+  ie_Mat ret(row_e - row_s, J_.size());
+  int olda_ = row_e - row_s;
+  for (unsigned int i = 0; i < row_e - row_s; i++) {
+    for (unsigned int j = 0; j < J_.size(); j++) {
+      assert(row_s + i < height() && J_[j] < width());
+      ret.mat[i + olda_ * j] = get(row_s + i, J_[j]);
     }
   }
   return ret;
@@ -239,7 +366,6 @@ void ie_Mat::rand_vec(unsigned int dofs) {
 void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
   // X^-1K = U
   // aka, XU = K
-
   // TODO(John) insert asserts for these functions
   ie_Mat X_copy = *this;
   *U = K;
@@ -294,7 +420,8 @@ double ie_Mat::condition_number() const {
   return 1.0 / rcond;
 }
 
-// Performs interpolative decomposition, and eturns number of skeleton columns.
+
+// Performs interpolative decomposition, and returns number of skeleton columns.
 // Takes double /tol/, tolerance factorfor error in CPQR factorization.
 // Populates /p/ with permutation, Z with linear transformation.
 int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
@@ -312,7 +439,6 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   unsigned int skel = 0;
 
   double thresh = fabs(tol * cpy.get(0, 0));
-
   for (unsigned int i = 1; i < width_; i++) {
     // check if R_{i,i} / R_{0,0} < tol
     if (fabs(cpy.get(i, i)) < thresh) {
@@ -337,11 +463,7 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
                              cpy.lda_);
 
   assert(info2 == 0);
-  std::vector<unsigned int> I_;
-  std::vector<unsigned int> J_;
-  for (unsigned int i = 0; i < skel; i++) I_.push_back(i);
-  for (unsigned int i = skel; i < skel + redund; i++) J_.push_back(i);
-  *Z = cpy(I_, J_);
+  *Z = cpy(0, skel, skel, skel + redund);
   return skel;
 }
 
@@ -378,6 +500,29 @@ void ie_Mat::print() const {
 }
 
 
+void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
+  std::ofstream output;
+  output.open(filename);
+
+  ie_Mat cpy = *this;
+  std::vector<double> superb(height());
+  std::vector<double> sing(height());
+  lapack_int info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'N', 'N',
+                                   height(), width(), cpy.mat,
+                                   lda_, &(sing[0]), nullptr,
+                                   height(), nullptr, width(),
+                                   &(superb[0]));
+  if (output.is_open()) {
+    for (unsigned int i = 0; i < sing.size(); i++) {
+      output << sing[i] << std::endl;
+    }
+    output.close();
+  } else {
+    printf("Failed to open singular values output file!\n");
+  }
+}
+
+
 void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
                   const ie_Mat& x, double beta, ie_Mat* b) {
   assert(A.height()*A.width()*x.height()*x.width() != 0 &&
@@ -391,6 +536,7 @@ void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
   cblas_dgemv(CblasColMajor, trans0, A.height(), A.width(), alpha, A.mat,
               A.lda_, x.mat, 1, beta, b->mat, 1);
 }
+
 
 void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
                   double alpha, const ie_Mat& A, const ie_Mat& B, double beta,

@@ -15,6 +15,20 @@ namespace ie_solver {
 typedef std::pair<double, double> pair;
 unsigned int QuadTreeNode::id_count = 0;
 
+QuadTree::~QuadTree() {
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      delete node;
+    }
+  }
+  for (QuadTreeLevel* level : levels) {
+    if (level) {
+      delete level;
+    }
+  }
+  levels.clear();
+}
+
 
 void QuadTree::initialize_tree(Boundary* boundary_,
                                const std::vector<double>& domain_points_,
@@ -84,12 +98,13 @@ void QuadTree::initialize_tree(Boundary* boundary_,
       //             << no_proxy_level << " threshold " <<
       //             0.25 * solution_dimension *
       //             (boundary->points.size() /
-      //              domain_dimension)  << " total " <<
+      //               domain_dimension)  << " total " <<
       //             node_a->src_dof_lists.original_box.size()
       //             << std::endl;
       // } else {
       //   std::cout << level << " " << no_proxy_level << std::endl;
-      //   std::cout << node_a->src_dof_lists.original_box.size()  << " > " << 0.25 *
+      //   std::cout << node_a->src_dof_lists.original_box.size()  <<
+      //  " > " << 0.25 *
       //             solution_dimension * (boundary->points.size() /
       //                                   domain_dimension) << std::endl;
       // }
@@ -574,7 +589,9 @@ void QuadTree::reset(Boundary * boundary_) {
     if (level) {
       delete level;
     }
-  } levels.clear(); QuadTreeNode::id_count = 0;
+  }
+  levels.clear();
+  QuadTreeNode::id_count = 0;
   initialize_tree(boundary_, domain_points, solution_dimension,
                   domain_dimension);
 }

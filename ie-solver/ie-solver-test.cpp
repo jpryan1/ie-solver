@@ -158,89 +158,90 @@ TEST(IeSolverTest, LaplaceEllipsesElectronSmallError) {
   EXPECT_LE(error, 1e-4);
 }
 
-TEST(IeSolverTest, LaplaceRoundedSquareElectronTinyError) {
-  srand(0);
-  ie_solver_config config = ie_solver_config();
-  config.boundary.reset(new RoundedSquare());
-  config.testing = true;
-  config.id_tol = 1e-10;
 
-  // First we init the boundary so we can correct the num_boundary_points
-  config.boundary->initialize(config.num_boundary_points,
-                              config.boundary_condition);
-  config.num_boundary_points = config.boundary->weights.size();
-  double error = boundary_integral_solve(config, nullptr);
-  EXPECT_GE(error, 0);
-  EXPECT_LE(error, 1e-8);
-}
-
-
-TEST(IeSolverTest, LaplaceRoundedSquareWithBumpElectronTinyError) {
-  srand(0);
-  ie_solver_config config = ie_solver_config();
-  config.boundary.reset(new RoundedSquareWithBump());
-  config.testing = true;
-  config.id_tol = 1e-10;
-
-  // First we init the boundary so we can correct the num_boundary_points
-  config.boundary->initialize(config.num_boundary_points,
-                              config.boundary_condition);
-  config.num_boundary_points = config.boundary->weights.size();
-  double error = boundary_integral_solve(config, nullptr);
-  EXPECT_GE(error, 0);
-  EXPECT_LE(error, 1e-8);
-}
+// The below tests await a fast quadrature rule
+// TEST(IeSolverTest, LaplaceRoundedSquareElectronTinyError) {
+//   srand(0);
+//   ie_solver_config config = ie_solver_config();
+//   config.boundary.reset(new RoundedSquare());
+//   config.testing = true;
+//   config.id_tol = 1e-10;
+//   // First we init the boundary so we can correct the num_boundary_points
+//   config.boundary->initialize(config.num_boundary_points,
+//                               config.boundary_condition);
+//   config.num_boundary_points = config.boundary->weights.size();
+//   double error = boundary_integral_solve(config, nullptr);
+//   EXPECT_GE(error, 0);
+//   EXPECT_LE(error, 1e-8);
+// }
 
 
+// TEST(IeSolverTest, LaplaceRoundedSquareWithBumpElectronTinyError) {
+//   srand(0);
+//   ie_solver_config config = ie_solver_config();
+//   config.boundary.reset(new RoundedSquareWithBump());
+//   config.testing = true;
+//   config.id_tol = 1e-10;
 
-TEST(IeSolverTest, LaplaceSquigglyElectronTinyError) {
-  srand(0);
-  ie_solver_config config = ie_solver_config();
-  config.boundary.reset(new Squiggly());
-  config.testing = true;
-  config.id_tol = 1e-10;
-
-  // First we init the boundary so we can correct the num_boundary_points
-  config.boundary->initialize(config.num_boundary_points,
-                              config.boundary_condition);
-  config.num_boundary_points = config.boundary->weights.size();
-  double error = boundary_integral_solve(config, nullptr);
-  EXPECT_GE(error, 0);
-  EXPECT_LE(error, 1e-8);
-}
-
-
-TEST(IeSolverTest, LaplaceCubicSplineElectronTinyError) {
-  srand(0);
-  ie_solver_config config = ie_solver_config();
-  config.boundary.reset(new CubicSpline());
-  config.testing = true;
-  config.id_tol = 1e-10;
-
-  // First we init the boundary so we can correct the num_boundary_points
-  config.boundary->initialize(config.num_boundary_points,
-                              config.boundary_condition);
-  config.num_boundary_points = config.boundary->weights.size();
-  double error = boundary_integral_solve(config, nullptr);
-  EXPECT_GE(error, 0);
-  EXPECT_LE(error, 1e-8);
-}
+//   // First we init the boundary so we can correct the num_boundary_points
+//   config.boundary->initialize(config.num_boundary_points,
+//                               config.boundary_condition);
+//   config.num_boundary_points = config.boundary->weights.size();
+//   double error = boundary_integral_solve(config, nullptr);
+//   EXPECT_GE(error, 0);
+//   EXPECT_LE(error, 1e-8);
+// }
 
 
-TEST(IeSolverTest, LaplaceEllipsesElectronTinyError) {
-  srand(0);
-  ie_solver_config config = ie_solver_config();
-  config.boundary.reset(new Ellipses());
-  config.testing = true;
-  config.id_tol = 1e-10;
 
-  // First we init the boundary so we can correct the num_boundary_points
-  config.boundary->initialize(config.num_boundary_points,
-                              config.boundary_condition);
-  config.num_boundary_points = config.boundary->weights.size();
-  double error = boundary_integral_solve(config, nullptr);
-  EXPECT_GE(error, 0);
-  EXPECT_LE(error, 1e-8);
-}
+// TEST(IeSolverTest, LaplaceSquigglyElectronTinyError) {
+//   srand(0);
+//   ie_solver_config config = ie_solver_config();
+//   config.boundary.reset(new Squiggly());
+//   config.testing = true;
+//   config.id_tol = 1e-10;
+
+//   // First we init the boundary so we can correct the num_boundary_points
+//   config.boundary->initialize(config.num_boundary_points,
+//                               config.boundary_condition);
+//   config.num_boundary_points = config.boundary->weights.size();
+//   double error = boundary_integral_solve(config, nullptr);
+//   EXPECT_GE(error, 0);
+//   EXPECT_LE(error, 1e-8);
+// }
+
+
+// TEST(IeSolverTest, LaplaceCubicSplineElectronTinyError) {
+//   srand(0);
+//   ie_solver_config config = ie_solver_config();
+//   config.boundary.reset(new CubicSpline());
+//   config.testing = true;
+//   config.id_tol = 1e-10;
+
+//   // First we init the boundary so we can correct the num_boundary_points
+//   config.boundary->initialize(config.num_boundary_points,
+//                               config.boundary_condition);
+//   config.num_boundary_points = config.boundary->weights.size();
+//   double error = boundary_integral_solve(config, nullptr);
+//   EXPECT_GE(error, 0);
+//   EXPECT_LE(error, 1e-8);
+// }
+
+
+// TEST(IeSolverTest, LaplaceEllipsesElectronTinyError) {
+//   srand(0);
+//   ie_solver_config config = ie_solver_config();
+//   config.boundary.reset(new Ellipses());
+//   config.testing = true;
+//   config.id_tol = 1e-10;
+
+//   // First we init the boundary so we can correct the num_boundary_points
+//   config.boundary->initialize(config.num_boundary_points,
+//                               config.boundary_condition);
+//   config.num_boundary_points = config.boundary->weights.size();
+//   double error = boundary_integral_solve(config, nullptr);
+//   EXPECT_GE(error, 0);
+//   EXPECT_LE(error, 1e-8);
+// }
 
 }  // namespace ie_solver

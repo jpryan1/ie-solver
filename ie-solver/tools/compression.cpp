@@ -20,7 +20,6 @@ int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
 
   std::vector<unsigned int> p;
   unsigned int numskel = pxy.id(&p, &node->T, id_tol);
-
   if (numskel == 0) return 0;
   set_rs_ranges(&node->src_dof_lists, p, node->T.height(),
                 node->T.width());
@@ -205,6 +204,13 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
   // boxes up the tree.
   // std::cout << "Final count " << active_dofs << std::endl;
   populate_all_active_boxes(tree);
+  
+  std::vector<unsigned int> allskel = tree->root->src_dof_lists.active_box;
+  if (allskel.size() > 0) {
+    ie_Mat allskel_mat(allskel.size(), allskel.size());
+    get_all_schur_updates(&allskel_mat, allskel, tree->root, false);
+    tree->allskel_mat = kernel(allskel, allskel) - allskel_mat;
+  }
   // check_factorization_against_kernel(kernel, tree);
 }
 

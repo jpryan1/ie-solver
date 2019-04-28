@@ -34,18 +34,19 @@ struct Kernel {
   ie_Mat stokes_kernel(const Dof& a, const Dof& b) const;
   ie_Mat laplace_kernel(const Dof& a, const Dof& b) const;
 
-  void load(Boundary* boundary, const std::vector<double>& domain_points, ie_solver_config::Pde pde,
-    int solution_dimension, int domain_dimension);
+  void load(Boundary* boundary, const std::vector<double>& domain_points,
+            ie_solver_config::Pde pde, int solution_dimension,
+            int domain_dimension);
 
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_) const;
-                    
+
   ie_Mat forward_get(const std::vector<unsigned int>& I_,
-                          const std::vector<unsigned int>& J_) const;
-                    
+                     const std::vector<unsigned int>& J_) const;
+
   ie_Mat operator()(const std::vector<Dof>& tgts,
-                          const std::vector<Dof>& srcs) const;
+                    const std::vector<Dof>& srcs) const;
 };  // struct
 
 }  // namespace ie_solver

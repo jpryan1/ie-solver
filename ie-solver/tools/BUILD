@@ -7,7 +7,6 @@ cc_library(
 			"schur_update.cpp",
 			"compression.cpp",
 			"boundary_to_domain.cpp",
-			"operators.cpp",
 			"proxy.cpp"],
 	deps = ["//ie-solver:ie_mat",
 			"//ie-solver:quadtree",

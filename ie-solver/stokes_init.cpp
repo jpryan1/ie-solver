@@ -11,7 +11,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& normals,
     const std::vector<double>& weights,
     const std::vector<double>& domain_points, int test_size,
-    Kernel* kernel) {
+    const Kernel& kernel) {
   // columns for phi (aka dofs), rows for spatial domain
 
   assert(points.size() == normals.size() &&
@@ -21,7 +21,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
 
   for (int i = 0; i < test_size * test_size; i++) {
     Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
-    bool in_domain = kernel->boundary->is_in_domain(x);
+    bool in_domain = kernel.boundary->is_in_domain(x);
     for (unsigned int j = 0; j < points.size(); j += 2) {
       if (!in_domain) {
         K->set(2 * i  , j  , 0);
@@ -40,7 +40,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
       b.point = y;
       b.normal = Vec2(normals[j], normals[j + 1]);
       b.weight = weights[j / 2];
-      ie_Mat tensor = kernel->stokes_kernel(a, b);
+      ie_Mat tensor = kernel.stokes_kernel(a, b);
 
       K->set(2 * i  , j  , tensor.get(0, 0));
       K->set(2 * i + 1, j  , tensor.get(1, 0));

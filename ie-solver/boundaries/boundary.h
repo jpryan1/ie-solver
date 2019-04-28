@@ -8,17 +8,23 @@
 
 namespace ie_solver {
 
+struct Hole {
+  Vec2 center;
+  double radius;
+};
+
 class Boundary {
  public:
   int perturbation_size = 0;
   std::vector<double> points, normals, curvatures, weights;
+  std::vector<Hole> holes;
   ie_Mat boundary_values;
   enum BoundaryShape {
     CIRCLE,
     ROUNDED_SQUARE,
     ROUNDED_SQUARE_WITH_BUMP,
     SQUIGGLY,
-    ELLIPSES,
+    ANNULUS,
     CUBIC_SPLINE
   };
   enum BoundaryCondition {
