@@ -93,7 +93,6 @@ void run_time_trial(const ie_solver_config & config) {
 
 
 void run_single_solve(const ie_solver_config & config) {
-
   std::unique_ptr<Boundary> boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
@@ -115,7 +114,7 @@ void run_single_solve(const ie_solver_config & config) {
       boundary.reset(new CubicSpline());
       break;
   }
-
+  boundary->boundary_shape = config.boundary_shape;
   boundary->initialize(config.num_boundary_points, config.boundary_condition);
 
   QuadTree quadtree;

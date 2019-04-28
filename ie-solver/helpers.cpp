@@ -77,7 +77,6 @@ ie_Mat initialize_Psi_mat(const std::vector<Hole>& holes, Boundary* boundary) {
 }
 
 
-// TODO(John) clean up this mess
 void schur_solve(const QuadTree& quadtree, const ie_Mat& U, const ie_Mat& Psi,
                  const ie_Mat& f, const ie_Mat& K_domain,
                  const ie_Mat& U_forward,  ie_Mat* solution) {
@@ -103,10 +102,6 @@ void schur_solve(const QuadTree& quadtree, const ie_Mat& U, const ie_Mat& Psi,
 }
 
 
-// TODO(John) so config should be constant, currently the animation is hacked
-// together, some mild refactoring should be done to handle the perturbation of
-// the boundary which belongs to this constant class. The likely scenario is
-// going to be to remove the boundary from the config altogether.
 ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                Boundary* boundary, QuadTree* quadtree,
                                const std::vector<double>& domain_points,
@@ -301,8 +296,20 @@ double laplace_error(const ie_Mat & domain, double id_tol,
 double stokes_error(const ie_Mat& domain_solution, double id_tol,
                     const std::vector<double>& domain_points,
                     Boundary * boundary) {
-  if (boundary->boundary_shape != Boundary::CIRCLE) {
-    std::cout << "Error: cannot check stokes error on non-circle" << std::endl;
+  if (boundary->boundary_shape != Boundary::ANNULUS) {
+    std::cout << "Error: cannot currently check stokes error on non-annulus" <<
+              std::endl;
+    return -1;
+  }
+  if (boundary->holes.size() != 1) {
+    std::cout << "Error: can only check error on boundary with one hole" <<
+              std::endl;
+    return -1;
+  } else if (boundary->holes[0].center.a[0] != 0.5
+             || boundary->holes[0].center.a[1] != 0.5
+             || boundary->holes[0].radius != 0.05) {
+    std::cout << "Error: can only check error on boundary with hole at center "
+              << "and radius 0.05" << std::endl;
     return -1;
   }
   double truth_size = 0;
