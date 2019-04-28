@@ -71,11 +71,11 @@ class QuadTree {
   QuadTreeNode* root;
   std::vector<QuadTreeLevel*> levels;
   ie_Mat allskel_mat;
-  
+
   //////////////////////
   // TREE CONSTRUCTION
   //////////////////////
-  
+
   ~QuadTree();
   void initialize_tree(Boundary* boundary,
                        const std::vector<double>& domain_points,
@@ -92,7 +92,7 @@ class QuadTree {
   ////////////////
   // PRINTING
   ////////////////
-  
+
   void write_quadtree_to_file();
 
   ////////////////
@@ -105,16 +105,17 @@ class QuadTree {
   ////////////////
   // SOLVING
   ////////////////
-  
+
   void apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
                           const std::vector<unsigned int>& a,
-                          const std::vector<unsigned int>& b, bool transpose) const;
+                          const std::vector<unsigned int>& b,
+                          bool transpose) const;
   void apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
                          const std::vector<unsigned int>& range) const;
   void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
-                             const std::vector<unsigned int>& range) const ;
-  void sparse_matvec(const ie_Mat& x, ie_Mat* b) const ;
-  
+                             const std::vector<unsigned int>& range) const;
+  void sparse_matvec(const ie_Mat& x, ie_Mat* b) const;
+
   void solve(ie_Mat* x, const ie_Mat& b) const;
 };
 
