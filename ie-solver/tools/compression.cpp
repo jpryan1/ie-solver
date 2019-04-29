@@ -17,7 +17,9 @@ int IeSolverTools::interpolative_decomposition(const Kernel& kernel,
   ie_Mat pxy;
 
   make_id_mat(kernel, &pxy, tree, node);
-
+  if (pxy.height() == 0) {
+    return 0;
+  }
   std::vector<unsigned int> p;
   unsigned int numskel = pxy.id(&p, &node->T, id_tol);
   if (numskel == 0) return 0;
@@ -149,6 +151,8 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
 void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
   int node_counter = 0;
+  int already_marked = 0;
+  int just_skelled = 0;
   unsigned int lvls = tree->levels.size();
   int active_dofs = tree->boundary->points.size() / 2;
   for (unsigned int level = lvls - 1; level > 0; level--) {
@@ -184,6 +188,7 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
       }
       QuadTreeNode* current_node = current_level->nodes[n];
       if (current_node->schur_updated) {
+        already_marked++;
         continue;
       }
       if (current_node->src_dof_lists.active_box.size()
@@ -197,6 +202,7 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
       if (redundants == 0) {
         continue;
       }
+      just_skelled++;
       schur_update(kernel, current_node);
     }
   }
@@ -204,13 +210,16 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
   // boxes up the tree.
   // std::cout << "Final count " << active_dofs << std::endl;
   populate_all_active_boxes(tree);
-  
+
   std::vector<unsigned int> allskel = tree->root->src_dof_lists.active_box;
   if (allskel.size() > 0) {
     ie_Mat allskel_mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_mat, allskel, tree->root, false);
     tree->allskel_mat = kernel(allskel, allskel) - allskel_mat;
   }
+  std::cout << "After skeletonization, " << already_marked <<
+            " were already marked, and " << just_skelled <<
+            " were just skelled" << std::endl;
   // check_factorization_against_kernel(kernel, tree);
 }
 

@@ -47,7 +47,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   max = boundary->points[0];
 
   double tree_min = 0;
-  double tree_max = 1.0;
+  double tree_max = 1;
 
   for (double point : boundary->points) {
     if (point < min) min = point;
@@ -470,7 +470,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       additions.push_back(i);
     }
   }
-  //TODO(John) the below needs to be changed for stokes
+  // TODO(John) the below needs to be changed for stokes
   // go through all leaf original box vectors and apply mapping.
   // (if there is a deletion it will be processed later)
   // each node will be one of three things

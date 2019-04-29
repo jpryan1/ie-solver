@@ -29,13 +29,21 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 
   if (holes.size() == 0) {
     Hole hole;
-    hole.center = Vec2(0.5, 0.5);
+    // hole.center = Vec2(0.5 + 0.1 * cos(M_PI / 4.0) ,
+    //                    0.5 + 0.1 * sin(M_PI / 4.0));
+    hole.center = Vec2(0.5 , 0.5);
     hole.radius = 0.05;
     holes.push_back(hole);
+
+    // hole.center = Vec2(0.4 , 0.5);
+    // // hole.center = Vec2(0.5 - 0.1 * cos(M_PI / 4.0) ,
+    // 0.5 - 0.1 * sin(M_PI / 4.0));
+    // hole.radius = 0.05;
+    // holes.push_back(hole);
   }
 
-  int hole_dofs = N / 5;;
-  int num_points = N + hole_dofs * holes.size();
+  int hole_nodes = N / 5;
+  int num_points = N + hole_nodes * holes.size();
 
   if (bc == BoundaryCondition::STOKES) {
     boundary_values = ie_Mat(2 * num_points, 1);
@@ -79,8 +87,8 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 
   for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
     Hole hole = holes[hole_idx];
-    int start_idx = N + hole_dofs * hole_idx;
-    int end_idx = N + hole_dofs * (hole_idx + 1);
+    int start_idx = N + hole_nodes * hole_idx;
+    int end_idx = N + hole_nodes * (hole_idx + 1);
     for (int i = start_idx; i < end_idx; i++) {
       double ang = (i - start_idx) * 2.0 * M_PI / (end_idx - start_idx);
       double x = hole.center.a[0] + hole.radius * cos(ang);
@@ -99,7 +107,7 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
           boundary_values.set(i, 0, potential);
           break;
         case BoundaryCondition::ALL_ONES:
-          boundary_values.set(i, 0, 1.0);
+          boundary_values.set(i, 0, 0.0);
           break;
         case BoundaryCondition::BUMP_FUNCTION: {
           double N = boundary_values.height();

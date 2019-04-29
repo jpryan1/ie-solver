@@ -25,45 +25,58 @@ namespace ie_solver {
 
 
 void run_animation(const ie_solver_config& config) {
-  std::unique_ptr<Boundary> boundary;
+  std::unique_ptr<Boundary> perturbed_boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
-      boundary.reset(new Circle());
+      // boundary.reset(new Circle());
+      perturbed_boundary.reset(new Circle());
       break;
     case Boundary::BoundaryShape::ROUNDED_SQUARE:
-      boundary.reset(new RoundedSquare());
+      // boundary.reset(new RoundedSquare());
+      perturbed_boundary.reset(new RoundedSquare());
       break;
     case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
-      boundary.reset(new RoundedSquareWithBump());
+      // boundary.reset(new RoundedSquareWithBump());
+      perturbed_boundary.reset(new RoundedSquareWithBump());
       break;
     case Boundary::BoundaryShape::SQUIGGLY:
-      boundary.reset(new Squiggly());
+      // boundary.reset(new Squiggly());
+      perturbed_boundary.reset(new Squiggly());
       break;
     case Boundary::BoundaryShape::ANNULUS:
-      boundary.reset(new Annulus());
+      // boundary.reset(new Annulus());
+      perturbed_boundary.reset(new Annulus());
       break;
     case Boundary::BoundaryShape::CUBIC_SPLINE:
-      boundary.reset(new CubicSpline());
+      // boundary.reset(new CubicSpline());
+      perturbed_boundary.reset(new CubicSpline());
       break;
   }
 
-  boundary->initialize(config.num_boundary_points, config.boundary_condition);
+  perturbed_boundary->initialize(config.num_boundary_points,
+                                 config.boundary_condition);
 
   QuadTree quadtree;
-  quadtree.initialize_tree(boundary.get(), std::vector<double>(),
+  quadtree.initialize_tree(perturbed_boundary.get(), std::vector<double>(),
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
   for (int frame = 0; frame < 15; frame++) {
-    double x = 0.4 + 0.2 * (frame / 15.0);
-    double y = 0.5;
-
-    boundary->holes[0].center = Vec2(x, y);
-    boundary->initialize(500, config.boundary_condition);
-    quadtree.reset(boundary.get());
-    ie_Mat solution = boundary_integral_solve(config, boundary.get(), &quadtree,
-                      domain_points);
+    double ang = (frame / 60.0) * 2 * M_PI;
+    perturbed_boundary->holes.clear();
+    Hole hole;
+    hole.center = Vec2(0.5 + 0.1 * cos(ang), 0.5 + 0.1 * sin(ang));
+    hole.radius = 0.05;
+    perturbed_boundary->holes.push_back(hole);
+    hole.center = Vec2(0.5 + 0.1 * cos(M_PI + ang),
+                       0.5 + 0.1 * sin(M_PI + ang));
+    hole.radius = 0.05;
+    perturbed_boundary->holes.push_back(hole);
+    perturbed_boundary->initialize(1000, config.boundary_condition);
+    quadtree.reset();//*(perturbed_boundary.get()));
+    ie_Mat solution = boundary_integral_solve(config, perturbed_boundary.get(),
+                      &quadtree, domain_points);
     std::string filename = "output/bake/sol/" + std::to_string(frame)  + ".txt";
     write_solution_to_file(filename, solution, domain_points,
                            config.solution_dimension);
@@ -126,6 +139,7 @@ void run_single_solve(const ie_solver_config & config) {
 
   ie_Mat solution = boundary_integral_solve(config, boundary.get(), &quadtree,
                     domain_points);
+  std::cout << "sol norm is " << solution.frob_norm() << std::endl;
 
   write_solution_to_file("output/data/ie_solver_solution.txt", solution,
                          domain_points, config.solution_dimension);

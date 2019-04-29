@@ -70,7 +70,7 @@ class QuadTree {
   std::vector<double> domain_points;
   QuadTreeNode* root;
   std::vector<QuadTreeLevel*> levels;
-  ie_Mat allskel_mat;
+  ie_Mat allskel_mat, U, Psi;
 
   //////////////////////
   // TREE CONSTRUCTION
@@ -117,6 +117,7 @@ class QuadTree {
   void sparse_matvec(const ie_Mat& x, ie_Mat* b) const;
 
   void solve(ie_Mat* x, const ie_Mat& b) const;
+  void multiply_connected_solve(ie_Mat* x, ie_Mat* alpha, const ie_Mat& b) const;
 };
 
 }  // namespace ie_solver

@@ -406,6 +406,13 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
 }
 
 
+ie_Mat ie_Mat::transpose() const {
+  ie_Mat transpose(width(), height());
+  transpose_into(&transpose);
+  return transpose;
+}
+
+
 double ie_Mat::condition_number() const {
   // TODO(John) this should be done without using LU factorization if possible?
   ie_Mat X_copy = *this;

@@ -47,6 +47,7 @@ struct ie_Mat {
 
   void transpose_into(ie_Mat* transpose) const;
   void eye(unsigned int n);
+  ie_Mat transpose() const;
 
   unsigned int height() const;
   unsigned int width() const;
