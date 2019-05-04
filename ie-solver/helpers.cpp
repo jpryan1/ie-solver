@@ -54,11 +54,11 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
                 (log(1 / r.norm()) +
                  (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
           U.set(i + 1, 3 * hole_idx, scale *
-                (log(1 / r.norm()) +
-                 (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
+                (
+                  (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
           U.set(i, 3 * hole_idx + 1, scale *
-                (log(1 / r.norm()) +
-                 (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
+                (
+                  (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
           U.set(i + 1, 3 * hole_idx + 1, scale *
                 (log(1 / r.norm()) +
                  (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
@@ -116,36 +116,53 @@ void schur_solve(const QuadTree & quadtree, const ie_Mat & U,
                  const ie_Mat & Psi,
                  const ie_Mat & f, const ie_Mat & K_domain,
                  const ie_Mat & U_forward,  ie_Mat * solution) {
-  ie_Mat mu(K_domain.width(),  1);
+
+  ie_Mat ident(U.width(), U.width()), alpha(U.width(), 1),
+         Dinv_U(U.height(), U.width()), Psi_Dinv_U(U.width(), U.width()),
+         Dinv_u(U.height(), 1), Psi_Dinv_u(U.width(), 1),
+         right_vec(U.height(), 1), mu(K_domain.width(),  1),
+         U_forward_alpha(solution->height(), 1);
+  // quadtree.multiply_connected_solve(&mu, &alpha, f);
+  // ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
+  // ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
+  // (*solution) += U_forward_alpha;
   if (U.width() == 0) {
     quadtree.solve(&mu, f);
     ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
     return;
   }
-  // ie_Mat ident(U.width(), U.width()), alpha(U.width(), 1),
-  //        Dinv_U(U.height(), U.width()), Psi_Dinv_U(U.width(), U.width()),
-  //        Dinv_u(U.height(), 1), Psi_Dinv_u(U.width(), 1),
-  //        right_vec(U.height(), 1), mu(K_domain.width(),  1),
-  //        U_forward_alpha(solution->height(), 1);
-  ie_Mat alpha(U.width(), 1), U_forward_alpha(solution->height(), 1);
-  quadtree.multiply_connected_solve(&mu, &alpha, f);
-  ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
-  ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
-  (*solution) += U_forward_alpha;
+  ident.eye(U.width());
+  quadtree.solve(&Dinv_U, U);
+    std::cout << "Dinv_u norm should be big, it is " << Dinv_U.frob_norm() <<
+            std::endl;
+  ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
+    std::cout << "Psi_Dinv_U norm should be big, it is " << Psi_Dinv_U.frob_norm() <<
+            std::endl;
+  ie_Mat S = -ident - Psi_Dinv_U;
+      std::cout << "S norm should be big, it is " << S.frob_norm() <<
+            std::endl;
 
-  // ident.eye(U.width());
-  // quadtree.solve(&Dinv_U, U);
-  // ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
-  // ie_Mat S = -ident - Psi_Dinv_U;
-  // quadtree.solve(&Dinv_u, f);
-  // ie_Mat::gemv(NORMAL, 1., Psi, Dinv_u, 0., &Psi_Dinv_u);
-  // S.left_multiply_inverse(Psi_Dinv_u, &alpha);
-  // ie_Mat::gemv(NORMAL, 1., U, alpha, 0., &right_vec);
-  // right_vec += f;
-  // quadtree.solve(&mu, right_vec);
-  // ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
-  // ie_Mat::gemv(NORMAL, 1., U_forward, -alpha, 0., &U_forward_alpha);
-  // (*solution) += U_forward_alpha;
+  quadtree.solve(&Dinv_u, f);
+  std::cout << "Dinv_u norm should be huge, it is " << Dinv_u.frob_norm() <<
+            std::endl;
+
+  ie_Mat test(f.height(), 1);
+  quadtree.sparse_matvec(f, &test);
+  test -= f;
+  std::cout << "Error should be big? it is " << test.frob_norm() << std::endl;
+  ie_Mat::gemv(NORMAL, 1., Psi, Dinv_u, 0., &Psi_Dinv_u);
+  std::cout << "Psi_Dinv_u norm should be huge, it is " << Psi_Dinv_u.frob_norm()
+            << std::endl;
+
+  S.left_multiply_inverse(Psi_Dinv_u, &alpha);
+    std::cout << "alpha norm should be huge, it is " << alpha.frob_norm()
+            << std::endl;
+  ie_Mat::gemv(NORMAL, 1., U, alpha, 0., &right_vec);
+  right_vec += f;
+  quadtree.solve(&mu, right_vec);
+  ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
+  ie_Mat::gemv(NORMAL, 1., U_forward, -alpha, 0., &U_forward_alpha);
+  (*solution) += U_forward_alpha;
 }
 
 
@@ -162,11 +179,16 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   kernel.load(boundary, domain_points, config.pde,
               config.solution_dimension, config.domain_dimension);
 
+
+  std::vector<unsigned int> alldofs;
+  for (int i = 0; i < boundary->points.size(); i++) alldofs.push_back(i);
+  ie_Mat whole_thing = kernel(alldofs, alldofs);
+
   ie_solver_tools.skeletonize(kernel, quadtree);
   if (is_time_trial) {
     return ie_Mat(0, 0);
   }
-  ie_Mat f = boundary->boundary_values;
+  ie_Mat f = whole_thing.problem_vec();  // boundary->boundary_values;
   int num_holes = boundary->holes.size();
   ie_Mat U = initialize_U_mat(config.pde, boundary->holes, boundary->points);
   ie_Mat Psi = initialize_Psi_mat(config.pde, boundary->holes,

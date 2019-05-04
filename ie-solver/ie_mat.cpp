@@ -374,6 +374,7 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
 
   LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
                  X_copy.lda_, &ipiv[0]);
+
   int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,
                               U->width_ , X_copy.mat , X_copy.lda_ ,
                               &ipiv[0] , U->mat, U->lda_);
@@ -507,6 +508,27 @@ void ie_Mat::print() const {
 }
 
 
+ie_Mat ie_Mat::problem_vec() {
+
+  ie_Mat cpy = *this;
+  std::vector<double> superb(height());
+  std::vector<double> sing(height());
+  ie_Mat U(height(), height());
+  lapack_int info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'A', 'N',
+                                   height(), width(), cpy.mat,
+                                   lda_, &(sing[0]), U.mat,
+                                   height(), nullptr, width(),
+                                   &(superb[0]));
+  // ie_Mat test = U(0, U.height(), U.width() - 1, U.width());
+  // ie_Mat res(1, width());
+  // ie_Mat::gemm(TRANSPOSE, NORMAL, 1., test, *this, 0., &res);
+  // std::cout << "Should all be close to zero: " << sing[height() - 3] << "\n" <<
+  //           sing[height() - 2] << "\n" << sing[height() - 1] << "\n" << res.frob_norm() <<
+  //           std::endl;;
+  return U(0, U.height(), U.width() - 1, U.width());
+}
+
+
 void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
   std::ofstream output;
   output.open(filename);
@@ -514,11 +536,14 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
   ie_Mat cpy = *this;
   std::vector<double> superb(height());
   std::vector<double> sing(height());
+  ie_Mat U(height(), height());
   lapack_int info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'N', 'N',
                                    height(), width(), cpy.mat,
-                                   lda_, &(sing[0]), nullptr,
+                                   lda_, &(sing[0]), U.mat,
                                    height(), nullptr, width(),
                                    &(superb[0]));
+
+
   if (output.is_open()) {
     for (unsigned int i = 0; i < sing.size(); i++) {
       output << sing[i] << std::endl;

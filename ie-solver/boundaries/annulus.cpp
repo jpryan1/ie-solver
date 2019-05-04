@@ -79,8 +79,8 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
         break;
       }
       case BoundaryCondition::STOKES:
-        boundary_values.set(2 * i, 0, -normals[2 * i + 1]);
-        boundary_values.set(2 * i + 1, 0, normals[2 * i]);
+        boundary_values.set(2 * i, 0, 1);  // -normals[2 * i + 1]);
+        boundary_values.set(2 * i + 1, 0, 0);  // normals[2 * i]);
         break;
     }
   }
@@ -118,8 +118,8 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
           break;
         }
         case BoundaryCondition::STOKES:
-          boundary_values.set(2 * i , 0, -1.5 * normals[2 * i  + 1]);
-          boundary_values.set(2 * i  + 1, 0, 1.5 * normals[2 * i ]);
+          boundary_values.set(2 * i , 0, 1);  // -1.5 * normals[2 * i  + 1]);
+          boundary_values.set(2 * i  + 1, 0, 0);  // 1.5 * normals[2 * i ]);
           break;
       }
     }
