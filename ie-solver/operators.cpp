@@ -44,7 +44,8 @@ const {
 
 
 void QuadTree::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
-                                     const std::vector<unsigned int>& range) const {
+                                     const std::vector<unsigned int>& range)
+const {
   if (range.size() == 0) return;
   ie_Mat product(range.size(),  vec->width());
   mat.left_multiply_inverse((*vec)(range,  0, vec->width()), &product);
@@ -53,7 +54,8 @@ void QuadTree::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
 
 
 void QuadTree::apply_diag_pinv_matrix(const ie_Mat& mat, ie_Mat* vec,
-                                      const std::vector<unsigned int>& range) const {
+                                      const std::vector<unsigned int>& range)
+const {
   if (range.size() == 0) return;
   ie_Mat product(range.size(),  vec->width());
   mat.left_multiply_pseudoinverse((*vec)(range,  0, vec->width()), &product);
@@ -189,11 +191,11 @@ void QuadTree::solve(ie_Mat* x, const ie_Mat& b) const {
   allskel_mat.write_singular_values_to_file("allskel_sing_vals.txt");
   if (allskel.size() > 0) {
     double cond2 = allskel_mat.condition_number();
-    if (cond2 > 1000) {
+    if (cond2 > 1e6) {
       std::cout << "Allskel inv -- ";
       std::cout << "Inverting w/ condition number " << cond2 << std::endl;
     }
-    apply_diag_pinv_matrix(allskel_mat, x, allskel);
+    apply_diag_inv_matrix(allskel_mat, x, allskel);
   }
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = levels[level];

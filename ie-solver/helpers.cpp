@@ -54,15 +54,12 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
                 (log(1 / r.norm()) +
                  (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
           U.set(i + 1, 3 * hole_idx, scale *
-                (
-                  (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
+                ((1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
           U.set(i, 3 * hole_idx + 1, scale *
-                (
-                  (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
+                ((1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
           U.set(i + 1, 3 * hole_idx + 1, scale *
                 (log(1 / r.norm()) +
                  (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
-
           U.set(i, 3 * hole_idx + 2, r.a[1] * (scale / pow(r.norm(), 2)));
           U.set(i + 1, 3 * hole_idx + 2, -r.a[0] * (scale / pow(r.norm(), 2)));
         }
