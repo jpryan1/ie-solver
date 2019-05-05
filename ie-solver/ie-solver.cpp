@@ -139,7 +139,6 @@ void run_single_solve(const ie_solver_config & config) {
 
   ie_Mat solution = boundary_integral_solve(config, boundary.get(), &quadtree,
                     domain_points);
-  std::cout << "sol norm is " << solution.frob_norm() << std::endl;
 
   write_solution_to_file("output/data/ie_solver_solution.txt", solution,
                          domain_points, config.solution_dimension);

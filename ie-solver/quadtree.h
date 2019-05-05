@@ -114,6 +114,8 @@ class QuadTree {
                          const std::vector<unsigned int>& range) const;
   void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
                              const std::vector<unsigned int>& range) const;
+  void apply_diag_pinv_matrix(const ie_Mat& mat, ie_Mat* vec,
+                              const std::vector<unsigned int>& range) const;
   void sparse_matvec(const ie_Mat& x, ie_Mat* b) const;
 
   void solve(ie_Mat* x, const ie_Mat& b) const;

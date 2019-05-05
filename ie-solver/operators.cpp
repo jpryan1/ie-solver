@@ -52,6 +52,15 @@ void QuadTree::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
 }
 
 
+void QuadTree::apply_diag_pinv_matrix(const ie_Mat& mat, ie_Mat* vec,
+                                      const std::vector<unsigned int>& range) const {
+  if (range.size() == 0) return;
+  ie_Mat product(range.size(),  vec->width());
+  mat.left_multiply_pseudoinverse((*vec)(range,  0, vec->width()), &product);
+  vec->set_submatrix(range,  0, vec->width(), product);
+}
+
+
 void QuadTree::sparse_matvec(const ie_Mat& x, ie_Mat* b) const {
   *b = x;
   int lvls = levels.size();
@@ -184,7 +193,7 @@ void QuadTree::solve(ie_Mat* x, const ie_Mat& b) const {
       std::cout << "Allskel inv -- ";
       std::cout << "Inverting w/ condition number " << cond2 << std::endl;
     }
-    apply_diag_inv_matrix(allskel_mat, x, allskel);
+    apply_diag_pinv_matrix(allskel_mat, x, allskel);
   }
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = levels[level];

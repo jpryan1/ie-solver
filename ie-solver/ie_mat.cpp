@@ -363,10 +363,42 @@ void ie_Mat::rand_vec(unsigned int dofs) {
 }
 
 
+void ie_Mat::left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const {
+  ie_Mat U_(height(), width()), V(height(), width());
+
+  ie_Mat cpy = *this;
+  std::vector<double> superb(height());
+  std::vector<double> sing(height());
+  lapack_int info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'A', 'A',
+                                   height(), width(), cpy.mat,
+                                   lda_, &(sing[0]), U_.mat,
+                                   height(), V.mat, width(),
+                                   &(superb[0]));
+
+
+  ie_Mat UT_K(height(), K.width());
+  ie_Mat::gemm(TRANSPOSE, NORMAL, 1., U_, K, 0., &UT_K);
+
+  for (int row = 0; row < UT_K.height(); row++) {
+    double sing_val;
+    if (sing[row] > 1e-8) {
+      sing_val = 1.0 / sing[row];
+    } else {
+      sing_val = 0.0;
+    }
+    for (int col = 0; col < UT_K.width(); col++) {
+      UT_K.set(row, col, sing_val * UT_K.get(row, col));
+    }
+  }
+  ie_Mat::gemm(TRANSPOSE, NORMAL, 1., V, UT_K, 0., U);
+}
+
+
 void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
   // X^-1K = U
   // aka, XU = K
   // TODO(John) insert asserts for these functions
+
   ie_Mat X_copy = *this;
   *U = K;
   std::vector<lapack_int> ipiv(height_);
