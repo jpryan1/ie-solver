@@ -13,84 +13,65 @@ void IeSolverTools::make_id_mat(const Kernel& kernel, ie_Mat* mat,
   double cntr_y = node->corners[1] + node->side_length / 2.0;
   double radius_ratio = 1.5;
 
+  std::vector<unsigned int> active_box = node->src_dof_lists.active_box;
   if (!strong_admissibility) {
-    if (false) {  // node->level <= tree->no_proxy_level){
-      // No proxy circle
-      std::vector<unsigned int> far;
-      for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
-        if (level_node->id != node->id) {
-          for (unsigned int matrix_index :
-               level_node->src_dof_lists.active_box) {
-            far.push_back(matrix_index);
-          }
-        }
-      }
-
-      ie_Mat far_box = kernel(far, node->src_dof_lists.active_box);
-      ie_Mat box_far(far.size(),
-                     node->src_dof_lists.active_box.size());
-      kernel(node->src_dof_lists.active_box, far).transpose_into(&box_far);
-
-      *mat = ie_Mat(2 * far.size() ,
-                    node->src_dof_lists.active_box.size());
-      mat->set_submatrix(0, far.size(),
-                         0, node->src_dof_lists.active_box.size(),
-                         far_box);
-      mat->set_submatrix(far.size(), 2 * far.size(),
-                         0, node->src_dof_lists.active_box.size(),
-                         box_far);
-      return;
-    }
-    // Grab all points inside the proxy circle
-    std::vector<unsigned int> inner_circle;
-
+    // Grab all points inside the proxy circle which are outside the box
+    std::vector<unsigned int> inner_circle, outside_box;
+    int num_outside_circle = 0;
     for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
       if (level_node->id != node->id) {
-        for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
+        for (unsigned int matrix_index :
+             level_node->src_dof_lists.active_box) {
+          outside_box.push_back(matrix_index);
           unsigned int point_index = matrix_index / solution_dimension;
           unsigned int points_vec_index = point_index * domain_dimension;
-
           double x = tree->boundary->points[points_vec_index];
           double y = tree->boundary->points[points_vec_index + 1];
           double dist = sqrt(pow(cntr_x - x, 2) + pow(cntr_y - y, 2));
           if (dist < radius_ratio * node->side_length) {
             inner_circle.push_back(matrix_index);
+          } else {
+            num_outside_circle++;
           }
         }
       }
     }
+    // We only do a proxy circle if there are lots outside the circle
+    if (num_outside_circle < active_box.size() * 4) {
+      ie_Mat far_box = kernel(outside_box, active_box);
+      ie_Mat box_far = kernel(active_box, outside_box).transpose();
 
-    ie_Mat near_box = kernel(inner_circle,
-                             node->src_dof_lists.active_box);
-    ie_Mat box_near(inner_circle.size(),
-                    node->src_dof_lists.active_box.size());
-    kernel(node->src_dof_lists.active_box,
-           inner_circle).transpose_into(&box_near);
+      // Now all the matrices are gathered, put them into *mat.
+      *mat = ie_Mat(2 * outside_box.size(), active_box.size());
+      mat->set_submatrix(0, outside_box.size(), 0, active_box.size(), far_box);
+      mat->set_submatrix(outside_box.size(), 2 * outside_box.size(),
+                         0, active_box.size(), box_far);
+    } else {
+      // Get interaction mats with these nearby points
+      ie_Mat near_box = kernel(inner_circle, active_box);
+      ie_Mat box_near = kernel(active_box, inner_circle).transpose();
+      // Construct mat of interactions with pxy circle points
+      ie_Mat proxy = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
+                            active_box.size());
+      make_proxy_mat(kernel, &proxy, cntr_x, cntr_y, node->side_length
+                     * radius_ratio, tree, active_box);
 
-    ie_Mat proxy = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
-                          node->src_dof_lists.active_box.size());
+      // Now all the matrices are gathered, put them into *mat.
+      *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
+                    NUM_PROXY_POINTS, active_box.size());
+      mat->set_submatrix(0, inner_circle.size(),
+                         0, active_box.size(), near_box);
+      mat->set_submatrix(inner_circle.size(), 2 * inner_circle.size(),
+                         0, active_box.size(), box_near);
+      mat->set_submatrix(2 * inner_circle.size(),  solution_dimension * 2 *
+                         NUM_PROXY_POINTS + 2 * inner_circle.size(), 0,
+                         active_box.size(), proxy);
+    }
 
-    make_proxy_mat(kernel, &proxy, cntr_x, cntr_y, node->side_length
-                   * radius_ratio, tree, node->src_dof_lists.active_box);
-
-    *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
-                  NUM_PROXY_POINTS,
-                  node->src_dof_lists.active_box.size());
-    mat->set_submatrix(0, inner_circle.size(),
-                       0, node->src_dof_lists.active_box.size(),
-                       near_box);
-    mat->set_submatrix(inner_circle.size(), 2 * inner_circle.size(),
-                       0, node->src_dof_lists.active_box.size(),
-                       box_near);
-    mat->set_submatrix(2 * inner_circle.size(),
-                       solution_dimension * 2 * NUM_PROXY_POINTS +
-                       2 * inner_circle.size(), 0,
-                       node->src_dof_lists.active_box.size(), proxy);
   } else {
-    *mat = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
-                  node->src_dof_lists.active_box.size());
+    *mat = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS, active_box.size());
     make_proxy_mat(kernel, mat, cntr_x, cntr_y, node->side_length * 1.5, tree,
-                   node->src_dof_lists.active_box);
+                   active_box);
   }
 }
 

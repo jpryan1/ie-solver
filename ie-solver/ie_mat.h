@@ -47,9 +47,14 @@ struct ie_Mat {
 
   void transpose_into(ie_Mat* transpose) const;
   void eye(unsigned int n);
+  ie_Mat transpose() const;
 
   unsigned int height() const;
   unsigned int width() const;
+
+
+ie_Mat problem_vec();
+
 
   ie_Mat& operator-=(const ie_Mat& o);
   ie_Mat& operator+=(const ie_Mat& o);
@@ -80,6 +85,7 @@ struct ie_Mat {
   void rand_vec(unsigned  dofs);
   double condition_number() const;
   void left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const;
+  void left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const;
   void right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const;
   int id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const;
   std::vector<double> real_eigenvalues();

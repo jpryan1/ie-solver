@@ -98,8 +98,8 @@ ie_Mat Kernel::stokes_kernel(const Dof& tgt, const Dof& src) const {
   Vec2 r = tgt.point - src.point;
   double r0 = r.a[0];
   double r1 = r.a[1];
-  double potential = src.weight * scale * (r.dot(src.normal)) / (pow(r.dot(
-                       r), 2));
+  double potential = src.weight * scale * (r.dot(src.normal)) /
+                     (pow(r.dot(r), 2));
   tensor.set(0, 0, potential * r0 * r0);
   tensor.set(1, 1, potential * r1 * r1);
   tensor.set(0, 1, potential * r0 * r1);

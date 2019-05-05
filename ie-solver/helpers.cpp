@@ -54,15 +54,12 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
                 (log(1 / r.norm()) +
                  (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[0]));
           U.set(i + 1, 3 * hole_idx, scale *
-                (log(1 / r.norm()) +
-                 (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
+                ((1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[0]));
           U.set(i, 3 * hole_idx + 1, scale *
-                (log(1 / r.norm()) +
-                 (1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
+                ((1.0 / pow(r.norm(), 2)) * r.a[0] * r.a[1]));
           U.set(i + 1, 3 * hole_idx + 1, scale *
                 (log(1 / r.norm()) +
                  (1.0 / pow(r.norm(), 2)) * r.a[1] * r.a[1]));
-
           U.set(i, 3 * hole_idx + 2, r.a[1] * (scale / pow(r.norm(), 2)));
           U.set(i + 1, 3 * hole_idx + 2, -r.a[0] * (scale / pow(r.norm(), 2)));
         }
@@ -119,27 +116,18 @@ void schur_solve(const QuadTree & quadtree, const ie_Mat & U,
   ie_Mat ident(U.width(), U.width()), alpha(U.width(), 1),
          Dinv_U(U.height(), U.width()), Psi_Dinv_U(U.width(), U.width()),
          Dinv_u(U.height(), 1), Psi_Dinv_u(U.width(), 1),
-         right_vec(U.height(), 1), mu(K_domain.width(),  1),
+         U_alpha(U.height(), 1), mu(K_domain.width(),  1),
          U_forward_alpha(solution->height(), 1);
-
   if (U.width() == 0) {
     quadtree.solve(&mu, f);
     ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
     return;
   }
-  ident.eye(U.width());
-  quadtree.solve(&Dinv_U, U);
-  ie_Mat::gemm(NORMAL, NORMAL, 1., Psi, Dinv_U, 0., &Psi_Dinv_U);
-  ie_Mat S = -ident - Psi_Dinv_U;
-  quadtree.solve(&Dinv_u, f);
-  ie_Mat::gemv(NORMAL, 1., Psi, Dinv_u, 0., &Psi_Dinv_u);
-  S.left_multiply_inverse(Psi_Dinv_u, &alpha);
-  ie_Mat::gemv(NORMAL, 1., U, alpha, 0., &right_vec);
-  right_vec += f;
-  quadtree.solve(&mu, right_vec);
+  quadtree.multiply_connected_solve(&mu, &alpha, f);
   ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
-  ie_Mat::gemv(NORMAL, 1., U_forward, -alpha, 0., &U_forward_alpha);
+  ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
   (*solution) += U_forward_alpha;
+  return;
 }
 
 
@@ -155,7 +143,6 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   Kernel kernel;
   kernel.load(boundary, domain_points, config.pde,
               config.solution_dimension, config.domain_dimension);
-
   ie_solver_tools.skeletonize(kernel, quadtree);
   if (is_time_trial) {
     return ie_Mat(0, 0);
@@ -200,6 +187,8 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
 
   ie_Mat domain_solution(config.domain_size * config.domain_size *
                          config.solution_dimension, 1);
+  quadtree->U = U;
+  quadtree->Psi = Psi;
   schur_solve(*quadtree, U, Psi, f, K_domain, U_forward, &domain_solution);
   return domain_solution;
 }
