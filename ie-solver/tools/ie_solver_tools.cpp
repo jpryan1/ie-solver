@@ -83,13 +83,18 @@ void IeSolverTools::populate_active_box(QuadTreeNode* node) {
   node->src_dof_lists.skelnear.clear();
   node->src_dof_lists.redundant.clear();
   node->src_dof_lists.active_box.clear();
+
   if (!node->is_leaf) {
+  
     for (QuadTreeNode* child : node->children) {
+    
       if (child->schur_updated) {
+                
         for (unsigned int i : child->src_dof_lists.skel) {
           node->src_dof_lists.active_box.push_back(i);
         }
       } else {
+                
         for (unsigned int i : child->src_dof_lists.active_box) {
           node->src_dof_lists.active_box.push_back(i);
         }

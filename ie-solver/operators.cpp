@@ -320,15 +320,17 @@ void QuadTree::multiply_connected_solve(ie_Mat* x, ie_Mat* alpha,
   std::sort(sorted_allskel.begin(), sorted_allskel.end());
   unsigned int skel_idx = 0;
   for (unsigned int i = 0; i < boundary->weights.size()*solution_dimension; i++) {
-    if (i == sorted_allskel[skel_idx]) {
+    if (skel_idx < sorted_allskel.size() && i == sorted_allskel[skel_idx]) {
       skel_idx++;
     } else {
       allredundant.push_back(i);
     }
   }
+
   B.set_submatrix(allskel.size(), B.height(),
                   0, B.width(),
                   modified_Psi(0, modified_Psi.height(), allredundant));
+
   C.set_submatrix(0, C.height(),
                   allskel.size(), C.width(),
                   modified_U(allredundant, 0, modified_U.width()));
@@ -410,8 +412,10 @@ void QuadTree::multiply_connected_solve(ie_Mat* x, ie_Mat* alpha,
                             small_redundants);
     }
   }
+
   x->set_submatrix(allredundant, 0, 1, y);
   x->set_submatrix(allskel, 0, 1, x_vec(0, allskel.size(), 0, 1));
+  
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = levels[level];
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
@@ -436,6 +440,7 @@ void QuadTree::multiply_connected_solve(ie_Mat* x, ie_Mat* alpha,
                          false);
     }
   }
+
 }
 
 }  // namespace ie_solver

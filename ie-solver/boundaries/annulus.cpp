@@ -29,17 +29,11 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 
   if (holes.size() == 0) {
     Hole hole;
-    // hole.center = Vec2(0.5 + 0.1 * cos(M_PI / 4.0) ,
-    //                    0.5 + 0.1 * sin(M_PI / 4.0));
-    hole.center = Vec2(0.5 , 0.5);
-    hole.radius = 0.05;
+    hole.center = Vec2(0.6, 0.5);
+    hole.radius = 0.025;
     holes.push_back(hole);
-
-    // hole.center = Vec2(0.4 , 0.5);
-    // // hole.center = Vec2(0.5 - 0.1 * cos(M_PI / 4.0) ,
-    // 0.5 - 0.1 * sin(M_PI / 4.0));
-    // hole.radius = 0.05;
-    // holes.push_back(hole);
+    hole.center = Vec2(0.4, 0.5);
+    holes.push_back(hole);
   }
 
   int hole_nodes = N / 5;

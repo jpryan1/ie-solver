@@ -97,12 +97,11 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
     for (unsigned int idx : node->src_dof_lists.near) BN.push_back(idx);
   }
   // Note that BN has all currently deactivated DoFs removed.
-  ie_Mat K_BN = kernel(BN, BN);  // que bien!
 
   ie_Mat update(BN.size(), BN.size());
   get_all_schur_updates(&update, BN, node, strong_admissibility);
 
-  K_BN -= update;
+  ie_Mat K_BN = kernel(BN, BN) - update;
   // Generate various index ranges within BN
   std::vector<unsigned int> s, r, n, sn;
   for (unsigned int i = 0; i < num_skel; i++) {
@@ -130,13 +129,13 @@ void IeSolverTools::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   node->L = ie_Mat(num_skelnear, num_redundant);
   node->U = ie_Mat(num_redundant, num_skelnear);
 
-  double cond = Xrr.condition_number();
-  if (cond > 1000) {
-    std::cout << "Node " << node->id << " schur update -- ";
-    std::cout << "Width " << node->side_length << " num dofs " << Xrr.width() <<
-              std::endl;
-    std::cout << "Inverting w/ condition number " << cond << std::endl;
-  }
+  // double cond = Xrr.condition_number();
+  // if (cond > 1000) {
+  //   std::cout << "Node " << node->id << " schur update -- ";
+  //   std::cout << "Width " << node->side_length << " num dofs " << Xrr.width() <<
+  //             std::endl;
+  //   std::cout << "Inverting w/ condition number " << cond << std::endl;
+  // }
 
   Xrr.right_multiply_inverse(K_BN(sn, r), &node->L);
   Xrr.left_multiply_inverse(K_BN(r, sn), &node->U);
@@ -195,9 +194,7 @@ void IeSolverTools::skeletonize(const Kernel& kernel, QuadTree* tree) {
           < MIN_DOFS_TO_COMPRESS) {
         continue;
       }
-
       int redundants = interpolative_decomposition(kernel, tree, current_node);
-
       active_dofs -= redundants;
       if (redundants == 0) {
         continue;

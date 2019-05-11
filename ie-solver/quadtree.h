@@ -94,6 +94,8 @@ class QuadTree {
   ////////////////
 
   void write_quadtree_to_file();
+  void print_node_norms();
+  void rec_print_norms(QuadTreeNode* node);
 
   ////////////////
   // UPDATING

@@ -13,10 +13,11 @@
 namespace ie_solver {
 
 ie_Mat boundary_integral_solve(const ie_solver_config& config,
-                               Boundary* boundary, QuadTree* quadtree,
-                               const std::vector<double>& domain_points,
-                               bool is_time_trial = false);
-
+                               QuadTree* quadtree,
+                               const std::vector<double>& domain_points);
+void bie_time_trial(const ie_solver_config & config,
+                               QuadTree * quadtree, double* avg_skel_time,
+                               double* avg_solve_time);
 // void get_circle_stokes_solution(double min, double max, ie_Mat& domain,
 //     bool (*is_in_domain)(Vec2& a));
 void write_boundary_to_file(const std::vector<double>& points);

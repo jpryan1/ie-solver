@@ -124,17 +124,51 @@ void schur_solve(const QuadTree & quadtree, const ie_Mat & U,
     return;
   }
   quadtree.multiply_connected_solve(&mu, &alpha, f);
+
   ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
   ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
   (*solution) += U_forward_alpha;
   return;
 }
 
+void bie_time_trial(const ie_solver_config & config,
+                    QuadTree * quadtree, double* avg_skel_time,
+                    double* avg_solve_time) {
+  Boundary* boundary = quadtree->boundary;
+  // Consider making init instead of constructor for readability
+  IeSolverTools ie_solver_tools(config.id_tol, config.is_strong_admissibility,
+                                config.solution_dimension,
+                                config.domain_dimension);
+
+  Kernel kernel;
+  kernel.load(boundary, std::vector<double>(), config.pde,
+              config.solution_dimension, config.domain_dimension);
+  ie_Mat f = boundary->boundary_values;
+  ie_Mat mu(f.height(), 1);
+  double skel_time = 0;
+  double solve_time = 0;
+
+  for (int i = 0; i < 10; i++) {
+    double start = omp_get_wtime();
+    ie_solver_tools.skeletonize(kernel, quadtree);
+    double end = omp_get_wtime();
+    skel_time += (end - start);
+    start = omp_get_wtime();
+    quadtree->solve(&mu, f);
+    end = omp_get_wtime();
+    solve_time += (end - start);
+    quadtree->reset();
+  }
+  *avg_skel_time = (skel_time) / 10.0;
+  *avg_solve_time = (solve_time) / 10.0;
+}
+
+
 
 ie_Mat boundary_integral_solve(const ie_solver_config & config,
-                               Boundary * boundary, QuadTree * quadtree,
-                               const std::vector<double>& domain_points,
-                               bool is_time_trial) {
+                               QuadTree * quadtree,
+                               const std::vector<double>& domain_points) {
+  Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
   IeSolverTools ie_solver_tools(config.id_tol, config.is_strong_admissibility,
                                 config.solution_dimension,
@@ -144,9 +178,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   kernel.load(boundary, domain_points, config.pde,
               config.solution_dimension, config.domain_dimension);
   ie_solver_tools.skeletonize(kernel, quadtree);
-  if (is_time_trial) {
-    return ie_Mat(0, 0);
-  }
+
   ie_Mat f = boundary->boundary_values;
   int num_holes = boundary->holes.size();
   ie_Mat U = initialize_U_mat(config.pde, boundary->holes, boundary->points);

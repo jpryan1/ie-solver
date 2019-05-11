@@ -419,6 +419,9 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   node->src_dof_lists.skelnear.clear();
   node->src_dof_lists.redundant.clear();
   node->src_dof_lists.permutation.clear();
+  node->T = ie_Mat(0, 0);
+  node->U = ie_Mat(0, 0);
+  node->L = ie_Mat(0, 0);
   for (QuadTreeNode* neighbor : node->neighbors) {
     neighbor->schur_updated = false;
     neighbor->src_dof_lists.active_box.clear();
@@ -426,9 +429,17 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
     neighbor->src_dof_lists.skelnear.clear();
     neighbor->src_dof_lists.redundant.clear();
     neighbor->src_dof_lists.permutation.clear();
+    neighbor->T = ie_Mat(0, 0);
+    neighbor->U = ie_Mat(0, 0);
+    neighbor->L = ie_Mat(0, 0);
+
   }
   mark_neighbors_and_parents(node->parent);
 }
+
+
+
+
 
 
 void QuadTree::perturb(const Boundary & perturbed_boundary) {
@@ -482,40 +493,51 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       std::vector<unsigned int> ob, ab, s, r, sn, n;
       if (node->is_leaf) {
         for (unsigned int idx : node->src_dof_lists.original_box) {
+          unsigned int point_index = idx / solution_dimension;
           std::unordered_map<int, int>::const_iterator element =
-            old_index_to_new_index.find(idx);
+            old_index_to_new_index.find(point_index);
           if (element != old_index_to_new_index.end()) {
-            ob.push_back(element->second);
+            ob.push_back(solution_dimension * element->second
+                         + idx % solution_dimension);
           }
         }
+
         node->src_dof_lists.original_box = ob;
       }
       for (unsigned int idx : node->src_dof_lists.active_box) {
+        unsigned int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
-          old_index_to_new_index.find(idx);
+          old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
-          ab.push_back(element->second);
+          ab.push_back(solution_dimension * element->second
+                       + idx % solution_dimension);
         }
       }
       for (unsigned int idx : node->src_dof_lists.skel) {
+        unsigned int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
-          old_index_to_new_index.find(idx);
+          old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
-          s.push_back(element->second);
+          s.push_back(solution_dimension * element->second
+                      + idx % solution_dimension);
         }
       }
       for (unsigned int idx : node->src_dof_lists.redundant) {
+        unsigned int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
-          old_index_to_new_index.find(idx);
+          old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
-          r.push_back(element->second);
+          r.push_back(solution_dimension * element->second
+                      + idx % solution_dimension);
         }
       }
       for (unsigned int idx : node->src_dof_lists.skelnear) {
+        unsigned int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
-          old_index_to_new_index.find(idx);
+          old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
-          sn.push_back(element->second);
+          sn.push_back(solution_dimension * element->second
+                       + idx % solution_dimension);
         }
       }
       node->src_dof_lists.active_box = ab;
@@ -526,6 +548,10 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   }
   // go through all additions, find their leaves, make addition and call mark
   // function
+  std::vector<bool> found(additions.size());
+  for (int i = 0; i < additions.size(); i++) {
+    found[i] = false;
+  }
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
       if (!node->is_leaf) {
@@ -534,9 +560,13 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       for (unsigned int i = 0; i < additions.size(); i++) {
         double difx = new_points[2 * additions[i]] - node->corners[0];
         double dify = new_points[2 * additions[i] + 1] - node->corners[1];
-        if (difx < node->side_length && dify < node->side_length && difx > 0
-            && dify > 0) {
-          node->src_dof_lists.original_box.push_back(additions[i]);
+        if (!found[i] && difx < node->side_length && dify < node->side_length
+            && difx >= 0 && dify >= 0) {
+          found[i] = true;
+          for (int j = 0; j < solution_dimension; j++) {
+            node->src_dof_lists.original_box.push_back(solution_dimension
+             * additions[i] + j);
+          }
           mark_neighbors_and_parents(node);
         }
       }
@@ -552,8 +582,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       for (unsigned int i = 0; i < deletions.size(); i++) {
         double difx = old_points[2 * deletions[i]] - node->corners[0];
         double dify = old_points[2 * deletions[i] + 1] - node->corners[1];
-        if (difx < node->side_length && dify < node->side_length && difx > 0
-            && dify > 0) {
+        if (difx < node->side_length && dify < node->side_length && difx >= 0
+            && dify >= 0) {
           mark_neighbors_and_parents(node);
         }
       }
@@ -565,6 +595,82 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   boundary->curvatures = perturbed_boundary.curvatures;
   boundary->boundary_values = perturbed_boundary.boundary_values;
   boundary->perturbation_size = perturbed_boundary.perturbation_size;
+  boundary->holes = perturbed_boundary.holes;
+
+  for (int l = levels.size() - 1; l >= 0; l--) {
+    QuadTreeLevel* level = levels[l];
+    for (QuadTreeNode* node : level->nodes) {
+      if (node->is_leaf
+          && node->src_dof_lists.original_box.size() +
+          node->tgt_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
+        node_subdivide(node);
+      }
+    }
+  }
+  for (int l = levels.size() - 1; l >= 0; l--) {
+    QuadTreeLevel* level = levels[l];
+    for (QuadTreeNode* node : level->nodes) {
+      if (!node->is_leaf) {
+        bool all_children_leaves = true;
+
+        for (QuadTreeNode* child : node->children) {
+          if (!child->is_leaf) {
+            all_children_leaves = false;
+          }
+        }
+        if (all_children_leaves) {
+          int num_child_dofs = 0;
+          for (QuadTreeNode* child : node->children) {
+            num_child_dofs += child->src_dof_lists.original_box.size();
+          }
+          if (num_child_dofs < MAX_LEAF_DOFS) {
+            assert(!node->schur_updated);
+            node->src_dof_lists.original_box.clear();
+            for (QuadTreeNode* child : node->children) {
+              for (unsigned int idx : child->src_dof_lists.original_box) {
+                node->src_dof_lists.original_box.push_back(idx);
+              }
+            }
+
+            for (QuadTreeNode* child : node->children) {
+              QuadTreeLevel* child_level = levels[child->level];
+              for (int i = 0; i < child_level->nodes.size(); i++) {
+                if (child_level->nodes[i]->id == child->id) {
+                  child_level->nodes.erase(child_level->nodes.begin() + i);
+                  break;
+                }
+              }
+            }
+            node->tl = nullptr;
+            node->tr = nullptr;
+            node->bl = nullptr;
+            node->br = nullptr;
+            node->children[0] = nullptr;
+            node->children[1] = nullptr;
+            node->children[2] = nullptr;
+            node->children[3] = nullptr;
+
+            node->is_leaf = true;
+          }
+        }
+      }
+    }
+  }
+
+
+
+
+
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      if (!node->is_leaf) {
+        int num_child_dofs = 0;
+        for (QuadTreeNode* child : node->children) {
+          num_child_dofs += child->src_dof_lists.original_box.size();
+        }
+      }
+    }
+  }
 }
 
 
@@ -581,6 +687,37 @@ void QuadTree::reset() {
   QuadTreeNode::id_count = 0;
   initialize_tree(boundary, domain_points, solution_dimension,
                   domain_dimension);
+}
+
+
+void QuadTree::rec_print_norms(QuadTreeNode* node) {
+  std::cout << "Node " << " level " << node->level << " T norm " <<
+            node->T.frob_norm()
+            << " L norm " << node->L.frob_norm()
+            << " U norm " << node->U.frob_norm() << "Active " <<
+            node->src_dof_lists.active_box.size() << " id " << node->id << std::endl;
+  std::cout << "Corners ";
+  for (double d : node->corners) {
+    std::cout << d << " ";
+  } std::cout << std::endl;
+  if (!node->is_leaf) {
+    std::cout << "Going TL..." << std::endl;
+    rec_print_norms(node->tl);
+    std::cout << "Going TR..." << std::endl;
+    rec_print_norms(node->tr);
+    std::cout << "Going BL..." << std::endl;
+    rec_print_norms(node->bl);
+    std::cout << "Going BR..." << std::endl;
+    rec_print_norms(node->br);
+  } else {
+    std::cout << "Node is leaf! Going up..." << std::endl;
+  }
+}
+
+void QuadTree::print_node_norms() {
+  std::cout << "Printing node norms starting with root" << std::endl;
+  rec_print_norms(root);
+
 }
 
 

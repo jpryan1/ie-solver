@@ -468,13 +468,12 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   ie_Mat cpy = *this;
   assert(height() * width() > 0);
   std::vector<lapack_int> pvt(width_);
-  memset(&pvt[0], 0, width_ * sizeof(lapack_int));
+  // memset(&pvt[0], 0, width_ * sizeof(lapack_int));
 
   // /tau/ will contain an output from dgeqp3 that we don't need.
   std::vector<double> tau(width_);
   int info1 = LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_,
-                             &pvt[0],
-                             &tau[0]);
+                             &pvt[0], &tau[0]);
   assert(info1 == 0);
   unsigned int skel = 0;
 
@@ -537,27 +536,6 @@ void ie_Mat::print() const {
     message += "\n";
   }
   LOG::INFO(message);
-}
-
-
-ie_Mat ie_Mat::problem_vec() {
-
-  ie_Mat cpy = *this;
-  std::vector<double> superb(height());
-  std::vector<double> sing(height());
-  ie_Mat U(height(), height());
-  lapack_int info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'A', 'N',
-                                   height(), width(), cpy.mat,
-                                   lda_, &(sing[0]), U.mat,
-                                   height(), nullptr, width(),
-                                   &(superb[0]));
-  // ie_Mat test = U(0, U.height(), U.width() - 1, U.width());
-  // ie_Mat res(1, width());
-  // ie_Mat::gemm(TRANSPOSE, NORMAL, 1., test, *this, 0., &res);
-  // std::cout << "Should all be close to zero: " << sing[height() - 3] << "\n" <<
-  //           sing[height() - 2] << "\n" << sing[height() - 1] << "\n" << res.frob_norm() <<
-  //           std::endl;;
-  return U(0, U.height(), U.width() - 1, U.width());
 }
 
 
