@@ -25,58 +25,58 @@ namespace ie_solver {
 
 
 void run_animation(const ie_solver_config& config) {
-  std::unique_ptr<Boundary> perturbed_boundary;
+  std::unique_ptr<Boundary> boundary, perturbed_boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
-      // boundary.reset(new Circle());
+      boundary.reset(new Circle());
       perturbed_boundary.reset(new Circle());
       break;
     case Boundary::BoundaryShape::ROUNDED_SQUARE:
-      // boundary.reset(new RoundedSquare());
+      boundary.reset(new RoundedSquare());
       perturbed_boundary.reset(new RoundedSquare());
       break;
     case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
-      // boundary.reset(new RoundedSquareWithBump());
+      boundary.reset(new RoundedSquareWithBump());
       perturbed_boundary.reset(new RoundedSquareWithBump());
       break;
     case Boundary::BoundaryShape::SQUIGGLY:
-      // boundary.reset(new Squiggly());
+      boundary.reset(new Squiggly());
       perturbed_boundary.reset(new Squiggly());
       break;
     case Boundary::BoundaryShape::ANNULUS:
-      // boundary.reset(new Annulus());
+      boundary.reset(new Annulus());
       perturbed_boundary.reset(new Annulus());
       break;
     case Boundary::BoundaryShape::CUBIC_SPLINE:
-      // boundary.reset(new CubicSpline());
+      boundary.reset(new CubicSpline());
       perturbed_boundary.reset(new CubicSpline());
       break;
   }
 
-  perturbed_boundary->initialize(config.num_boundary_points,
-                                 config.boundary_condition);
+  // Currently the animation is of moving holes inside an annulus
+  assert(config.boundary_shape == Boundary::BoundaryShape::ANNULUS);
+
+  boundary->initialize(1000, config.boundary_condition);
 
   QuadTree quadtree;
-  quadtree.initialize_tree(perturbed_boundary.get(), std::vector<double>(),
+  quadtree.initialize_tree(boundary.get(), std::vector<double>(),
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
-  for (int frame = 0; frame < 15; frame++) {
+  for (int frame = 0; frame < 20; frame++) {
     double ang = (frame / 60.0) * 2 * M_PI;
     perturbed_boundary->holes.clear();
     Hole hole;
     hole.center = Vec2(0.5 + 0.1 * cos(ang), 0.5 + 0.1 * sin(ang));
-    hole.radius = 0.05;
+    hole.radius = 0.025;
     perturbed_boundary->holes.push_back(hole);
     hole.center = Vec2(0.5 + 0.1 * cos(M_PI + ang),
                        0.5 + 0.1 * sin(M_PI + ang));
-    hole.radius = 0.05;
     perturbed_boundary->holes.push_back(hole);
     perturbed_boundary->initialize(1000, config.boundary_condition);
-    quadtree.reset();//*(perturbed_boundary.get()));
-    ie_Mat solution = boundary_integral_solve(config, perturbed_boundary.get(),
-                      &quadtree, domain_points);
+    quadtree.perturb(*perturbed_boundary.get());
+    ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
     std::string filename = "output/bake/sol/" + std::to_string(frame)  + ".txt";
     write_solution_to_file(filename, solution, domain_points,
                            config.solution_dimension);
@@ -85,23 +85,22 @@ void run_animation(const ie_solver_config& config) {
 
 
 void run_time_trial(const ie_solver_config & config) {
-  // std::vector<double> n_times, eps_times;
-  // int scale_n[] = {5000, 6000, 7000, 8000, 9000};
-  // double scale_eps[] = {1e-6, 1e-7, 1e-8, 1e-9, 1e-10};
+  std::unique_ptr<Boundary> boundary;
+  boundary.reset(new CubicSpline());
+  boundary->boundary_shape = config.boundary_shape;
+  boundary->initialize(config.num_boundary_points, config.boundary_condition);
 
-  // for (int n : scale_n) {
-  //   config.num_boundary_points = n;
-  //   config.id_tol = DEFAULT_ID_TOL;
-  //   ie_solver::boundary_integral_solve(config, &n_times);
-  // }
-
-  // for (double eps : scale_eps) {
-  //   config.num_boundary_points = DEFAULT_NUM_DISCRETIZATION_POINTS * 10;
-  //   config.id_tol = eps;
-  //   ie_solver::boundary_integral_solve(config, &eps_times);
-  // }
-
-  // ie_solver::write_times_to_files(scale_n, n_times, scale_eps, eps_times);
+  QuadTree quadtree;
+  quadtree.initialize_tree(boundary.get(), std::vector<double>(),
+                           config.solution_dimension, config.domain_dimension);
+  std::vector<double> domain_points;
+  get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max);
+  double avg_skel_time = 0;
+  double avg_solve_time = 0;
+  bie_time_trial(config, &quadtree, &avg_skel_time, &avg_solve_time);
+  std::cout << "Avg skel time: " << avg_skel_time << " Avg solve time: " <<
+            avg_solve_time << std::endl;
 }
 
 
@@ -137,8 +136,7 @@ void run_single_solve(const ie_solver_config & config) {
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
 
-  ie_Mat solution = boundary_integral_solve(config, boundary.get(), &quadtree,
-                    domain_points);
+  ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
 
   write_solution_to_file("output/data/ie_solver_solution.txt", solution,
                          domain_points, config.solution_dimension);

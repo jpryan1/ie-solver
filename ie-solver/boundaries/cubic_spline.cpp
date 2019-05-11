@@ -18,9 +18,9 @@ void CubicSpline::get_spline_points() {
     double x = 0.5 + 0.2 * cos(ang);
     double y = 0.5 + 0.2 * sin(ang);
     if (i == 0) x += 0.2;
-    if (i == 3) y += 0.2;
+    if (i == 3) y += 0.1;
     if (i == 5) x -= 0.2;
-    if (i == 8) y -= 0.2;
+    if (i == 8) y -= 0.05;
 
     x0_spline_points.push_back(x);
     x1_spline_points.push_back(y);
@@ -108,8 +108,8 @@ void CubicSpline::interpolate() {
   for (int i = 0; i < num_spline_points; i++) {
     std::vector<double> x_cubic = x0_cubics[i];
     std::vector<double> y_cubic = x1_cubics[i];
-    for (int j = 0; j < 100; j++) {
-      double t = j / 100.0;
+    for (int j = 0; j < 500; j++) {
+      double t = j / 500.0;
       double x = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2]
                  + pow(t, 3) * x_cubic[3];
       double y = y_cubic[0] + t * y_cubic[1] + pow(t, 2) * y_cubic[2]
@@ -184,9 +184,9 @@ void CubicSpline::initialize(int N, BoundaryCondition bc) {
 
   // Currently, just get a working interpolation going
   if (bc == BoundaryCondition::STOKES) {
-    boundary_values = ie_Mat(2 * 1000, 1);
+    boundary_values = ie_Mat(2 * 5000, 1);
   } else {
-    boundary_values = ie_Mat(1000, 1);
+    boundary_values = ie_Mat(5000, 1);
   }  get_spline_points();
   get_cubics();
   interpolate();

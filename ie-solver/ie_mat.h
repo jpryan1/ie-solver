@@ -52,10 +52,6 @@ struct ie_Mat {
   unsigned int height() const;
   unsigned int width() const;
 
-
-ie_Mat problem_vec();
-
-
   ie_Mat& operator-=(const ie_Mat& o);
   ie_Mat& operator+=(const ie_Mat& o);
   ie_Mat& operator*=(double o);
