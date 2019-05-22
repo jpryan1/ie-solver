@@ -20,8 +20,109 @@
 #include "ie-solver/boundaries/squiggly.h"
 #include "ie-solver/boundaries/annulus.h"
 #include "ie-solver/boundaries/cubic_spline.h"
+#include "ie-solver/boundaries/ex1boundary.h"
+#include "ie-solver/boundaries/ex3boundary.h"
 
 namespace ie_solver {
+
+
+void run_experiment1() {
+  ie_solver_config config;
+  config.id_tol = 1e-6;
+  config.pde = ie_solver_config::Pde::STOKES;
+  config.num_boundary_points = 1000;
+  config.domain_size = 49;
+  int domain_dimension = 2;
+  int solution_dimension = 2;
+  config.domain_dimension = 2;
+  config.solution_dimension = 2;
+
+  config.boundary_condition = Boundary::BoundaryCondition::STOKES;
+  config.boundary_shape = Boundary::BoundaryShape::EX1;
+
+
+
+  std::unique_ptr<Boundary> boundary, perturbed_boundary;
+  boundary.reset(new Ex1Boundary());
+  perturbed_boundary.reset(new Ex1Boundary());
+  boundary->initialize(config.num_boundary_points,
+                       Boundary::BoundaryCondition::STOKES);
+  perturbed_boundary->initialize(config.num_boundary_points,
+                                 Boundary::BoundaryCondition::STOKES);
+
+  QuadTree quadtree;
+  quadtree.initialize_tree(boundary.get(), std::vector<double>(),
+                           solution_dimension, domain_dimension);
+  std::vector<double> domain_points;
+  get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max);
+
+
+  for (int frame = 0; frame < 30; frame++) {
+    double ang = (frame / 60.0) * 2 * M_PI;
+
+    perturbed_boundary->holes[0].center = Vec2(0.5 + 0.3 * cos(M_PI + ang),
+                                          0.5 + 0.3 * sin(M_PI + ang));
+    perturbed_boundary->holes[3].center = Vec2(0.5 + 0.3 * cos(ang),
+                                          0.5 + 0.3 * sin(ang));
+
+    perturbed_boundary->initialize(config.num_boundary_points,
+                                   config.boundary_condition);
+
+    quadtree.perturb(*perturbed_boundary.get());
+    ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
+    std::string filename = "output/bake/sol/" + std::to_string(frame)  + ".txt";
+    write_solution_to_file(filename, solution, domain_points,
+                           config.solution_dimension);
+  }
+  // ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
+
+  // write_solution_to_file("output/data/ie_solver_solution.txt", solution,
+  //                        domain_points, config.solution_dimension);
+  // write_boundary_to_file(boundary->points);
+  // quadtree.write_quadtree_to_file();
+}
+
+
+void run_experiment2() {
+}
+
+
+void run_experiment3() {
+  ie_solver_config config;
+  config.id_tol = 1e-6;
+  config.pde = ie_solver_config::Pde::STOKES;
+  config.num_boundary_points = 1000;
+  config.domain_size = 49;
+  int domain_dimension = 2;
+  int solution_dimension = 2;
+  config.domain_dimension = 2;
+  config.solution_dimension = 2;
+
+  config.boundary_condition = Boundary::BoundaryCondition::STOKES;
+  config.boundary_shape = Boundary::BoundaryShape::EX3;
+
+
+
+  std::unique_ptr<Boundary> boundary, perturbed_boundary;
+  boundary.reset(new Ex3Boundary());
+  boundary->initialize(config.num_boundary_points,
+                       Boundary::BoundaryCondition::STOKES);
+
+  QuadTree quadtree;
+  quadtree.initialize_tree(boundary.get(), std::vector<double>(),
+                           solution_dimension, domain_dimension);
+  std::vector<double> domain_points;
+  get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max);
+
+  ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
+
+  write_solution_to_file("output/data/ie_solver_solution.txt", solution,
+                         domain_points, config.solution_dimension);
+  write_boundary_to_file(boundary->points);
+  quadtree.write_quadtree_to_file();
+}
 
 
 void run_animation(const ie_solver_config& config) {
@@ -165,21 +266,27 @@ int main(int argc, char** argv) {
   // TODO(John) allow for command line args for setting parameters
   srand(0);  // omp_get_wtime());
 
-  ie_solver::ie_solver_config config;
-  if (ie_solver::parse_input_into_config(argc, argv, &config)) {
-    return 1;
-  }
+  ie_solver::run_experiment3();
 
-// First we init the boundary so we can correct the num_boundary_points
 
-  if (config.animation) {
-    ie_solver::run_animation(config);
-  } else if (config.scaling) {
-    ie_solver::run_time_trial(config);
+//   ie_solver::ie_solver_config config;
 
-  } else {
-    ie_solver::run_single_solve(config);
-  }
+
+
+//   if (ie_solver::parse_input_into_config(argc, argv, &config)) {
+//     return 1;
+//   }
+
+// // First we init the boundary so we can correct the num_boundary_points
+
+//   if (config.animation) {
+//     ie_solver::run_animation(config);
+//   } else if (config.scaling) {
+//     ie_solver::run_time_trial(config);
+
+//   } else {
+//     ie_solver::run_single_solve(config);
+//   }
   return 0;
 }
 

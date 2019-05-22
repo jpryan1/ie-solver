@@ -468,7 +468,7 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   ie_Mat cpy = *this;
   assert(height() * width() > 0);
   std::vector<lapack_int> pvt(width_);
-  // memset(&pvt[0], 0, width_ * sizeof(lapack_int));
+  memset(&pvt[0], 0, width_ * sizeof(lapack_int));
 
   // /tau/ will contain an output from dgeqp3 that we don't need.
   std::vector<double> tau(width_);

@@ -21,6 +21,8 @@
 #include "ie-solver/boundaries/squiggly.h"
 #include "ie-solver/boundaries/annulus.h"
 #include "ie-solver/boundaries/cubic_spline.h"
+#include "ie-solver/boundaries/ex1boundary.h"
+#include "ie-solver/boundaries/ex3boundary.h"
 
 
 namespace ie_solver {
@@ -177,6 +179,16 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   Kernel kernel;
   kernel.load(boundary, domain_points, config.pde,
               config.solution_dimension, config.domain_dimension);
+
+
+  // std::vector<unsigned int> alldofs;
+  // for(int i = 0; i<boundary->points.size();i++){
+  //   alldofs.push_back(i);
+  // }
+  // ie_Mat wholething = kernel(alldofs, alldofs);
+
+  // std::cout<<"Whole thing has cond number "<<wholething.condition_number()<<std::endl;
+  // exit(0);
   ie_solver_tools.skeletonize(kernel, quadtree);
 
   ie_Mat f = boundary->boundary_values;

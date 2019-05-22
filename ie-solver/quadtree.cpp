@@ -46,8 +46,8 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   min = boundary->points[0];
   max = boundary->points[0];
 
-  double tree_min = 0;
-  double tree_max = 1;
+  double tree_min = -0.1;
+  double tree_max = 1.1;
 
   for (double point : boundary->points) {
     if (point < min) min = point;
@@ -441,7 +441,7 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
 
 
 
-
+//BUG : this might confuse interior holes if they get too close to each other
 void QuadTree::perturb(const Boundary & perturbed_boundary) {
   // 1) create mapping, storing vectors of additions/deletions
   // 2) go to every node, marking those with additions and deletions
@@ -565,7 +565,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
           found[i] = true;
           for (int j = 0; j < solution_dimension; j++) {
             node->src_dof_lists.original_box.push_back(solution_dimension
-             * additions[i] + j);
+                * additions[i] + j);
           }
           mark_neighbors_and_parents(node);
         }

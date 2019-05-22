@@ -25,7 +25,9 @@ class Boundary {
     ROUNDED_SQUARE_WITH_BUMP,
     SQUIGGLY,
     ANNULUS,
-    CUBIC_SPLINE
+    CUBIC_SPLINE,
+    EX1,
+    EX3
   };
   enum BoundaryCondition {
     SINGLE_ELECTRON,
