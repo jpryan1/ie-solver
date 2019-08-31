@@ -1,7 +1,7 @@
 bazel-*
 output/
-ie-solver/._*
-ie-solver/*/._*
+ie_solver/._*
+ie_solver/*/._*
 *.png
 *.mp4
 *.txt
