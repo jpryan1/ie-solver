@@ -1,5 +1,4 @@
 bazel-*
-output/
 ie_solver/._*
 ie_solver/*/._*
 *.png
