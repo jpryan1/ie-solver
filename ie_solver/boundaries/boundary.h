@@ -58,10 +58,6 @@ class CubicBoundary : public Boundary {
                     std::vector<std::vector<double>>* x0_cubics,
                     std::vector<std::vector<double>>* x1_cubics);
   
-    // virtual void interpolate(int bc_index, bool is_interior, int nodes_per_spline,
-    //                         BoundaryCondition bc, const std::vector<std::vector<double>>& x0_cubics_,
-    //                         const std::vector<std::vector<double>>& x1_cubics_) = 0;
-  
     void interpolate(int bc_index, bool is_interior,
                               int nodes_per_spline, BoundaryCondition boundary_condition,
                               const std::vector<std::vector<double>>& x0_cubics,
