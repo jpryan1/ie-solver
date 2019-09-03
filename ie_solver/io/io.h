@@ -26,8 +26,8 @@ struct ie_solver_config {
   double id_tol = DEFAULT_ID_TOL;
   Pde pde = LAPLACE;
   bool is_strong_admissibility = false;
-  Boundary::BoundaryCondition boundary_condition =
-    Boundary::BoundaryCondition::SINGLE_ELECTRON;
+  BoundaryCondition boundary_condition =
+    BoundaryCondition::SINGLE_ELECTRON;
   Boundary::BoundaryShape boundary_shape =
     Boundary::BoundaryShape::CIRCLE;
   bool scaling = false;
@@ -37,7 +37,8 @@ struct ie_solver_config {
 };
 
 struct io {
-  static void write_boundary_to_file(const std::vector<double>& points);
+  static void write_boundary_to_file(const std::string& filename,
+                                     const std::vector<double>& points);
   static void write_potential_to_file();
   static void write_times_to_files(int* scale_n,
                                    const std::vector<double>& n_times,
@@ -47,7 +48,8 @@ struct io {
                                      const ie_Mat& domain,
                                      const std::vector<double>& domain_points,
                                      int solution_dimension);
-  static void write_quadtree_to_file(const QuadTree& quadtree);
+  static void write_quadtree_to_file(const std::string& filename,
+                                     const QuadTree& quadtree);
 
   static int parse_input_into_config(int argc, char** argv,
                                      ie_solver_config* config);

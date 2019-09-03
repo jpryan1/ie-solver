@@ -221,16 +221,20 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   skel_factorization.skeletonize(kernel, quadtree);
 
   ie_Mat f = boundary->boundary_values;
+
   int num_holes = boundary->holes.size();
+
   ie_Mat U = initialize_U_mat(config.pde, boundary->holes, boundary->points);
   ie_Mat Psi = initialize_Psi_mat(config.pde, boundary->holes,
                                   boundary);
   ie_Mat U_forward = initialize_U_mat(config.pde, boundary->holes,
                                       domain_points);
+
   ie_Mat K_domain(config.domain_size * config.domain_size *
                   config.solution_dimension,
                   boundary->weights.size() * config.solution_dimension);
   Initialization init;
+
   init.InitializeDomainKernel(&K_domain, domain_points,
                               config.domain_size, kernel,
                               config.solution_dimension);
@@ -264,7 +268,9 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   skel_factorization.Psi = Psi;
   schur_solve(skel_factorization, *quadtree, U, Psi, f, K_domain, U_forward,
               &domain_solution);
+
   return domain_solution;
+  
 }
 
 

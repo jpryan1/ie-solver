@@ -14,7 +14,6 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
   std::vector<double> points = kernel.boundary->points;
   std::vector<double> normals = kernel.boundary->normals;
   std::vector<double> weights = kernel.boundary->weights;
-
   if (solution_dimension == 2) {
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
                                   test_size, kernel);
@@ -27,6 +26,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     domain_point.is_boundary = false;
     domain_point.point = Vec2(domain_points[2 * i], domain_points[2 * i + 1]);
     bool in_domain = kernel.boundary->is_in_domain(domain_point.point);
+
     for (int j = 0; j < dofs; j++) {
       if (!in_domain) {
         K->set(i, j, 0);
@@ -59,6 +59,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
 
   for (int i = 0; i < test_size * test_size; i++) {
     Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
+
     bool in_domain = kernel.boundary->is_in_domain(x);
     for (unsigned int j = 0; j < points.size(); j += 2) {
       if (!in_domain) {

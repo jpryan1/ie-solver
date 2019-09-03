@@ -17,6 +17,7 @@ cc_library(
 			"rounded_square_with_bump.cpp",
 			"squiggly.cpp",
 			"cubic_spline.cpp",
+			"cubic_boundary.cpp",
 			"ex1boundary.cpp",
 			"ex3boundary.cpp",
 			],
