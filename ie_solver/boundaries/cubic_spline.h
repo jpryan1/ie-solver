@@ -7,25 +7,14 @@
 
 namespace ie_solver {
 
-class CubicSpline : public Boundary {
+class CubicSpline : public CubicBoundary {
  public:
   void initialize(int N, BoundaryCondition bc);
   bool is_in_domain(const Vec2& a);
 
-  void get_spline_points();
-  void get_cubics();
-  void interpolate();
-
-
-  void find_real_roots_of_cubic(const std::vector<double>& y_cubic,
-                                std::vector<double>* t_vals);
-  int num_right_intersections(double x, double y, int index);
-
-  int num_spline_points = 10;
-  std::vector<double> x0_spline_points, x1_spline_points;
-
-  // v0 + v1 x + v2 x^2 + v3 x^3
-  std::vector<std::vector<double>> x0_cubics, x1_cubics;
+  void get_spline_points(std::vector<double>* x0_spline_points,
+                         std::vector<double>* x1_spline_points);
+                         
 };
 
 }  // namespace ie_solver

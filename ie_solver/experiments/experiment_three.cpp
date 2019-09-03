@@ -25,24 +25,30 @@
 
 namespace ie_solver {
 
-void run_experiment3() {
+
+ie_solver_config get_experiment_three_config(){
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
   config.num_boundary_points = 1000;
   config.domain_size = 49;
-  int domain_dimension = 2;
-  int solution_dimension = 2;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
-
-  config.boundary_condition = Boundary::BoundaryCondition::STOKES;
+  config.boundary_condition = BoundaryCondition::STOKES;
   config.boundary_shape = Boundary::BoundaryShape::EX3;
+  return config;
+}
+
+
+void run_experiment3() {
+  ie_solver_config config = get_experiment_three_config();
+  int domain_dimension = 2;
+  int solution_dimension = 2;
 
   std::unique_ptr<Boundary> boundary, perturbed_boundary;
   boundary.reset(new Ex3Boundary());
   boundary->initialize(config.num_boundary_points,
-                       Boundary::BoundaryCondition::STOKES);
+                       BoundaryCondition::STOKES);
 
   QuadTree quadtree;
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),
@@ -55,8 +61,8 @@ void run_experiment3() {
 
   io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
                          domain_points, config.solution_dimension);
-  io::write_boundary_to_file(boundary->points);
-  io::write_quadtree_to_file(quadtree);
+  io::write_boundary_to_file("output/data/ie_solver_boundary.txt", boundary->points);
+  io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
 }
 
 

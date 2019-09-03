@@ -141,8 +141,8 @@ void run_single_solve(const ie_solver_config & config) {
 
   io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
                          domain_points, config.solution_dimension);
-  io::write_boundary_to_file(boundary->points);
-  io::write_quadtree_to_file(quadtree);
+  io::write_boundary_to_file("output/data/ie_solver_boundary.txt", boundary->points);
+  io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
 
   // double error;
   // switch (config.pde) {

@@ -38,7 +38,7 @@ TEST(IeSolverTest, LaplaceCircleOnesSmallError) {
   ie_solver_config config = ie_solver_config();
   config.boundary.reset(new Circle());
   config.testing = true;
-  config.boundary_condition = Boundary::BoundaryCondition::ALL_ONES;
+  config.boundary_condition = BoundaryCondition::ALL_ONES;
   // First we init the boundary so we can correct the num_boundary_points
   config.boundary->initialize(config.num_boundary_points,
                               config.boundary_condition);
@@ -69,7 +69,7 @@ TEST(IeSolverTest, StokesCircleSmallError) {
   srand(0);
   ie_solver_config config = ie_solver_config();
   config.pde = ie_solver_config::STOKES;
-  config.boundary_condition =  Boundary::BoundaryCondition::STOKES;
+  config.boundary_condition =  BoundaryCondition::STOKES;
 
   config.boundary.reset(new Circle());
   config.testing = true;

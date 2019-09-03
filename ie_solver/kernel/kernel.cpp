@@ -201,19 +201,19 @@ ie_Mat Kernel::operator()(const std::vector<Dof>& tgts,
 //     }
 //     double potential;
 //     switch (boundary->boundary_condition) {
-//       case Boundary::BoundaryCondition::SINGLE_ELECTRON:
+//       case BoundaryCondition::SINGLE_ELECTRON:
 //         potential = log(sqrt(pow(x0 + 2, 2) + pow(x1 + 2, 2))) / (2 * M_PI);
 //         break;
-//       case Boundary::BoundaryCondition::ALL_ONES:
+//       case BoundaryCondition::ALL_ONES:
 //         potential = 1.0;
 //         break;
-//       case Boundary::BoundaryCondition::BUMP_FUNCTION: {
+//       case BoundaryCondition::BUMP_FUNCTION: {
 //         std::cout << "Error: check Laplace called on Bump BC;"
 //                   << " no analytic solution known to check against."
 //                   << std::endl;
 //         break;
 //       }
-//       case Boundary::BoundaryCondition::STOKES:
+//       case BoundaryCondition::STOKES:
 //         std::cout << "Error: check Laplace called on Stokes BC." << std::endl;
 //         break;
 //     }

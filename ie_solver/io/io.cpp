@@ -9,10 +9,11 @@
 
 namespace ie_solver {
 
-void io::write_boundary_to_file(const std::vector<double>& points) {
+void io::write_boundary_to_file(const std::string& filename,
+                                const std::vector<double>& points) {
   assert(points.size() % 2 == 0);
   std::ofstream output;
-  output.open("output/data/ie_solver_boundary.txt");
+  output.open(filename);
   if (output.is_open()) {
     for (unsigned int i = 0; i < points.size(); i += 2) {
       output << points[i] << "," << points[i + 1] << std::endl;
@@ -87,9 +88,10 @@ void io::write_solution_to_file(const std::string& filename,
 }
 
 
-void io::write_quadtree_to_file(const QuadTree& quadtree) {
+void io::write_quadtree_to_file(const std::string& filename,
+                                const QuadTree& quadtree) {
   std::ofstream output;
-  output.open("output/data/ie_solver_tree.txt");
+  output.open(filename);
   if (output.is_open()) {
     for (QuadTreeLevel* level : quadtree.levels) {
       for (QuadTreeNode* node : level->nodes) {
@@ -190,15 +192,15 @@ int io::parse_input_into_config(int argc, char** argv,
       if (i < argc - 1) {
         if (!strcmp(argv[i + 1], "SINGLE_ELECTRON")) {
           config->boundary_condition =
-            Boundary::BoundaryCondition::SINGLE_ELECTRON;
+            BoundaryCondition::SINGLE_ELECTRON;
         } else if (!strcmp(argv[i + 1], "ALL_ONES")) {
-          config->boundary_condition = Boundary::BoundaryCondition::ALL_ONES;
+          config->boundary_condition = BoundaryCondition::ALL_ONES;
         } else if (!strcmp(argv[i + 1], "BUMP_FUNCTION")) {
           config->boundary_condition =
-            Boundary::BoundaryCondition::BUMP_FUNCTION;
+            BoundaryCondition::BUMP_FUNCTION;
         } else if (!strcmp(argv[i + 1], "STOKES")) {
           config->boundary_condition =
-            Boundary::BoundaryCondition::STOKES;
+            BoundaryCondition::STOKES;
         } else {
           LOG::ERROR("Unrecognized boundary_condition: " +
                      std::string(argv[i + 1]) + "\n Acceptable "
@@ -216,10 +218,10 @@ int io::parse_input_into_config(int argc, char** argv,
   }
 
   if (config->boundary_condition
-      ==  ie_solver::Boundary::BoundaryCondition::STOKES
+      ==  ie_solver::BoundaryCondition::STOKES
       || config->pde == ie_solver::ie_solver_config::STOKES) {
     config->boundary_condition =
-      ie_solver::Boundary::BoundaryCondition::STOKES;
+      ie_solver::BoundaryCondition::STOKES;
     config->pde = ie_solver::ie_solver_config::STOKES;
     boundary_condition_name = "STOKES";
     pde_name = "STOKES";

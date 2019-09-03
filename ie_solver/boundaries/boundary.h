@@ -13,6 +13,18 @@ struct Hole {
   double radius;
 };
 
+enum BoundaryCondition {
+  SINGLE_ELECTRON,
+  ALL_ONES,
+  BUMP_FUNCTION,
+  STOKES,
+  TANGENT_VEC,
+  REVERSE_TANGENT_VEC,
+  NORMAL_VEC,
+  REVERSE_NORMAL_VEC,
+  LEFT_TO_RIGHT_FLOW
+};
+
 class Boundary {
  public:
   int perturbation_size = 0;
@@ -29,16 +41,38 @@ class Boundary {
     EX1,
     EX3
   };
-  enum BoundaryCondition {
-    SINGLE_ELECTRON,
-    ALL_ONES,
-    BUMP_FUNCTION,
-    STOKES
-  };
+
   BoundaryShape boundary_shape;
   BoundaryCondition boundary_condition;
   virtual void initialize(int n, BoundaryCondition bc) = 0;
   virtual bool is_in_domain(const Vec2& a) = 0;
+};
+
+class CubicBoundary : public Boundary {
+  public:
+    virtual void get_spline_points(std::vector<double>* outer_x0_spline_points,
+                           std::vector<double>* outer_x1_spline_points) = 0;
+    
+    void get_cubics(const std::vector<double>& x0_points,
+                    const std::vector<double>& x1_points,
+                    std::vector<std::vector<double>>* x0_cubics,
+                    std::vector<std::vector<double>>* x1_cubics);
+  
+    // virtual void interpolate(int bc_index, bool is_interior, int nodes_per_spline,
+    //                         BoundaryCondition bc, const std::vector<std::vector<double>>& x0_cubics_,
+    //                         const std::vector<std::vector<double>>& x1_cubics_) = 0;
+  
+    void interpolate(int bc_index, bool is_interior,
+                              int nodes_per_spline, BoundaryCondition boundary_condition,
+                              const std::vector<std::vector<double>>& x0_cubics,
+                              const std::vector<std::vector<double>>& x1_cubics);
+                   
+    void find_real_roots_of_cubic(const std::vector<double>& y_cubic,
+                                  std::vector<double>* t_vals);
+    int num_right_intersections(double x, double y, int index);
+      
+    std::vector<std::vector<double>> all_cubics_x0, all_cubics_x1;
+
 };
 
 }  // namespace ie_solver
