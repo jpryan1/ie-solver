@@ -38,7 +38,7 @@
 //     for (int level = lvls - 1; level > level_; level--) {
 //       QuadTreeLevel* current_level = tree.levels[level];
 //       for (QuadTreeNode* current_node : current_level->nodes) {
-//         if (!current_node->schur_updated) continue;
+//         if (!current_node->compressed) continue;
 //         apply_sweep_matrix(current_node->src_T, &start,
 //                           current_node->src_dof_lists.redundant,
 //                           current_node->src_dof_lists.skel,
@@ -50,7 +50,7 @@
 //     for (int level = lvls - 1; level > level_; level--) {
 //       QuadTreeLevel* current_level = tree.levels[level];
 //       for (QuadTreeNode* current_node : current_level->nodes) {
-//         if (!current_node->schur_updated) {
+//         if (!current_node->compressed) {
 //           continue;
 //         }
 //         if (current_node->X_rs.height() * current_node->X_rs.width() > 0) {
@@ -79,7 +79,7 @@
 //       QuadTreeLevel* current_level = tree.levels[level];
 //       for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
 //         QuadTreeNode* current_node = current_level->nodes[n];
-//         if (!current_node->schur_updated) continue;
+//         if (!current_node->compressed) continue;
 //         apply_sweep_matrix(current_node->tgt_T, &add,
 //                           current_node->tgt_dof_lists.skel,
 //                           current_node->tgt_dof_lists.redundant, true);
@@ -92,7 +92,7 @@
 //   for (int level = lvls - 1; level >= 0; level--) {
 //     QuadTreeLevel* current_level = tree.levels[level];
 //     for (QuadTreeNode* current_node : current_level->nodes) {
-//       if (!current_node->schur_updated) {
+//       if (!current_node->compressed) {
 //         continue;
 //       }
 //       apply_sweep_matrix(current_node->src_T, &final_start,
@@ -109,7 +109,7 @@
 
 //   QuadTreeLevel* current_level = tree.levels[0];
 //   for (QuadTreeNode* current_node : current_level->nodes) {
-//     if (!current_node->schur_updated) {
+//     if (!current_node->compressed) {
 //       continue;
 //     }
 //     if (current_node->X_rs.height() * current_node->X_rs.width() > 0) {
@@ -153,7 +153,7 @@
 //     // sparse_mat_vec on a random vector, BUT NOT THE SOLUTION ERROR
 //     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
 //       QuadTreeNode* current_node = current_level->nodes[n];
-//       if (!current_node->schur_updated) {
+//       if (!current_node->compressed) {
 //         continue;
 //       }
 
@@ -186,12 +186,12 @@
 //     QuadTreeLevel* current_level = tree->levels[level];
 //     // First, get all active dofs from children
 //     for (QuadTreeNode * node : current_level->nodes) {
-//       if (node->schur_updated) continue;
+//       if (node->compressed) continue;
 //       populate_active_box(node);
 //     }
 //     // Next, get all active near dofs from neighbors
 //     for (QuadTreeNode* node_a : current_level->nodes) {
-//       if (node_a->schur_updated) continue;
+//       if (node_a->compressed) continue;
 //       node_a->src_dof_lists.near.clear();
 //       node_a->tgt_dof_lists.near.clear();
 //       for (QuadTreeNode* neighbor : node_a->neighbors) {
@@ -210,7 +210,7 @@
 //     }
 //     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
 //       QuadTreeNode* current_node = current_level->nodes[n];
-//       if (current_node->schur_updated ||
+//       if (current_node->compressed ||
 //           current_node->src_dof_lists.active_box.size() == 0 ||
 //           current_node->tgt_dof_lists.active_box.size() == 0
 //         ) {
@@ -292,7 +292,7 @@
 //   node->X_rr = Xrr;
 //   node->X_rs = Xrs;
 //   node->X_sr = Xsr;
-//   node->schur_updated = true;
+//   node->compressed = true;
 
 //   return node->src_T.width() + node->tgt_T.width();
 // }

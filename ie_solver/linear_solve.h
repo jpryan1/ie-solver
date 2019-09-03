@@ -1,6 +1,6 @@
 // Copyright 2019 John Paul Ryan
-#ifndef IE_SOLVER_HELPERS_H_
-#define IE_SOLVER_HELPERS_H_
+#ifndef IE_SOLVER_LINEAR_SOLVE_H_
+#define IE_SOLVER_LINEAR_SOLVE_H_
 
 #include <vector>
 #include <string>
@@ -29,4 +29,4 @@ void check_factorization_against_kernel(const Kernel& kernel, QuadTree* tree);
 
 }  // namespace ie_solver
 
-#endif  // IE_SOLVER_HELPERS_H_
+#endif  // IE_SOLVER_LINEAR_SOLVE_H_

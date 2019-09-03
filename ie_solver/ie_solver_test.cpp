@@ -12,7 +12,7 @@
 #include "ie_solver/quadtree.h"
 #include "ie_solver/kernel.h"
 #include "ie_solver/log.h"
-#include "ie_solver/helpers.h"
+#include "ie_solver/linear_solve.h"
 #include "gtest/gtest.h"
 
 namespace ie_solver {

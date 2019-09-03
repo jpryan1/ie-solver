@@ -47,7 +47,7 @@ struct QuadTreeNode {
   static unsigned int id_count;
 
   unsigned int id, level;
-  bool is_leaf, schur_updated = false;
+  bool is_leaf, compressed = false;
   double side_length;
 
   QuadTreeNode *tl, *tr, *bl, *br;
@@ -121,8 +121,7 @@ class QuadTree {
   void mark_neighbors_and_parents(QuadTreeNode* node);
   void perturb(const Boundary& new_boundary);
 
-
-
+  void remove_inactive_dofs_at_level(int level);
   void populate_all_active_boxes();
   void populate_active_box(QuadTreeNode* node);
 };

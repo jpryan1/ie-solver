@@ -11,7 +11,7 @@
 #include "ie_solver/skel_factorization/skel_factorization.h"
 #include "ie_solver/quadtree/quadtree.h"
 #include "ie_solver/kernel/kernel.h"
-#include "ie_solver/helpers.h"
+#include "ie_solver/linear_solve.h"
 #include "ie_solver/log.h"
 #include "ie_solver/boundaries/boundary.h"
 #include "ie_solver/boundaries/circle.h"

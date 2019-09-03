@@ -108,8 +108,12 @@ def draw_solution(img, points):
 		if(np.isnan(point[2]) or point[2] == 0):
 			img[pixel[0]][pixel[1]] = MASKED_VALUE
 		else:
-			img[pixel[0]][pixel[1]] = point[2]
-	 
+			for i in range(-8,9):
+				for j in range(-8,9):
+					x_coord = max(0, min(pixel[0]+i, len(img)-1))
+					y_coord = max(0, min(pixel[1]+j, len(img[0])-1))
+					img[x_coord][y_coord] = point[2]
+
 
 def get_quiver_data(points):
 	# returns an array containing the four vecs necessary for a quiver plot
@@ -177,7 +181,7 @@ if(is_stokes):
 	draw_boundary(solution_img, boundary_points, val=1.0)
 	stokes_data = get_quiver_data(solution_points)
 else:
-	draw_boundary(solution_img, boundary_points, val=1.0)
+	# draw_boundary(solution_img, boundary_points, val=1.0)
 	draw_solution(solution_img, solution_points)
 solution_img = np.ma.masked_where(solution_img == MASKED_VALUE, solution_img)
 axs[0].set_title("Solution")

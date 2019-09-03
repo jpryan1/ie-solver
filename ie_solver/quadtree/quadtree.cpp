@@ -395,7 +395,7 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
 
 void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   if (node == nullptr) return;
-  node->schur_updated = false;
+  node->compressed = false;
   node->src_dof_lists.active_box.clear();
   node->src_dof_lists.skel.clear();
   node->src_dof_lists.skelnear.clear();
@@ -405,7 +405,7 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   node->U = ie_Mat(0, 0);
   node->L = ie_Mat(0, 0);
   for (QuadTreeNode* neighbor : node->neighbors) {
-    neighbor->schur_updated = false;
+    neighbor->compressed = false;
     neighbor->src_dof_lists.active_box.clear();
     neighbor->src_dof_lists.skel.clear();
     neighbor->src_dof_lists.skelnear.clear();
@@ -603,7 +603,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
             num_child_dofs += child->src_dof_lists.original_box.size();
           }
           if (num_child_dofs < MAX_LEAF_DOFS) {
-            assert(!node->schur_updated);
+            assert(!node->compressed);
             node->src_dof_lists.original_box.clear();
             for (QuadTreeNode* child : node->children) {
               for (unsigned int idx : child->src_dof_lists.original_box) {
@@ -683,7 +683,7 @@ void QuadTree::populate_all_active_boxes() {
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
-      if (current_node->schur_updated) {
+      if (current_node->compressed) {
         continue;
       }
       populate_active_box(current_node);
@@ -705,7 +705,7 @@ void QuadTree::populate_active_box(QuadTreeNode* node) {
 
   if (!node->is_leaf) {
     for (QuadTreeNode* child : node->children) {
-      if (child->schur_updated) {
+      if (child->compressed) {
         for (unsigned int i : child->src_dof_lists.skel) {
           node->src_dof_lists.active_box.push_back(i);
         }
@@ -725,7 +725,7 @@ void QuadTree::populate_active_box(QuadTreeNode* node) {
   node->tgt_dof_lists.active_box.clear();
   if (!node->is_leaf) {
     for (QuadTreeNode* child : node->children) {
-      if (child->schur_updated) {
+      if (child->compressed) {
         for (unsigned int i : child->tgt_dof_lists.skel) {
           node->tgt_dof_lists.active_box.push_back(i);
         }
@@ -740,5 +740,28 @@ void QuadTree::populate_active_box(QuadTreeNode* node) {
   }
 }
 
+void QuadTree::remove_inactive_dofs_at_level(int level){
+  QuadTreeLevel* current_level = levels[level];
+  // First, get all active dofs from children
+  for (QuadTreeNode * node : current_level->nodes) {
+    if (node->compressed) continue;
+    populate_active_box(node);
+  }
+  // Next, get all active near dofs from neighbors
+  for (QuadTreeNode* node_a : current_level->nodes) {
+    if (node_a->compressed) continue;
+    node_a->src_dof_lists.near.clear();
+    for (QuadTreeNode* neighbor : node_a->neighbors) {
+      // Some neighbors are smaller boxes from higher levels, we don't
+      // care about those, their parents have the updated information.
+      if (neighbor->level > node_a->level) {
+        continue;
+      }
+      for (unsigned int idx : neighbor->src_dof_lists.active_box) {
+        node_a->src_dof_lists.near.push_back(idx);
+      }
+    }
+  }
+}
 
 }  // namespace ie_solver

@@ -155,7 +155,7 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   ie_Mat::gemm(NORMAL, NORMAL, 1.0, node->L, K_BN(r, sn), 0., &schur);
   // set schur update
   node->schur_update = schur;
-  node->schur_updated = true;
+  node->compressed = true;
 }
 
 
@@ -169,27 +169,9 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
+    
+    tree->remove_inactive_dofs_at_level(level);
     QuadTreeLevel* current_level = tree->levels[level];
-    // First, get all active dofs from children
-    for (QuadTreeNode * node : current_level->nodes) {
-      if (node->schur_updated) continue;
-      tree->populate_active_box(node);
-    }
-    // Next, get all active near dofs from neighbors
-    for (QuadTreeNode* node_a : current_level->nodes) {
-      if (node_a->schur_updated) continue;
-      node_a->src_dof_lists.near.clear();
-      for (QuadTreeNode* neighbor : node_a->neighbors) {
-        // Some neighbors are smaller boxes from higher levels, we don't
-        // care about those, their parents have the updated information.
-        if (neighbor->level > node_a->level) {
-          continue;
-        }
-        for (unsigned int idx : neighbor->src_dof_lists.active_box) {
-          node_a->src_dof_lists.near.push_back(idx);
-        }
-      }
-    }
 
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
       node_counter++;
@@ -197,7 +179,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
         break;
       }
       QuadTreeNode* current_node = current_level->nodes[n];
-      if (current_node->schur_updated) {
+      if (current_node->compressed) {
         already_marked++;
         continue;
       }
@@ -243,7 +225,7 @@ void SkelFactorization::get_all_schur_updates(ie_Mat* updates,
   if (get_neighbors) {
     for (QuadTreeNode* neighbor : node->neighbors) {
       if (neighbor->level != node->level) continue;
-      if (neighbor->schur_updated) get_update(updates, BN, neighbor);
+      if (neighbor->compressed) get_update(updates, BN, neighbor);
       if (!neighbor->is_leaf) get_descendents_updates(updates, BN, neighbor);
     }
   }
@@ -258,7 +240,7 @@ void SkelFactorization::get_descendents_updates(ie_Mat* updates,
 
   // by assumption, node is not a leaf
   for (QuadTreeNode* child : node->children) {
-    if (child->schur_updated) get_update(updates, BN, child);
+    if (child->compressed) get_update(updates, BN, child);
     if (!child->is_leaf) get_descendents_updates(updates, BN, child);
   }
 }
@@ -469,7 +451,7 @@ void SkelFactorization::sparse_matvec(const QuadTree& quadtree, const ie_Mat& x,
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       // First we need to apply L_T inverse
@@ -493,7 +475,7 @@ void SkelFactorization::sparse_matvec(const QuadTree& quadtree, const ie_Mat& x,
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       apply_diag_matrix(current_node->X_rr, b,
@@ -518,7 +500,7 @@ void SkelFactorization::sparse_matvec(const QuadTree& quadtree, const ie_Mat& x,
     // sparse_mat_vec on a random vector, BUT NOT THE SOLUTION ERROR
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
       QuadTreeNode* current_node = current_level->nodes[n];
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       // Next we need to apply L inverse
@@ -547,7 +529,7 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       // Next we need to apply L inverse
@@ -572,7 +554,7 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       double cond = current_node->X_rr.condition_number();
@@ -604,7 +586,7 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
       // for(unsigned int n = 0; n < current_level->nodes.size(); n++){
 
       QuadTreeNode* current_node = current_level->nodes[n];
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       // First we need to apply L_T inverse
@@ -651,7 +633,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
 
@@ -676,7 +658,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       apply_sweep_matrix(-current_node->T, &modified_Psi,
@@ -755,7 +737,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       std::vector<unsigned int> small_redundants = big_to_small(
@@ -780,7 +762,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       std::vector<unsigned int> small_redundants = big_to_small(
@@ -806,7 +788,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
       if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       std::vector<unsigned int> small_redundants = big_to_small(
@@ -826,7 +808,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
       // for(unsigned int n = 0; n < current_level->nodes.size(); n++){
 
       QuadTreeNode* current_node = current_level->nodes[n];
-      if (!current_node->schur_updated) {
+      if (!current_node->compressed) {
         continue;
       }
       // First we need to apply L_T inverse

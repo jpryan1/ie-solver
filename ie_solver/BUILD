@@ -9,7 +9,7 @@ cc_binary(
 			"//ie_solver/skel_factorization",
 			"//ie_solver/quadtree",
 			"//ie_solver/boundaries",
-			":helpers",
+			":linear_solve",
 			],
 	linkopts = ["-llapacke",
 				"-llapack",
@@ -20,9 +20,9 @@ cc_binary(
 
 
 cc_library(
-	name = "helpers",
-	hdrs = ["helpers.h"],
-	srcs = ["helpers.cpp"],
+	name = "linear_solve",
+	hdrs = ["linear_solve.h"],
+	srcs = ["linear_solve.cpp"],
 	deps = [":ie_mat",
 			":initialization",
 			"//ie_solver/skel_factorization",
@@ -77,7 +77,7 @@ cc_test(
 			"//ie_solver/skel_factorization",
 			"//ie_solver/quadtree",
 			"//ie_solver/boundaries",
-			":helpers",
+			":linear_solve",
       "@gtest//:gtest",
       "@gtest//:gtest_main"
     ],
