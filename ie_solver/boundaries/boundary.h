@@ -22,7 +22,8 @@ enum BoundaryCondition {
   REVERSE_TANGENT_VEC,
   NORMAL_VEC,
   REVERSE_NORMAL_VEC,
-  LEFT_TO_RIGHT_FLOW
+  LEFT_TO_RIGHT_FLOW,
+  NO_SLIP
 };
 
 class Boundary {

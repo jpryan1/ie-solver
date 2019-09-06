@@ -277,9 +277,9 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
 void get_domain_points(unsigned int domain_size, std::vector<double>* points,
                        double min, double max) {
   for (unsigned int i = 0; i < domain_size; i++) {
-    double x = min + ((i + 0.0) / domain_size) * (max - min);
+    double x = min + ((i + 0.0) / (domain_size-1)) * (max - min);
     for (int j = 0; j < domain_size; j++) {
-      double y = min + ((j + 0.0) / domain_size) * (max - min);
+      double y = min + ((j + 0.0) / (domain_size-1)) * (max - min);
       points->push_back(x);
       points->push_back(y);
     }

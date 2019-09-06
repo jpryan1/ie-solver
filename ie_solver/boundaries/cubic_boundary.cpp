@@ -104,7 +104,7 @@ int CubicBoundary::num_right_intersections(double x, double y, int index){
     if (t > 0 && t < 1) {
       double dif = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2]
                    + pow(t, 3) * x_cubic[3] - x;
-      if (fabs(dif) < 0.01) return -1;
+      if (fabs(dif) < 0.05) return -1;
       if (dif > 0) {
         intersections++;
       }
@@ -199,14 +199,17 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior, int nodes_per_sp
           boundary_values.set(2 * bc_index + 1, 0, -normals[2 * bc_index + 1]);
           break;
         case LEFT_TO_RIGHT_FLOW:
-          if (x < 0.01 || x > 0.99) {
+          if (x < -1.01 || x > 1.99) {
             boundary_values.set(2 * bc_index, 0, 1);
             boundary_values.set(2 * bc_index + 1, 0, 0);
           } else {
             boundary_values.set(2 * bc_index, 0, 0);
             boundary_values.set(2 * bc_index + 1, 0, 0);
           }
-
+          break;
+        case NO_SLIP:
+          boundary_values.set(2 * bc_index, 0, 0.);
+          boundary_values.set(2 * bc_index + 1, 0, 0.);
           break;
       }
       bc_index++;

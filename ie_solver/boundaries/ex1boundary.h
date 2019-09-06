@@ -17,6 +17,7 @@ class Ex1Boundary : public CubicBoundary {
   void get_star_spline_points(double x, double y,
                               std::vector<double>* star_x0_spline_points,
                               std::vector<double>* star_x1_spline_points);
+  int num_outer_nodes;
 };
 
 }  // namespace ie_solver

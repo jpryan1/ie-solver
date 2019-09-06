@@ -8,10 +8,7 @@
 #include "ie_solver/log.h"
 
 #define OUTER_NUM_SPLINE_POINTS 24
-#define OUTER_NODES_PER_SPLINE 100
-#define STAR_NODES_PER_SPLINE 16
 #define STAR_NUM_SPLINE_POINTS 8
-#define NUM_CIRCLE_POINTS 128
 
 namespace ie_solver {
 
@@ -93,7 +90,12 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   curvatures.clear();
   all_cubics_x0.clear();
   all_cubics_x1.clear();
+  int STAR_NODES_PER_SPLINE = (N/12)/STAR_NUM_SPLINE_POINTS;
+  int NUM_CIRCLE_POINTS = (N/12);
+  int OUTER_NODES_PER_SPLINE = (2*N/3)/OUTER_NUM_SPLINE_POINTS;
+  num_outer_nodes = OUTER_NODES_PER_SPLINE*OUTER_NUM_SPLINE_POINTS;
   Hole star1, star2, circle1, circle2;
+  
   if (holes.size() == 0) {
     star1.center = Vec2(0.2, 0.5);
     star1.radius = 0.05;
@@ -205,18 +207,30 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
 
 bool Ex1Boundary::is_in_domain(const Vec2& a) {
   const double* v = a.a;
-  int intersections = 0;
-  for (int i = 0; i < OUTER_NUM_SPLINE_POINTS; i++) {
-    int right_intersections = num_right_intersections(v[0], v[1], i);
-    if (right_intersections == -1) return false;
-    intersections += right_intersections;
+   
+  // Experimental new technique - check dist to holes,
+  // and inner prod with normal vecs of outer boundary
+  // This will fail depending on the nonconvexity of the outer boundary
+  for(int i=0; i<2*num_outer_nodes; i+=2){
+    double dot_prod = (v[0]-points[i])*normals[i]
+                      + (v[1]-points[i+1])*normals[i+1];
+    if(dot_prod > 1e-2){
+      return false;
+    }
   }
-  if (intersections % 2 == 0) {
-    return false;
-  }
+  
+  // int intersections = 0;
+  // for (int i = 0; i < OUTER_NUM_SPLINE_POINTS; i++) {
+  //   int right_intersections = num_right_intersections(v[0], v[1], i);
+  //   if (right_intersections == -1) return false;
+  //   intersections += right_intersections;
+  // }
+  // if (intersections % 2 == 0) {
+  //   return false;
+  // }
   for (Hole hole : holes) {
     Vec2 r = a - hole.center;
-    if (r.norm() < hole.radius + 1e-2) {
+    if (r.norm() < hole.radius + 1e-1) {
       return false;
     }
   }

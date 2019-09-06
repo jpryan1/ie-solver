@@ -7,14 +7,10 @@
 #include "ie_solver/boundaries/ex3boundary.h"
 #include "ie_solver/log.h"
 
-#define OUTER_NUM_SPLINE_POINTS 12
-#define OUTER_NODES_PER_SPLINE 100
-#define FIN_NODES_PER_SPLINE 32
-#define FIN_NUM_SPLINE_POINTS 8
-#define NUM_CIRCLE_POINTS 128
-#define FIN_RAD ((0.2*sqrt(2)-0.075)/2.0)
+#define OUTER_NUM_SPLINE_POINTS 28
+#define FIN_SPLINE_POINTS 4
+#define FIN_RAD 0.075
 namespace ie_solver {
-
 
 
 // USE ROUNDED SQUARE FOR EXTERIOR BOUNDARY
@@ -22,54 +18,48 @@ namespace ie_solver {
 // move boundaries outwards to make laminar flow
 void Ex3Boundary::get_spline_points(std::vector<double>* x0_points,
                                     std::vector<double>* x1_points) {
-  for (int i = 0; i < 4; i++) {
-    x0_points->push_back(i / 4.0);
+  for (int i = 0; i < 12; i++) {
+    x0_points->push_back(-1 + 3*(i / 12.0));
     x1_points->push_back(0.25);
   }
   for (int i = 0; i < 2; i++) {
-    x0_points->push_back(1);
+    x0_points->push_back(2);
     x1_points->push_back(0.25 + 0.5 * i / 2.0);
   }
 
-  for (int i = 0; i < 4; i++) {
-    x0_points->push_back(1 - i / 4.0);
+  for (int i = 0; i < 12; i++) {
+    x0_points->push_back(2 - 3*(i / 12.0));
     x1_points->push_back(0.75);
   }
   for (int i = 0; i < 2; i++) {
-    x0_points->push_back(0);
+    x0_points->push_back(-1);
     x1_points->push_back(0.75 - 0.5 * i / 2.0);
   }
 }
 
-
-void Ex3Boundary::get_star_spline_points(double x, double y,
-    std::vector<double>* x0_points, std::vector<double>* x1_points) {
-  double longer = 0.025;
-  double shorter = 0.01;
-
-  x0_points->push_back(x);
-  x1_points->push_back(y - longer);
-
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y - shorter);
-
-  x0_points->push_back(x + longer);
-  x1_points->push_back(y);
-
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x);
-  x1_points->push_back(y + longer);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x - longer);
-  x1_points->push_back(y);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y - shorter);
+void Ex3Boundary::get_fin_spline_points(std::vector<double>* x0_points,
+                                    std::vector<double>* x1_points) {
+                                      
+  x0_points->push_back(0.025);
+  x1_points->push_back(0.);
+  
+  x0_points->push_back(0.);
+  x1_points->push_back( 0.075);
+  
+  x0_points->push_back(-0.025);
+  x1_points->push_back(0.);
+  
+  x0_points->push_back(0.);
+  x1_points->push_back(-0.075);
+  
+  // Rotate by fin_theta
+  
+  for(int i = x0_points->size()-4; i<x0_points->size(); i++){
+    double temp = cos(fin_theta)*(*x0_points)[i] - sin(fin_theta)*(*x1_points)[i];
+    (*x1_points)[i] = 0.5+sin(fin_theta)*(*x0_points)[i] + cos(fin_theta)*(*x1_points)[i];
+    (*x0_points)[i] = 0.5+temp;
+  }
+  
 }
 
 
@@ -82,8 +72,13 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   curvatures.clear();
   all_cubics_x0.clear();
   all_cubics_x1.clear();
+  
+  //
+  int OUTER_NODES_PER_SPLINE = (3*N/4)/OUTER_NUM_SPLINE_POINTS;
+  int NUM_CIRCLE_POINTS = (N/4)/8;
+  int FIN_NODES_PER_SPLINE = ((N/4)/4)/FIN_SPLINE_POINTS;
 
-  Hole circle1, circle2, circle3, circle4, circle5, circle6, circle7;//fin;
+  Hole circle1, circle2, circle3, circle4, circle5, circle6, fin;
   circle1.center = Vec2(0.2, 0.4);
   circle1.radius = 0.025;
   holes.push_back(circle1);
@@ -106,17 +101,14 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   holes.push_back(circle6);
 
 
-  circle6.center = Vec2(0.5, 0.5);
-  circle6.radius = 0.075;
-  holes.push_back(circle6);
+  fin.center = Vec2(0.5, 0.5);
+  fin.radius = FIN_RAD;
+  holes.push_back(fin);
 
-  // fin.center = Vec2(0.5, 0.5);
-  // fin.radius = FIN_RAD;
-  // holes.push_back(fin);
 
 
   int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE +
-                  + 7 * NUM_CIRCLE_POINTS;
+                  + 6 * NUM_CIRCLE_POINTS + FIN_SPLINE_POINTS * FIN_NODES_PER_SPLINE;
   if (bc == BoundaryCondition::STOKES) {
     boundary_values = ie_Mat(2 * total_num, 1);
   } else {
@@ -141,7 +133,24 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
 
 
-  for (int i = 0; i < holes.size(); i++) {
+
+  std::vector<double> fin_x0_spline_points, fin_x1_spline_points;
+  get_fin_spline_points(&fin_x0_spline_points, &fin_x1_spline_points);
+
+  std::vector<std::vector<double>> fin_x0_cubics, fin_x1_cubics;
+  get_cubics(fin_x0_spline_points, fin_x1_spline_points,
+            &fin_x0_cubics, &fin_x1_cubics);
+
+  for (int i = 0; i < fin_x0_cubics.size(); i++) {
+    all_cubics_x0.push_back(fin_x0_cubics[i]);
+    all_cubics_x1.push_back(fin_x1_cubics[i]);
+  }
+
+  interpolate(bc_index, true, FIN_NODES_PER_SPLINE, NO_SLIP,
+              fin_x0_cubics, fin_x1_cubics);
+  bc_index +=  fin_x0_cubics.size() * FIN_NODES_PER_SPLINE;
+
+  for (int i = 0; i < holes.size()-1; i++) {
     Hole circle = holes[i];
     for (int i = 0; i < NUM_CIRCLE_POINTS; i++) {
       double ang = (2.0 * M_PI * i) / NUM_CIRCLE_POINTS;
@@ -158,6 +167,7 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
       bc_index++;
     }
   }
+  std::cout<<weights.size()<<std::endl;
 }
 
 
@@ -165,7 +175,14 @@ bool Ex3Boundary::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
 
-// hard code rectangle inclusion
+  // Hack for right now: make sure dist from any bdry pt >0.05
+  
+  for(int i=0; i<points.size(); i+=2){
+    if((a-Vec2(points[i], points[i+1])).norm() <0.01 ){
+      return false;
+    }
+  }
+
   int intersections = 0;
   for (int i = 0; i < all_cubics_x1.size(); i++) {
     int right_intersections = num_right_intersections(v[0], v[1], i);
@@ -177,6 +194,7 @@ bool Ex3Boundary::is_in_domain(const Vec2& a) {
   }
 
   for (Hole hole : holes) {
+    
     if(hole.radius == FIN_RAD) continue;
     Vec2 r = a - hole.center;
     if (r.norm() < hole.radius + 1e-2) {

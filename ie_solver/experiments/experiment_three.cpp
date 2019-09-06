@@ -30,8 +30,8 @@ ie_solver_config get_experiment_three_config(){
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = 1000;
-  config.domain_size = 49;
+  config.num_boundary_points = 3000;
+  config.domain_size = 150;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
   config.boundary_condition = BoundaryCondition::STOKES;
