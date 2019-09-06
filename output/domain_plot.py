@@ -13,6 +13,9 @@ CMAP.set_bad('lightgray', 1.)
 MASKED_VALUE = 11111.1
 fig, axs = plt.subplots(2,1, figsize=(8,12))
 
+
+ZOOM = 3
+CENTER = WINDOW_SIZE/2.0
 ###########################################################
 #
 #							READING THE FILES
@@ -69,12 +72,14 @@ dif_x = max_x-min_x
 dif_y = max_y-min_y
 
 # Translation needed so that the image is centered
+# Note from John: I do not understand why this works, I should probably
+# get on that
 gamma=0
 delta=0
 if(dif_x>dif_y):
-	delta = int((WINDOW_SIZE/2.0)*(1-(dif_y)/float(dif_x)))
+	delta = int((IMAGE_SIZE/2.0)*(1-(dif_y)/float(dif_x)))
 else:
-	gamma = int((WINDOW_SIZE/2.0)*(1-(dif_x)/float(dif_y)))
+	gamma = int((IMAGE_SIZE/2.0)*(1-(dif_x)/float(dif_y)))
 	
 scale_factor = IMAGE_SIZE/max(dif_x,dif_y)
 #	The points will undergoes a dilation and translation so that the
@@ -99,7 +104,11 @@ def draw_boundary(img, points, val):
 		
 		for r in range(-1, 2):
 			for c in range(-1,2):
-				img[pixel[0]+r][pixel[1]+c] = val
+			  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER
+			  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
+			  x_coord = max(0,min(WINDOW_SIZE-1, x_zoom+r))
+			  y_coord = max(0,min(WINDOW_SIZE-1, y_zoom+c))
+			  img[int(x_coord)][int(y_coord)] = val
 
 
 def draw_solution(img, points):
@@ -110,9 +119,13 @@ def draw_solution(img, points):
 		else:
 			for i in range(-8,9):
 				for j in range(-8,9):
-					x_coord = max(0, min(pixel[0]+i, len(img)-1))
-					y_coord = max(0, min(pixel[1]+j, len(img[0])-1))
-					img[x_coord][y_coord] = point[2]
+				  
+				  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER
+				  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
+				  x_coord = max(0,min(WINDOW_SIZE-1, x_zoom+i))
+				  y_coord = max(0,min(WINDOW_SIZE-1, y_zoom+j))
+				  img[int(x_coord)][int(y_coord)] = point[2]
+				  
 
 
 def get_quiver_data(points):
@@ -125,8 +138,13 @@ def get_quiver_data(points):
 	colors = []
 	for point in points:
 		pixel = scaled_point(point[:2])
-		X.append(pixel[0])
-		Y.append(pixel[1])
+		x_zoom = (pixel[0]  - CENTER)*ZOOM + CENTER
+		y_zoom = (pixel[1]  - CENTER)*ZOOM + CENTER
+		x_coord = max(0,min(WINDOW_SIZE-1, x_zoom))
+		y_coord = max(0,min(WINDOW_SIZE-1, y_zoom))
+		
+		X.append(x_coord)
+		Y.append(y_coord)
 		U.append(point[2])
 		V.append(point[3])
 		colors.append(point[2]**2 + point[3]**2)
@@ -188,7 +206,7 @@ axs[0].set_title("Solution")
 axs[0].imshow(solution_img.T, cmap=CMAP, origin = "lower")
 if(is_stokes):
 	axs[0].quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
-		stokes_data[4], cmap = "Purples")
+		stokes_data[4], cmap = "Purples", scale=30./ZOOM)
 
 ############################################################
 #

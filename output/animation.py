@@ -22,6 +22,12 @@ MASKED_VALUE = 11111.1
 #							READING THE FILES
 #
 ###########################################################
+#
+#
+#
+#
+#    TODO fix colorscheme across frames
+#
 num_files = len(listdir("output/bake/sol/"))
 
 is_stokes = False
