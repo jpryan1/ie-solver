@@ -114,7 +114,7 @@ void check_factorization_against_kernel(const Kernel& kernel, const SkelFactoriz
   int check_size = 100;
   // This ensures that operations know what the remaining skels are.
 
-  tree->populate_all_active_boxes();
+  tree->remove_inactive_dofs_at_all_boxes();
 
   int dofs = tree->boundary->points.size() / 2;
   // Take a random 100x100 submatrix of A-A^hat, estimate 2-norm by power method

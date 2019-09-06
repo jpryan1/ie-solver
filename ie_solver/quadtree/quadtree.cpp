@@ -678,21 +678,40 @@ void QuadTree::reset(Boundary * boundary_) {
 }
 
 
-void QuadTree::populate_all_active_boxes() {
+void QuadTree::remove_inactive_dofs_at_all_boxes() {
   int lvls = levels.size();
   for (int level = lvls - 1; level >= 0; level--) {
-    QuadTreeLevel* current_level = levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
-      if (current_node->compressed) {
+    remove_inactive_dofs_at_level(level);
+  }
+}
+
+
+void QuadTree::remove_inactive_dofs_at_level(int level) {
+  QuadTreeLevel* current_level = levels[level];
+  // First, get all active dofs from children
+  for (QuadTreeNode * node : current_level->nodes) {
+    if (node->compressed) continue;
+    remove_inactive_dofs_at_box(node);
+  }
+  // Next, get all active near dofs from neighbors
+  for (QuadTreeNode* node_a : current_level->nodes) {
+    if (node_a->compressed) continue;
+    node_a->src_dof_lists.near.clear();
+    for (QuadTreeNode* neighbor : node_a->neighbors) {
+      // Some neighbors are smaller boxes from higher levels, we don't
+      // care about those, their parents have the updated information.
+      if (neighbor->level > node_a->level) {
         continue;
       }
-      populate_active_box(current_node);
+      for (unsigned int idx : neighbor->src_dof_lists.active_box) {
+        node_a->src_dof_lists.near.push_back(idx);
+      }
     }
   }
 }
 
 
-void QuadTree::populate_active_box(QuadTreeNode* node) {
+void QuadTree::remove_inactive_dofs_at_box(QuadTreeNode* node) {
   // this function removes from the box any DoFs which have already been made
   // redundant. It involves a bunch of annoying C++ functions and probably
   // would look nicer in matlab.
@@ -737,30 +756,6 @@ void QuadTree::populate_active_box(QuadTreeNode* node) {
     }
   } else {
     node->tgt_dof_lists.active_box = node->tgt_dof_lists.original_box;
-  }
-}
-
-void QuadTree::remove_inactive_dofs_at_level(int level){
-  QuadTreeLevel* current_level = levels[level];
-  // First, get all active dofs from children
-  for (QuadTreeNode * node : current_level->nodes) {
-    if (node->compressed) continue;
-    populate_active_box(node);
-  }
-  // Next, get all active near dofs from neighbors
-  for (QuadTreeNode* node_a : current_level->nodes) {
-    if (node_a->compressed) continue;
-    node_a->src_dof_lists.near.clear();
-    for (QuadTreeNode* neighbor : node_a->neighbors) {
-      // Some neighbors are smaller boxes from higher levels, we don't
-      // care about those, their parents have the updated information.
-      if (neighbor->level > node_a->level) {
-        continue;
-      }
-      for (unsigned int idx : neighbor->src_dof_lists.active_box) {
-        node_a->src_dof_lists.near.push_back(idx);
-      }
-    }
   }
 }
 

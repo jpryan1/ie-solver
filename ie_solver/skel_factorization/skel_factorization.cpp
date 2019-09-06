@@ -199,7 +199,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   // If the above breaks due to a cap, we need to manually propagate active
   // boxes up the tree.
   // std::cout << "Final count " << active_dofs << std::endl;
-  tree->populate_all_active_boxes();
+  tree->remove_inactive_dofs_at_all_boxes();
 
   std::vector<unsigned int> allskel = tree->root->src_dof_lists.active_box;
   if (allskel.size() > 0) {

@@ -187,7 +187,7 @@
 //     // First, get all active dofs from children
 //     for (QuadTreeNode * node : current_level->nodes) {
 //       if (node->compressed) continue;
-//       populate_active_box(node);
+//       remove_inactive_dofs_at_box(node);
 //     }
 //     // Next, get all active near dofs from neighbors
 //     for (QuadTreeNode* node_a : current_level->nodes) {
@@ -224,7 +224,7 @@
 //       b2dinterpolative_decomposition(kernel, tree, current_node);
 //     }
 //   }
-//   populate_all_active_boxes(tree);
+//   remove_inactive_dofs_at_all_boxes(tree);
 // }
 
 

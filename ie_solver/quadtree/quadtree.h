@@ -122,8 +122,8 @@ class QuadTree {
   void perturb(const Boundary& new_boundary);
 
   void remove_inactive_dofs_at_level(int level);
-  void populate_all_active_boxes();
-  void populate_active_box(QuadTreeNode* node);
+  void remove_inactive_dofs_at_all_boxes();
+  void remove_inactive_dofs_at_box(QuadTreeNode* node);
 };
 
 }  // namespace ie_solver
