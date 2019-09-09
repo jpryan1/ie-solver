@@ -4,12 +4,12 @@
 #include "ie_solver/boundaries/boundary.h"
 
 namespace ie_solver {
-  
-     
+
+
 void CubicBoundary::get_cubics(const std::vector<double>& x0_points,
-                const std::vector<double>& x1_points,
-                std::vector<std::vector<double>>* x0_cubics,
-                std::vector<std::vector<double>>* x1_cubics){
+                               const std::vector<double>& x1_points,
+                               std::vector<std::vector<double>>* x0_cubics,
+                               std::vector<std::vector<double>>* x1_cubics) {
   int num_spline_points = x0_points.size();
   ie_Mat x0_d_vec(num_spline_points, 1);
   ie_Mat x0_y_vec(num_spline_points, 1);
@@ -77,7 +77,7 @@ void CubicBoundary::get_cubics(const std::vector<double>& x0_points,
 
 
 void CubicBoundary::find_real_roots_of_cubic(const std::vector<double>& y_cubic,
-                              std::vector<double>* t_vals){
+    std::vector<double>* t_vals) {
   ie_Mat companion(3, 3);
   companion.set(1, 0, 1.0);
   companion.set(2, 1, 1.0);
@@ -88,7 +88,7 @@ void CubicBoundary::find_real_roots_of_cubic(const std::vector<double>& y_cubic,
 }
 
 
-int CubicBoundary::num_right_intersections(double x, double y, int index){
+int CubicBoundary::num_right_intersections(double x, double y, int index) {
   // Find intersection on spline, if no t in [0,1] return 0
   // For each t in that range, find corresponding x val, check if
   // greater than x.
@@ -114,11 +114,11 @@ int CubicBoundary::num_right_intersections(double x, double y, int index){
 }
 
 
-void CubicBoundary::interpolate(int bc_index, bool is_interior, int nodes_per_spline,
-                   BoundaryCondition boundary_condition,
-                   const std::vector<std::vector<double>>& x0_cubics,
-                   const std::vector<std::vector<double>>& x1_cubics)
- {
+void CubicBoundary::interpolate(int bc_index, bool is_interior,
+                                int nodes_per_spline,
+                                BoundaryCondition boundary_condition,
+                                const std::vector<std::vector<double>>& x0_cubics,
+                                const std::vector<std::vector<double>>& x1_cubics) {
   // Must fill points, normals, curvatures, weights.
   // Points = duh
   // Normals = tangent of points rotated 90 deg clockwise
@@ -131,7 +131,7 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior, int nodes_per_sp
     std::vector<double> x_cubic = x0_cubics[i];
     std::vector<double> y_cubic = x1_cubics[i];
     for (int j = 0; j < nodes_per_spline; j++) {
-      double t = j / (nodes_per_spline+0.0);
+      double t = j / (nodes_per_spline + 0.0);
       double x = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2]
                  + pow(t, 3) * x_cubic[3];
       double y = y_cubic[0] + t * y_cubic[1] + pow(t, 2) * y_cubic[2]
@@ -166,7 +166,8 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior, int nodes_per_sp
 
       switch (boundary_condition) {
         case BoundaryCondition::SINGLE_ELECTRON:
-          boundary_values.set(bc_index, 0, log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI));
+          boundary_values.set(bc_index, 0, log(sqrt(pow(x + 2, 2) + pow(y + 2,
+                                               2))) / (2 * M_PI));
           break;
         case BoundaryCondition::ALL_ONES:
           boundary_values.set(bc_index, 0, 1.0);
@@ -217,7 +218,7 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior, int nodes_per_sp
   }
   int end = bc_index;
 
- double dist1 = sqrt(pow(points[2 * start]
+  double dist1 = sqrt(pow(points[2 * start]
                           - points[2 * (end - 1)], 2)
                       + pow(points[2 * start + 1]
                             - points[2 * (end - 1) + 1], 2));
@@ -246,6 +247,38 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior, int nodes_per_sp
   weights.push_back((dist1 + dist2) / 2.0);
 }
 
+bool Ex1Boundary::is_in_domain(const Vec2& a) {
+  const double* v = a.a;
+
+
+  int winding_number = 0;
+  for (int i = 0; i < 2 * num_outer_nodes; i += 2) {
+    double dist = sqrt(pow(v[0] - points[i], 2) + pow(v[1] - points[i + 1], 2));
+    if (dist < 1e-2) {
+      return false;
+    }
+    int next_i = (i + 2) % (2 * num_outer_nodes);
+    if (points[i] > v[0]) {
+      if (points[i + 1] < v[1] && points[next_i + 1] > v[1]) {
+        winding_number++;
+      } else if (points[i + 1] > v[1] && points[next_i + 1] < v[1]) {
+        winding_number--;
+      }
+    }
+  }
+  if (winding_number % 2 == 0) {
+    return false;
+  }
+  for (Hole hole : holes) {
+    Vec2 r = a - hole.center;
+    if (r.norm() < hole.radius + 1e-2) {
+      return false;
+    }
+  }
+
+
+  return true;
+}
 
 
 }  // namespace ie_solver

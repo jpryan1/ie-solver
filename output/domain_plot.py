@@ -6,6 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
+matplotlib.colors.Normalize(vmin=0., vmax=2.)
 WINDOW_SIZE = 140*5
 IMAGE_SIZE = 100*5
 CMAP = copy(matplotlib.cm.hot)
@@ -14,7 +15,7 @@ MASKED_VALUE = 11111.1
 fig, axs = plt.subplots(2,1, figsize=(8,12))
 
 
-ZOOM = 3
+ZOOM = 1
 CENTER = WINDOW_SIZE/2.0
 ###########################################################
 #
@@ -148,6 +149,7 @@ def get_quiver_data(points):
 		U.append(point[2])
 		V.append(point[3])
 		colors.append(point[2]**2 + point[3]**2)
+	print(max(colors))
 	return [X, Y, U, V, colors]
 
 def draw_box(img, side_length, bottom_left):
@@ -206,7 +208,8 @@ axs[0].set_title("Solution")
 axs[0].imshow(solution_img.T, cmap=CMAP, origin = "lower")
 if(is_stokes):
 	axs[0].quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
-		stokes_data[4], cmap = "Purples", scale=30./ZOOM)
+		stokes_data[4], cmap = "Purples", #cmap='autumn',
+		norm=matplotlib.colors.Normalize(vmin=0,vmax=1), scale=20./ZOOM)
 
 ############################################################
 #

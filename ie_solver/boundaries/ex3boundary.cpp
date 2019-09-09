@@ -167,7 +167,6 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
       bc_index++;
     }
   }
-  std::cout<<weights.size()<<std::endl;
 }
 
 
