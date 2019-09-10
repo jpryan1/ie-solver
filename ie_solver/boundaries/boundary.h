@@ -51,6 +51,10 @@ class Boundary {
 
 class CubicBoundary : public Boundary {
   public:
+    // Note, the outer nodes must appear first in the point data vectors.
+    int num_outer_nodes;
+    std::vector<std::vector<double>> all_cubics_x0, all_cubics_x1;
+
     virtual void get_spline_points(std::vector<double>* outer_x0_spline_points,
                            std::vector<double>* outer_x1_spline_points) = 0;
     
@@ -67,8 +71,8 @@ class CubicBoundary : public Boundary {
     void find_real_roots_of_cubic(const std::vector<double>& y_cubic,
                                   std::vector<double>* t_vals);
     int num_right_intersections(double x, double y, int index);
-      
-    std::vector<std::vector<double>> all_cubics_x0, all_cubics_x1;
+    bool is_in_domain(const Vec2& a);
+
 
 };
 

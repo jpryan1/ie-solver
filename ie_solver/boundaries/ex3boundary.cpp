@@ -105,15 +105,10 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   fin.radius = FIN_RAD;
   holes.push_back(fin);
 
-
-
   int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE +
                   + 6 * NUM_CIRCLE_POINTS + FIN_SPLINE_POINTS * FIN_NODES_PER_SPLINE;
-  if (bc == BoundaryCondition::STOKES) {
-    boundary_values = ie_Mat(2 * total_num, 1);
-  } else {
-    boundary_values = ie_Mat(total_num, 1);
-  }
+  boundary_values = ie_Mat(2 * total_num, 1);
+
   int bc_index = 0;
 
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
@@ -131,8 +126,7 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   interpolate(bc_index, false, OUTER_NODES_PER_SPLINE, LEFT_TO_RIGHT_FLOW,
               outer_x0_cubics, outer_x1_cubics);
   bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
-
-
+  num_outer_nodes = OUTER_NODES_PER_SPLINE * OUTER_NUM_SPLINE_POINTS;
 
   std::vector<double> fin_x0_spline_points, fin_x1_spline_points;
   get_fin_spline_points(&fin_x0_spline_points, &fin_x1_spline_points);
@@ -167,40 +161,8 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
       bc_index++;
     }
   }
+
 }
 
-
-bool Ex3Boundary::is_in_domain(const Vec2& a) {
-  const double* v = a.a;
-
-
-  // Hack for right now: make sure dist from any bdry pt >0.05
-  
-  for(int i=0; i<points.size(); i+=2){
-    if((a-Vec2(points[i], points[i+1])).norm() <0.01 ){
-      return false;
-    }
-  }
-
-  int intersections = 0;
-  for (int i = 0; i < all_cubics_x1.size(); i++) {
-    int right_intersections = num_right_intersections(v[0], v[1], i);
-    if (right_intersections == -1) return false;
-    intersections += right_intersections;
-  }
-  if (intersections % 2 == 0) {
-    return false;
-  }
-
-  for (Hole hole : holes) {
-    
-    if(hole.radius == FIN_RAD) continue;
-    Vec2 r = a - hole.center;
-    if (r.norm() < hole.radius + 1e-2) {
-      return false;
-    }
-  }
-  return true;
-}
 
 }  // namespace ie_solver

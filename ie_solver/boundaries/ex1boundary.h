@@ -10,14 +10,12 @@ namespace ie_solver {
 class Ex1Boundary : public CubicBoundary {
  public:
   void initialize(int N, BoundaryCondition bc);
-  bool is_in_domain(const Vec2& a);
 
   void get_spline_points(std::vector<double>* outer_x0_spline_points,
                          std::vector<double>* outer_x1_spline_points);
   void get_star_spline_points(double x, double y,
                               std::vector<double>* star_x0_spline_points,
                               std::vector<double>* star_x1_spline_points);
-  int num_outer_nodes;
 };
 
 }  // namespace ie_solver

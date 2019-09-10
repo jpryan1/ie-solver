@@ -156,6 +156,7 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
   for (unsigned int i = 0; i < curvatures.size(); i++) {
     curvatures[i] = curvatures[i] / (0.9 / (3 * M_PI + 2.05));
   }
+
 }
 
 

@@ -55,11 +55,13 @@ struct ie_Mat {
   ie_Mat& operator-=(const ie_Mat& o);
   ie_Mat& operator+=(const ie_Mat& o);
   ie_Mat& operator*=(double o);
+  ie_Mat& operator/=(double o);
 
   ie_Mat operator-() const;
   ie_Mat operator-(const ie_Mat& o) const;
   ie_Mat operator+(const ie_Mat& o) const;
   ie_Mat operator*(double o) const;
+  ie_Mat operator/(double o) const;
 
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_) const;

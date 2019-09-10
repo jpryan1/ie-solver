@@ -1,12 +1,12 @@
 #  Reads from output/data - solution, tree, and boundary
 #  saves as domain_plot.png
 import numpy as np
+import sys
 from copy import copy
 import matplotlib
 import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
-matplotlib.colors.Normalize(vmin=0., vmax=2.)
 WINDOW_SIZE = 140*5
 IMAGE_SIZE = 100*5
 CMAP = copy(matplotlib.cm.hot)
@@ -16,6 +16,12 @@ fig, axs = plt.subplots(2,1, figsize=(8,12))
 
 
 ZOOM = 1
+if(len(sys.argv) > 1):
+  ZOOM = int(sys.argv[1])
+SHIFT = 0
+if(len(sys.argv) > 2):
+  SHIFT = int(sys.argv[2])*ZOOM
+
 CENTER = WINDOW_SIZE/2.0
 ###########################################################
 #
@@ -105,7 +111,7 @@ def draw_boundary(img, points, val):
 		
 		for r in range(-1, 2):
 			for c in range(-1,2):
-			  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER
+			  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT
 			  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
 			  x_coord = max(0,min(WINDOW_SIZE-1, x_zoom+r))
 			  y_coord = max(0,min(WINDOW_SIZE-1, y_zoom+c))
@@ -121,8 +127,10 @@ def draw_solution(img, points):
 			for i in range(-8,9):
 				for j in range(-8,9):
 				  
-				  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER
+				  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT
 				  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
+				  if x_zoom+i < 0 or x_zoom+i > WINDOW_SIZE-1 or y_zoom+j < 0 or y_zoom+j > WINDOW_SIZE-1:
+				    continue
 				  x_coord = max(0,min(WINDOW_SIZE-1, x_zoom+i))
 				  y_coord = max(0,min(WINDOW_SIZE-1, y_zoom+j))
 				  img[int(x_coord)][int(y_coord)] = point[2]
@@ -139,8 +147,10 @@ def get_quiver_data(points):
 	colors = []
 	for point in points:
 		pixel = scaled_point(point[:2])
-		x_zoom = (pixel[0]  - CENTER)*ZOOM + CENTER
+		x_zoom = (pixel[0]  - CENTER)*ZOOM + CENTER+SHIFT
 		y_zoom = (pixel[1]  - CENTER)*ZOOM + CENTER
+		if x_zoom < 0 or x_zoom > WINDOW_SIZE-1 or y_zoom < 0 or y_zoom > WINDOW_SIZE-1:
+		  continue
 		x_coord = max(0,min(WINDOW_SIZE-1, x_zoom))
 		y_coord = max(0,min(WINDOW_SIZE-1, y_zoom))
 		
@@ -149,7 +159,6 @@ def get_quiver_data(points):
 		U.append(point[2])
 		V.append(point[3])
 		colors.append(point[2]**2 + point[3]**2)
-	print(max(colors))
 	return [X, Y, U, V, colors]
 
 def draw_box(img, side_length, bottom_left):
@@ -209,7 +218,7 @@ axs[0].imshow(solution_img.T, cmap=CMAP, origin = "lower")
 if(is_stokes):
 	axs[0].quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
 		stokes_data[4], cmap = "Purples", #cmap='autumn',
-		norm=matplotlib.colors.Normalize(vmin=0,vmax=1), scale=20./ZOOM)
+		norm=matplotlib.colors.Normalize(vmin=0,vmax=1.), scale=20./ZOOM)
 
 ############################################################
 #
@@ -230,4 +239,4 @@ if(is_stokes):
 
 # cid = fig.canvas.mpl_connect('button_press_event', onclick)
 plt.savefig("domain_plot.png")
-# plt.show()
+plt.show()

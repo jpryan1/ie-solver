@@ -232,6 +232,16 @@ ie_Mat& ie_Mat::operator*=(double o) {
   return *this;
 }
 
+ie_Mat& ie_Mat::operator/=(double o) {
+  assert(std::abs(o)>1e-8 && "Error: divide matrix by 0.");
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      mat[i + lda_ * j] =  mat[i + lda_ * j] / o;
+    }
+  }
+  return *this;
+}
+
 
 ie_Mat ie_Mat::operator-() const {
   ie_Mat result(height_, width_);
@@ -273,6 +283,18 @@ ie_Mat ie_Mat::operator*(double o) const {
   for (unsigned int i = 0; i < height_; i++) {
     for (unsigned int j = 0; j < width_; j++) {
       result.set(i, j, this->get(i, j) *o);
+    }
+  }
+  return result;
+}
+
+
+ie_Mat ie_Mat::operator/(double o) const {
+  assert(std::abs(o)>1e-8 && "Error: divide matrix by 0.");
+  ie_Mat result(height_, width_);
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      result.set(i, j, this->get(i, j) /o);
     }
   }
   return result;

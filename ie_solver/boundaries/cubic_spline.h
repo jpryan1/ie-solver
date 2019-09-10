@@ -10,7 +10,6 @@ namespace ie_solver {
 class CubicSpline : public CubicBoundary {
  public:
   void initialize(int N, BoundaryCondition bc);
-  bool is_in_domain(const Vec2& a);
 
   void get_spline_points(std::vector<double>* x0_spline_points,
                          std::vector<double>* x1_spline_points);

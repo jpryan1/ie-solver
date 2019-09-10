@@ -301,6 +301,7 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
   assert(bc_index == N + 2 * perturbation_size);
+
 }
 
 // TODO(John) consider generalizing this somehow.

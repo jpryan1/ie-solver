@@ -93,7 +93,6 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   int STAR_NODES_PER_SPLINE = (N / 12) / STAR_NUM_SPLINE_POINTS;
   int NUM_CIRCLE_POINTS = (N / 12);
   int OUTER_NODES_PER_SPLINE = (2 * N / 3) / OUTER_NUM_SPLINE_POINTS;
-  num_outer_nodes = OUTER_NODES_PER_SPLINE * OUTER_NUM_SPLINE_POINTS;
   Hole star1, star2, circle1, circle2;
 
   if (holes.size() == 0) {
@@ -119,11 +118,8 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE +
                   2 * STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE
                   + 2 * NUM_CIRCLE_POINTS;
-  if (bc == BoundaryCondition::STOKES) {
-    boundary_values = ie_Mat(2 * total_num, 1);
-  } else {
-    boundary_values = ie_Mat(total_num, 1);
-  }
+  boundary_values = ie_Mat(2 * total_num, 1);
+
   int bc_index = 0;
 
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
@@ -141,7 +137,7 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   interpolate(bc_index, false, OUTER_NODES_PER_SPLINE , TANGENT_VEC,
               outer_x0_cubics, outer_x1_cubics);
   bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
-
+  num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
   std::vector<double> star_x0_points, star_x1_points;
   get_star_spline_points(star1.center.a[0], star1.center.a[1], &star_x0_points,
                          &star_x1_points);
@@ -203,5 +199,6 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   }
 
 }
+
 
 }  // namespace ie_solver

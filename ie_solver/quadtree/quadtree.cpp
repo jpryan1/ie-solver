@@ -46,19 +46,16 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   min = boundary->points[0];
   max = boundary->points[0];
 
-  double tree_min = -3.1;
-  double tree_max = 3.1;
-
   for (double point : boundary->points) {
     if (point < min) min = point;
     if (point > max) max = point;
   }
-  assert(min > tree_min && max < tree_max);
+  double tree_min = min - 0.01;
+  double tree_max = max + 0.01;
   
   root = new QuadTreeNode();
   root->level = 0;
   root->parent = nullptr;
-  // root is the box [0,1]x[0,1]
   // bl
   root->corners[0] = tree_min;
   root->corners[1] = tree_min;

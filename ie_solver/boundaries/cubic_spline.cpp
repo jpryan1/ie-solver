@@ -49,40 +49,8 @@ void CubicSpline::initialize(int N, BoundaryCondition bc) {
   get_spline_points(&x0_spline_points, &x1_spline_points);
   get_cubics(x0_spline_points, x1_spline_points, &all_cubics_x0, &all_cubics_x1);
   interpolate(0, false,  NODES_PER_SPLINE, boundary_condition, all_cubics_x0, all_cubics_x1);
-  //            SHAPE PROTOCOL
-  //
-  // Except in trivial cases, we need to be careful if we want to evenly
-  // distribute discretization points on the boundary, while compartmentalizing
-  // drawing functions. For that purpose, we establish a SCALE_UNIT and require
-  // that all draw functions take some multiple of this unit. For example, if
-  // the ratio of shape A's points to shape B's points should be x/y, then shape
-  // A can have x SCALE_UNIT's and shape B can have y.
-  //
-  //    Rounded Square
-  //
-  //    Shape       Num of SCALE_UNIT's     Num of Shape in Boundary
-  //    line        2                       24
-  //    corner      3                       4
-  // __________________________________________
-  //
-  //    Num of SCALE_UNIT's = 2*24 + 3*4 = 60
-}
+  num_outer_nodes = NODES_PER_SPLINE * NUM_SPLINE_POINTS;
 
-
-
-bool CubicSpline::is_in_domain(const Vec2& a) {
-  const double* v = a.a;
-  int intersections = 0;
-  for (int i = 0; i < NUM_SPLINE_POINTS; i++) {
-    int right_intersections = num_right_intersections(v[0], v[1], i);
-    if (right_intersections == -1) return false;
-    intersections += right_intersections;
-  }
-  if (intersections % 2 == 0) {
-    return false;
-  }
-
-  return true;
 }
 
 }  // namespace ie_solver

@@ -200,7 +200,7 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
           boundary_values.set(2 * bc_index + 1, 0, -normals[2 * bc_index + 1]);
           break;
         case LEFT_TO_RIGHT_FLOW:
-          if (x < -1.01 || x > 1.99) {
+          if (x < -0.99 || x > 1.99) {
             boundary_values.set(2 * bc_index, 0, 1);
             boundary_values.set(2 * bc_index + 1, 0, 0);
           } else {
@@ -247,7 +247,8 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
   weights.push_back((dist1 + dist2) / 2.0);
 }
 
-bool Ex1Boundary::is_in_domain(const Vec2& a) {
+
+bool CubicBoundary::is_in_domain(const Vec2& a) {
   const double* v = a.a;
 
 
@@ -279,6 +280,5 @@ bool Ex1Boundary::is_in_domain(const Vec2& a) {
 
   return true;
 }
-
 
 }  // namespace ie_solver
