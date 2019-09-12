@@ -23,12 +23,6 @@ SkelFactorization::SkelFactorization(double id_tol, bool strong_admissibility_,
   domain_dimension = domain_dimension_;
   id_time = 0.;
   make_id_total = 0.;
-  total_make_proxy = 0.;
-  total_phase_a = 0.;
-  total_phase_b = 0.;
-  total_phase_c = 0.;
-  phase_b_count=0;
-  phase_c_count=0;
 }
 
 
@@ -47,8 +41,9 @@ int SkelFactorization::id_compress(const Kernel& kernel,
   double make_id_start = omp_get_wtime();
   make_id_mat(kernel, &pxy, tree, node);
   double make_id_end = omp_get_wtime();
-  make_id_total += make_id_end-make_id_start;
-  std::cout<<"Width height "<<pxy.width()<<" "<<pxy.height()<<std::endl;
+  make_id_total += make_id_end - make_id_start;
+  // std::cout << "Proxy width height " << pxy.width() << " " << pxy.height() <<
+  //           std::endl;
   if (pxy.height() == 0) {
     return 0;
   }
@@ -56,8 +51,14 @@ int SkelFactorization::id_compress(const Kernel& kernel,
   double id_start = omp_get_wtime();
   unsigned int numskel = pxy.id(&p, &node->T, id_tol);
   double id_end = omp_get_wtime();
-  id_time += (id_end-id_start);
-  if (numskel == 0) return 0;
+  id_time += (id_end - id_start);
+  if (numskel == 0) {
+    node->compression_ratio = 0.;
+    return 0;
+  }
+  node->compression_ratio = (node->T.width() /
+                             (0.0 + node->T.width() + node->T.height()));
+
   node->src_dof_lists.set_rs_ranges(p, node->T.height(), node->T.width());
   node->src_dof_lists.set_skelnear_range(strong_admissibility);
 
@@ -161,7 +162,7 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
   node->L = ie_Mat(num_skelnear, num_redundant);
   node->U = ie_Mat(num_redundant, num_skelnear);
-  
+
   Xrr.right_multiply_inverse(K_BN(sn, r), &node->L);
   Xrr.left_multiply_inverse(K_BN(r, sn), &node->U);
 
@@ -184,13 +185,13 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
-    std::cout<<"Skelling level "<<level<<std::endl;
-    
+    // std::cout << "Skelling level " << level << std::endl;
+
     tree->remove_inactive_dofs_at_level(level);
     QuadTreeLevel* current_level = tree->levels[level];
 
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
-          tree->remove_inactive_dofs_at_level(level);
+      tree->remove_inactive_dofs_at_level(level);
 
       node_counter++;
       if (node_counter > NODE_CAP) {
@@ -226,20 +227,14 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     get_all_schur_updates(&allskel_mat_, allskel, tree->root, false);
     allskel_mat = kernel(allskel, allskel) - allskel_mat_;
   }
-  std::cout << "skel_count- already_marked/newly_skelled: "<< already_marked <<
+  std::cout << "skel_count- already_marked/newly_skelled: " << already_marked <<
             " " << just_skelled << std::endl;
   // check_factorization_against_kernel(kernel, tree);
   double skel_end = omp_get_wtime();
-  std::cout<<"timing: skeletonize "<<(skel_end-skel_start)<<std::endl;
-    std::cout<<"timing: all_interpdecompss "<<id_time<<std::endl;
+  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+  std::cout << "timing: all_interpdecompss " << id_time << std::endl;
 
-  std::cout<<"timing: all_make_id_mats "<<make_id_total<<std::endl;
-  std::cout<<"timing: all_make_proxy_mats "<<total_make_proxy<<std::endl;
-  std::cout<<"timing: total_phase_a "<<total_phase_a<<std::endl;
-  std::cout<<"timing: total_phase_b "<<total_phase_b<<std::endl;
-  std::cout<<"timing: total_phase_c "<<total_phase_c<<std::endl;
-std::cout<<"Phase b count "<<phase_b_count<<std::endl;
-std::cout<<"Phase c count "<<phase_c_count<<std::endl;
+  std::cout << "timing: all_make_id_mats " << make_id_total << std::endl;
 }
 
 
@@ -333,31 +328,20 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
     }
     // We only do a proxy circle if there are lots outside the circle
     if (num_outside_circle < active_box.size() * 4) {
-      double phase_b_start = omp_get_wtime();
-
       // Now all the matrices are gathered, put them into *mat.
       *mat = ie_Mat(2 * outside_box.size(), active_box.size());
       mat->set_submatrix(0, outside_box.size(), 0, active_box.size(),
                          kernel(outside_box, active_box));
       mat->set_submatrix(outside_box.size(), 2 * outside_box.size(),
                          0, active_box.size(), kernel(active_box, outside_box), true);
-      double phase_b_end = omp_get_wtime();
-      total_phase_b += phase_b_end - phase_b_start;
-      phase_b_count++;
     } else {
       // Construct mat of interactions with pxy circle points
-      double phase_a_start = omp_get_wtime();
       ie_Mat proxy = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
                             active_box.size());
-                            
+
       make_proxy_mat(kernel, &proxy, cntr_x, cntr_y, node->side_length
                      * RADIUS_RATIO, tree, active_box);
-                     
-      double phase_a_end = omp_get_wtime();
-      total_phase_a += phase_a_end-phase_a_start;
-      
-      double phase_c_start = omp_get_wtime();
- 
+
       // Now all the matrices are gathered, put them into *mat.
       *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
                     NUM_PROXY_POINTS, active_box.size());
@@ -368,11 +352,9 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       mat->set_submatrix(2 * inner_circle.size(),  solution_dimension * 2 *
                          NUM_PROXY_POINTS + 2 * inner_circle.size(), 0,
                          active_box.size(), proxy);
-      double phase_c_end = omp_get_wtime();
-      total_phase_c += phase_c_end-phase_c_start;
-      phase_c_count++;
+
     }
-    
+
 
   } else {
     *mat = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS, active_box.size());
@@ -386,7 +368,6 @@ void SkelFactorization::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
                                        double cntr_x, double cntr_y,
                                        double r, const QuadTree * tree,
                                        const std::vector<unsigned int>& box_inds) {
-  double make_proxy_start = omp_get_wtime();
   // each row is a pxy point, cols are box dofs
   double proxy_weight = 2.0 * M_PI * r / NUM_PROXY_POINTS;
   double proxy_curvature = 1.0 / r;
@@ -422,8 +403,6 @@ void SkelFactorization::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
       }
     }
   }
-  double make_proxy_end = omp_get_wtime();
-  total_make_proxy += make_proxy_end-make_proxy_start;
 }
 
 
@@ -714,7 +693,6 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     }
   }
 
-
   modified_Psi = modified_Psi.transpose();
 
   ////////////////////////////////////////////////////////////////
@@ -723,6 +701,9 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   int total_redundant = quadtree.boundary->weights.size() * solution_dimension -
                         allskel.size();
 
+
+  std::cout << "s+h = " << allskel.size() + Psi.height() << " r = " <<
+            total_redundant << std::endl;
   ie_Mat A(allskel.size() + Psi.height(),
            allskel.size() + Psi.height());
   ie_Mat B(allskel.size() + Psi.height(), total_redundant);
@@ -741,7 +722,6 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   A.set_submatrix(0, allskel.size(),
                   allskel.size(), A.width(),
                   modified_U(allskel, 0, U.width()));
-
   std::vector<unsigned int> allredundant;
   std::vector<unsigned int> sorted_allskel = allskel;
   std::sort(sorted_allskel.begin(), sorted_allskel.end());
@@ -762,6 +742,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   C.set_submatrix(0, C.height(),
                   allskel.size(), C.width(),
                   modified_U(allredundant, 0, modified_U.width()));
+
   std::unordered_map<unsigned int, unsigned int> skel_big2small, red_big2small;
   for (int i = 0; i < allskel.size(); i++) {
     skel_big2small[allskel[i]] = i;
@@ -789,6 +770,8 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
                             small_redundants);
     }
   }
+
+  double start = omp_get_wtime();
   ie_Mat B_Dinv_b(B.height(), 1);
   ie_Mat::gemm(NORMAL, NORMAL, 1., B, Dinv_b, 0., &B_Dinv_b);
 
@@ -814,18 +797,30 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
                             small_redundants);
     }
   }
+  double end = omp_get_wtime();
+  std::cout << "Phase A " << (end - start) << std::endl;
+  start = omp_get_wtime();
+
   ie_Mat B_Dinv_C(B.height(), C.width());
   ie_Mat::gemm(NORMAL, NORMAL, 1., B, Dinv_C, 0., &B_Dinv_C);
+  end = omp_get_wtime();
+  std::cout << "Phase B " << (end - start) << std::endl;
+  start = omp_get_wtime();
   ie_Mat S = A - B_Dinv_C;
-
+  end = omp_get_wtime();
+  std::cout << "Phase C " << (end - start) << std::endl;
+  start = omp_get_wtime();
   ie_Mat x_vec(S.height(), 1);
   S.left_multiply_inverse(first_paren, &x_vec);
+  end = omp_get_wtime();
+  std::cout << "Phase D " << (end - start) << std::endl;
 
   *alpha = x_vec(allskel.size(), x_vec.height(), 0, 1);
   ie_Mat Cx(C.height(), 1);
   ie_Mat::gemm(NORMAL, NORMAL, 1., C, x_vec, 0., &Cx);
   ie_Mat second_paren = b_vec - Cx;
   ie_Mat y = second_paren;
+
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
@@ -868,7 +863,6 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
                          false);
     }
   }
-
 }
 
 

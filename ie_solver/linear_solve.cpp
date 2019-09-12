@@ -110,8 +110,9 @@ ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
   return Psi;
 }
 
-void check_factorization_against_kernel(const Kernel& kernel, const SkelFactorization&
-    skel_factorization, QuadTree* tree) {
+void check_factorization_against_kernel(const Kernel& kernel,
+                                        const SkelFactorization&
+                                        skel_factorization, QuadTree* tree) {
   int check_size = 100;
   // This ensures that operations know what the remaining skels are.
 
@@ -164,25 +165,27 @@ void schur_solve(const SkelFactorization& skel_factorization,
   if (U.width() == 0) {
     skel_factorization.solve(quadtree, &mu, f);
     solve_end = omp_get_wtime();
-    std::cout<<"timing: solve "<<(solve_end-solve_start)<<std::endl;
+    std::cout << "timing: solve " << (solve_end - solve_start) << std::endl;
     forward_op_start = omp_get_wtime();
 
     ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
     forward_op_end = omp_get_wtime();
-    std::cout<<"timing: forward_op "<<(forward_op_end-forward_op_start)<<std::endl;
+    std::cout << "timing: forward_op " << (forward_op_end - forward_op_start) <<
+              std::endl;
 
     return;
   }
   skel_factorization.multiply_connected_solve(quadtree, &mu, &alpha, f);
   solve_end = omp_get_wtime();
-  std::cout<<"timing: solve "<<(solve_end-solve_start)<<std::endl;
-  
+  std::cout << "timing: solve " << (solve_end - solve_start) << std::endl;
+
   forward_op_start = omp_get_wtime();
   ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
   ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
   (*solution) += U_forward_alpha;
   forward_op_end = omp_get_wtime();
-  std::cout<<"timing: forward_op "<<(forward_op_end-forward_op_start)<<std::endl;
+  std::cout << "timing: forward_op " << (forward_op_end - forward_op_start) <<
+            std::endl;
 
   return;
 }
@@ -192,9 +195,10 @@ void bie_time_trial(const ie_solver_config & config,
                     double* avg_solve_time) {
   Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
-  SkelFactorization skel_factorization(config.id_tol, config.is_strong_admissibility,
-                                config.solution_dimension,
-                                config.domain_dimension);
+  SkelFactorization skel_factorization(config.id_tol,
+                                       config.is_strong_admissibility,
+                                       config.solution_dimension,
+                                       config.domain_dimension);
 
   Kernel kernel;
   kernel.load(boundary, std::vector<double>(), config.pde,
@@ -226,20 +230,22 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                const std::vector<double>& domain_points) {
   Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
-  SkelFactorization skel_factorization(config.id_tol, config.is_strong_admissibility,
-                                config.solution_dimension,
-                                config.domain_dimension);
+  SkelFactorization skel_factorization(config.id_tol,
+                                       config.is_strong_admissibility,
+                                       config.solution_dimension,
+                                       config.domain_dimension);
 
   Kernel kernel;
   kernel.load(boundary, domain_points, config.pde,
               config.solution_dimension, config.domain_dimension);
-  
+
   // Domain kernel init takes less time than skel, init in background
   ie_Mat K_domain(config.domain_size * config.domain_size *
-    config.solution_dimension, boundary->weights.size() * config.solution_dimension);
+                  config.solution_dimension,
+                  boundary->weights.size() * config.solution_dimension);
   // Initialization init;
   // std::thread th(&Task::execute, taskPtr, "Sample Task");
-  
+
   // Initialization::InitializeDomainKernel(&K_domain, domain_points,
   //                             config.domain_size, kernel,
   //                             config.solution_dimension);
@@ -293,16 +299,16 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
               &domain_solution);
 
   return domain_solution;
-  
+
 }
 
 
 void get_domain_points(unsigned int domain_size, std::vector<double>* points,
                        double min, double max) {
   for (unsigned int i = 0; i < domain_size; i++) {
-    double x = min + ((i + 0.0) / (domain_size-1)) * (max - min);
+    double x = min + ((i + 0.0) / (domain_size - 1)) * (max - min);
     for (int j = 0; j < domain_size; j++) {
-      double y = min + ((j + 0.0) / (domain_size-1)) * (max - min);
+      double y = min + ((j + 0.0) / (domain_size - 1)) * (max - min);
       points->push_back(x);
       points->push_back(y);
     }

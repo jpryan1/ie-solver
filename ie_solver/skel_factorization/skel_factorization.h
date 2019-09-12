@@ -19,8 +19,7 @@ namespace ie_solver {
 // Or maybe make everything static.
 class SkelFactorization {
  public:
-  double id_tol, id_time, total_phase_a, total_phase_b, total_phase_c, make_id_total, total_make_proxy;
-  int phase_b_count, phase_c_count;
+  double id_tol, id_time, make_id_total;
   bool strong_admissibility;
   int solution_dimension, domain_dimension;
   ie_Mat allskel_mat, U, Psi;

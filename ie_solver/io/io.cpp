@@ -93,11 +93,12 @@ void io::write_quadtree_to_file(const std::string& filename,
   std::ofstream output;
   output.open(filename);
   if (output.is_open()) {
-    for (QuadTreeLevel* level : quadtree.levels) {
+    for (int lvl = 0; lvl < quadtree.levels.size(); lvl++) {
+      QuadTreeLevel* level = quadtree.levels[lvl];
+      output << "level " << lvl << std::endl;
       for (QuadTreeNode* node : level->nodes) {
         output << node->corners[0] << "," << node->corners[1] << ","
-               << node->side_length << "," << node->id << ","   <<
-               node->src_dof_lists.original_box.size() << std::endl;
+               << node->side_length << "," << node->compression_ratio << std::endl;
       }
     }
     output.close();
