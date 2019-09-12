@@ -34,6 +34,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
                                const std::vector<double>& domain_points_,
                                int solution_dimension_,
                                int domain_dimension_) {
+  double tree_start_time = omp_get_wtime();
   assert(boundary_->points.size() > 0
          && "number of boundary->points to init tree cannot be 0.");
   // todo(john) later we can assert that the boundary->points are a multiple of
@@ -133,6 +134,8 @@ void QuadTree::initialize_tree(Boundary* boundary_,
       }
     }
   }
+  double tree_end_time = omp_get_wtime();
+  std::cout<<"timing: tree_init "<<(tree_end_time-tree_start_time)<<std::endl;
 }
 
 

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <thread>
 #include <algorithm>
 #include "ie_solver/ie_mat.h"
 #include "ie_solver/initialization.h"
@@ -153,6 +154,8 @@ void schur_solve(const SkelFactorization& skel_factorization,
                  const ie_Mat & Psi,
                  const ie_Mat & f, const ie_Mat & K_domain,
                  const ie_Mat & U_forward,  ie_Mat * solution) {
+  double solve_start = omp_get_wtime();
+  double solve_end, forward_op_start, forward_op_end;
   ie_Mat ident(U.width(), U.width()), alpha(U.width(), 1),
          Dinv_U(U.height(), U.width()), Psi_Dinv_U(U.width(), U.width()),
          Dinv_u(U.height(), 1), Psi_Dinv_u(U.width(), 1),
@@ -160,14 +163,27 @@ void schur_solve(const SkelFactorization& skel_factorization,
          U_forward_alpha(solution->height(), 1);
   if (U.width() == 0) {
     skel_factorization.solve(quadtree, &mu, f);
+    solve_end = omp_get_wtime();
+    std::cout<<"timing: solve "<<(solve_end-solve_start)<<std::endl;
+    forward_op_start = omp_get_wtime();
+
     ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
+    forward_op_end = omp_get_wtime();
+    std::cout<<"timing: forward_op "<<(forward_op_end-forward_op_start)<<std::endl;
+
     return;
   }
   skel_factorization.multiply_connected_solve(quadtree, &mu, &alpha, f);
-
+  solve_end = omp_get_wtime();
+  std::cout<<"timing: solve "<<(solve_end-solve_start)<<std::endl;
+  
+  forward_op_start = omp_get_wtime();
   ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
   ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
   (*solution) += U_forward_alpha;
+  forward_op_end = omp_get_wtime();
+  std::cout<<"timing: forward_op "<<(forward_op_end-forward_op_start)<<std::endl;
+
   return;
 }
 
@@ -217,7 +233,20 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   Kernel kernel;
   kernel.load(boundary, domain_points, config.pde,
               config.solution_dimension, config.domain_dimension);
-
+  
+  // Domain kernel init takes less time than skel, init in background
+  ie_Mat K_domain(config.domain_size * config.domain_size *
+    config.solution_dimension, boundary->weights.size() * config.solution_dimension);
+  // Initialization init;
+  // std::thread th(&Task::execute, taskPtr, "Sample Task");
+  
+  // Initialization::InitializeDomainKernel(&K_domain, domain_points,
+  //                             config.domain_size, kernel,
+  //                             config.solution_dimension);
+  std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
+                                 &K_domain, domain_points,
+                                 config.domain_size, kernel,
+                                 config.solution_dimension);
   skel_factorization.skeletonize(kernel, quadtree);
 
   ie_Mat f = boundary->boundary_values;
@@ -230,14 +259,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   ie_Mat U_forward = initialize_U_mat(config.pde, boundary->holes,
                                       domain_points);
 
-  ie_Mat K_domain(config.domain_size * config.domain_size *
-                  config.solution_dimension,
-                  boundary->weights.size() * config.solution_dimension);
-  Initialization init;
 
-  init.InitializeDomainKernel(&K_domain, domain_points,
-                              config.domain_size, kernel,
-                              config.solution_dimension);
 
   for (unsigned int i = 0; i < domain_points.size(); i += 2) {
     Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
@@ -266,6 +288,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                          config.solution_dimension, 1);
   skel_factorization.U = U;
   skel_factorization.Psi = Psi;
+  init_domain_kernel.join();
   schur_solve(skel_factorization, *quadtree, U, Psi, f, K_domain, U_forward,
               &domain_solution);
 

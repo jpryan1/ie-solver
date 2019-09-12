@@ -102,11 +102,20 @@ void ie_Mat::addset(unsigned int i, unsigned int j, double a) {
 
 void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
                            const std::vector<unsigned int>& J_,
-                           const ie_Mat& A) {
-  assert(I_.size() == A.height_ && J_.size() == A.width_);
-  for (unsigned int i = 0; i < I_.size(); i++) {
-    for (unsigned int j = 0; j < J_.size(); j++) {
-      set(I_[i], J_[j], A.get(i, j));
+                           const ie_Mat& A, bool transpose_A) {
+  if(transpose_A){
+    assert(I_.size() == A.width_ && J_.size() == A.height_);
+    for (unsigned int i = 0; i < I_.size(); i++) {
+      for (unsigned int j = 0; j < J_.size(); j++) {
+        set(I_[i], J_[j], A.get(j,i));
+      }
+    }
+  }else{
+    assert(I_.size() == A.height_ && J_.size() == A.width_);
+    for (unsigned int i = 0; i < I_.size(); i++) {
+      for (unsigned int j = 0; j < J_.size(); j++) {
+        set(I_[i], J_[j], A.get(i, j));
+      }
     }
   }
 }
@@ -114,11 +123,22 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 
 void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
                            unsigned int col_s, unsigned int col_e,
-                           const ie_Mat& A) {
-  assert(row_e - row_s == A.height_ && col_e - col_s == A.width_);
-  for (unsigned int i = 0; i < row_e - row_s; i++) {
-    for (unsigned int j = 0; j < col_e - col_s; j++) {
-      set(i + row_s, j + col_s, A.get(i, j));
+                           const ie_Mat& A, bool transpose_A) {
+                             
+  if(transpose_A){
+    for (unsigned int i = 0; i < row_e - row_s; i++) {
+      for (unsigned int j = 0; j < col_e - col_s; j++) {
+        set(i + row_s, j + col_s, A.get(j, i));
+      }
+    }
+    assert(row_e - row_s == A.width_ && col_e - col_s == A.height_);
+  }
+  else{
+    assert(row_e - row_s == A.height_ && col_e - col_s == A.width_);
+    for (unsigned int i = 0; i < row_e - row_s; i++) {
+      for (unsigned int j = 0; j < col_e - col_s; j++) {
+        set(i + row_s, j + col_s, A.get(i, j));
+      }
     }
   }
 }
@@ -126,11 +146,21 @@ void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
 
 void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
                            unsigned int col_s, unsigned int col_e,
-                           const ie_Mat& A) {
-  assert(I_.size() == A.height_ &&  col_e - col_s  == A.width_);
-  for (unsigned int i = 0; i < I_.size(); i++) {
-    for (unsigned int j = 0; j < col_e - col_s; j++) {
-      set(I_[i], j + col_s, A.get(i, j));
+                           const ie_Mat& A, bool transpose_A) {
+  if(transpose_A){
+    assert(I_.size() == A.width_ &&  col_e - col_s  == A.height_);
+    for (unsigned int i = 0; i < I_.size(); i++) {
+      for (unsigned int j = 0; j < col_e - col_s; j++) {
+        set(I_[i], j + col_s, A.get(j, i));
+      }
+    }
+  }
+  else{
+    assert(I_.size() == A.height_ &&  col_e - col_s  == A.width_);
+    for (unsigned int i = 0; i < I_.size(); i++) {
+      for (unsigned int j = 0; j < col_e - col_s; j++) {
+        set(I_[i], j + col_s, A.get(i, j));
+      }
     }
   }
 }
@@ -138,11 +168,20 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 
 void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
                            const std::vector<unsigned int>& J_,
-                           const ie_Mat& A) {
-  assert(row_e - row_s == A.height_ && J_.size() == A.width_);
-  for (unsigned int i = 0; i < row_e - row_s; i++) {
-    for (unsigned int j = 0; j < J_.size(); j++) {
-      set(i + row_s, J_[j], A.get(i, j));
+                           const ie_Mat& A, bool transpose_A) {
+  if(transpose_A){
+    assert(row_e - row_s == A.width_ && J_.size() == A.height_);
+    for (unsigned int i = 0; i < row_e - row_s; i++) {
+      for (unsigned int j = 0; j < J_.size(); j++) {
+        set(i + row_s, J_[j], A.get(j,i));
+      }
+    }
+  }else{
+    assert(row_e - row_s == A.height_ && J_.size() == A.width_);
+    for (unsigned int i = 0; i < row_e - row_s; i++) {
+      for (unsigned int j = 0; j < J_.size(); j++) {
+        set(i + row_s, J_[j], A.get(i, j));
+      }
     }
   }
 }

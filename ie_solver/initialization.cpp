@@ -1,4 +1,5 @@
 // Copyright 2019 John Paul Ryan
+#include <omp.h>
 #include <cmath>
 #include <iostream>
 #include "ie_solver/initialization.h"
@@ -10,6 +11,9 @@ namespace ie_solver {
 void Initialization::InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& domain_points, int test_size,
     const Kernel& kernel, int solution_dimension) {
+  double domain_init_start = omp_get_wtime();
+  double domain_init_end;
+
   // is stokes TODO
   std::vector<double> points = kernel.boundary->points;
   std::vector<double> normals = kernel.boundary->normals;
@@ -17,6 +21,8 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
   if (solution_dimension == 2) {
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
                                   test_size, kernel);
+    domain_init_end = omp_get_wtime();
+    std::cout<<"timing: domain_init "<<(domain_init_end-domain_init_start)<<std::endl;
     return;
   }
   // columns for phi (aka dofs), rows for spatial domain
@@ -42,6 +48,8 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
       K->set(i, j, potential);
     }
   }
+  domain_init_end = omp_get_wtime();
+  std::cout<<"timing: domain_init "<<(domain_init_end-domain_init_start)<<std::endl;
 }
 
 void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,

@@ -13,12 +13,12 @@ struct Initialization {
   Initialization() {}
   ~Initialization() {}
 
-  void InitializeDomainKernel(ie_Mat* K,
+  static void InitializeDomainKernel(ie_Mat* K,
                               const std::vector<double>& domain_points,
                               int test_size, const Kernel& kernel,
                               int solution_dimension);
 
-  void Stokes_InitializeDomainKernel(ie_Mat* K,
+  static void Stokes_InitializeDomainKernel(ie_Mat* K,
                                      const std::vector<double>& points,
                                      const std::vector<double>& normals,
                                      const std::vector<double>& weights,

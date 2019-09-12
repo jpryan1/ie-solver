@@ -30,6 +30,8 @@ cc_library(
 			":log",
 			"//ie_solver/io",
 			"//ie_solver/boundaries"],
+  linkopts = ["-pthread"],
+
 )
 
 
