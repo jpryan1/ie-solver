@@ -181,6 +181,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   int just_skelled = 0;
   unsigned int lvls = tree->levels.size();
   int active_dofs = tree->boundary->points.size() / 2;
+  
   for (unsigned int level = lvls - 1; level > 0; level--) {
     if (lvls - level > LEVEL_CAP) {
       break;
@@ -206,6 +207,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
           < MIN_DOFS_TO_COMPRESS) {
         continue;
       }
+      
       int redundants = id_compress(kernel, tree, current_node);
 
       active_dofs -= redundants;
@@ -218,7 +220,6 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   }
   // If the above breaks due to a cap, we need to manually propagate active
   // boxes up the tree.
-  // std::cout << "Final count " << active_dofs << std::endl;
   tree->remove_inactive_dofs_at_all_boxes();
 
   std::vector<unsigned int> allskel = tree->root->src_dof_lists.active_box;
@@ -227,12 +228,12 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     get_all_schur_updates(&allskel_mat_, allskel, tree->root, false);
     allskel_mat = kernel(allskel, allskel) - allskel_mat_;
   }
-  std::cout << "skel_count- already_marked/newly_skelled: " << already_marked <<
+  std::cout << "skel_count: already_marked/newly_skelled: " << already_marked <<
             " " << just_skelled << std::endl;
   // check_factorization_against_kernel(kernel, tree);
   double skel_end = omp_get_wtime();
   std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
-  std::cout << "timing: all_interpdecompss " << id_time << std::endl;
+  std::cout << "timing: all_interpdecomps " << id_time << std::endl;
 
   std::cout << "timing: all_make_id_mats " << make_id_total << std::endl;
 }
@@ -702,12 +703,9 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
                         allskel.size();
 
 
-  std::cout << "s+h = " << allskel.size() + Psi.height() << " r = " <<
-            total_redundant << std::endl;
   ie_Mat A(allskel.size() + Psi.height(),
            allskel.size() + Psi.height());
-  ie_Mat B(allskel.size() + Psi.height(), total_redundant);
-  ie_Mat C(total_redundant, allskel.size() + Psi.height());
+  
   ie_Mat ident(Psi.height(), Psi.height());
   ident.eye(Psi.height());
 
@@ -734,14 +732,6 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
       allredundant.push_back(i);
     }
   }
-
-  B.set_submatrix(allskel.size(), B.height(),
-                  0, B.width(),
-                  modified_Psi(0, modified_Psi.height(), allredundant));
-
-  C.set_submatrix(0, C.height(),
-                  allskel.size(), C.width(),
-                  modified_U(allredundant, 0, modified_U.width()));
 
   std::unordered_map<unsigned int, unsigned int> skel_big2small, red_big2small;
   for (int i = 0; i < allskel.size(); i++) {
@@ -772,17 +762,26 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   }
 
   double start = omp_get_wtime();
-  ie_Mat B_Dinv_b(B.height(), 1);
-  ie_Mat::gemm(NORMAL, NORMAL, 1., B, Dinv_b, 0., &B_Dinv_b);
+  
+  
 
+  ie_Mat B_Dinv_b(allskel.size() + Psi.height(), 1);
+  ie_Mat B_Dinv_b_sub(Psi.height(), 1);
+  
+  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_Psi(0, modified_Psi.height(), allredundant), Dinv_b, 0., &B_Dinv_b_sub);
+  
+  B_Dinv_b.set_submatrix(allskel.size(), allskel.size()+Psi.height(),0,1, B_Dinv_b_sub);
 
-  ie_Mat a(B.height(), 1);
+  ie_Mat a(B_Dinv_b.height(), 1);
 
   a.set_submatrix(0, allskel.size(), 0, 1, (*x)(allskel, 0, 1));
   ie_Mat first_paren = a - B_Dinv_b;
 
+  ie_Mat bottom_right(modified_Psi.height(), modified_U.width());
+  
+  
   // Now we need to form S, the schur complement.
-  ie_Mat Dinv_C = C;
+  ie_Mat Dinv_C = modified_U;
   for (int level = lvls - 1; level >= 0; level--) {  // level>=0; level--){
     QuadTreeLevel* current_level = quadtree.levels[level];
     for (QuadTreeNode* current_node : current_level->nodes) {
@@ -797,28 +796,27 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
                             small_redundants);
     }
   }
-  double end = omp_get_wtime();
-  std::cout << "Phase A " << (end - start) << std::endl;
-  start = omp_get_wtime();
+  
+  ie_Mat B_Dinv_C(allskel.size() + Psi.height(), allskel.size() + Psi.height());
+ 
+  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_Psi, Dinv_C, 0., &bottom_right);
+  
+  ie_Mat S = A;
+  A.set_submatrix(allskel.size(), A.height(), allskel.size(), A.width(),
+                  A(allskel.size(), A.height(), allskel.size(), A.width()) - bottom_right);
 
-  ie_Mat B_Dinv_C(B.height(), C.width());
-  ie_Mat::gemm(NORMAL, NORMAL, 1., B, Dinv_C, 0., &B_Dinv_C);
-  end = omp_get_wtime();
-  std::cout << "Phase B " << (end - start) << std::endl;
-  start = omp_get_wtime();
-  ie_Mat S = A - B_Dinv_C;
-  end = omp_get_wtime();
-  std::cout << "Phase C " << (end - start) << std::endl;
-  start = omp_get_wtime();
-  ie_Mat x_vec(S.height(), 1);
-  S.left_multiply_inverse(first_paren, &x_vec);
-  end = omp_get_wtime();
-  std::cout << "Phase D " << (end - start) << std::endl;
-
+  ie_Mat x_vec(A.height(), 1);
+  A.left_multiply_inverse(first_paren, &x_vec);
+  
   *alpha = x_vec(allskel.size(), x_vec.height(), 0, 1);
-  ie_Mat Cx(C.height(), 1);
-  ie_Mat::gemm(NORMAL, NORMAL, 1., C, x_vec, 0., &Cx);
-  ie_Mat second_paren = b_vec - Cx;
+  
+  
+  ie_Mat Cx(modified_U.height(), 1);
+  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_U, *alpha, 0., &Cx);
+  b_vec.set_submatrix(allskel.size(), b_vec.height(), 0, 1,
+                      b_vec(allskel.size(), b_vec.height(), 0, 1) - Cx);
+  
+  ie_Mat second_paren = b_vec;
   ie_Mat y = second_paren;
 
   for (int level = lvls - 1; level >= 0; level--) {
