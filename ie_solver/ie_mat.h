@@ -35,16 +35,16 @@ struct ie_Mat {
   void set(unsigned int i, unsigned int j, double a);
   void addset(unsigned int i, unsigned int j, double a);
   void set_submatrix(const std::vector<unsigned int>& I_,
-                     const std::vector<unsigned int>& J_, const ie_Mat& A, bool transpose_A=false);
+                     const std::vector<unsigned int>& J_, const ie_Mat& A, bool transpose_A = false);
   void set_submatrix(unsigned int row_s, unsigned int row_e, unsigned int col_s,
                      unsigned int col_e,
-                     const ie_Mat& A, bool transpose_A=false, bool timing = false);
+                     const ie_Mat& A, bool transpose_A = false, bool timing = false);
   void set_submatrix(const std::vector<unsigned int>& I_, unsigned int col_s,
                      unsigned int col_e,
-                     const ie_Mat& A, bool transpose_A=false);
+                     const ie_Mat& A, bool transpose_A = false);
   void set_submatrix(unsigned int row_s, unsigned int row_e,
                      const std::vector<unsigned int>& J_,
-                     const ie_Mat& A, bool transpose_A=false);
+                     const ie_Mat& A, bool transpose_A = false);
 
   void transpose_into(ie_Mat* transpose) const;
   void eye(unsigned int n);
@@ -83,9 +83,14 @@ struct ie_Mat {
   // mat.
   void rand_vec(unsigned  dofs);
   double condition_number() const;
-  void left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const;
+
+  void LU_factorize(ie_Mat* K_LU) const;
+  void left_multiply_inverse(const ie_Mat& K, ie_Mat* U,
+                             bool is_factorized = false) const;
+  void right_multiply_inverse(const ie_Mat& K, ie_Mat* L,
+                              bool is_factorized = false) const;
   void left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const;
-  void right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const;
+
   int id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const;
   std::vector<double> real_eigenvalues();
 

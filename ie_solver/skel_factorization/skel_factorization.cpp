@@ -171,7 +171,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   unsigned int lvls = tree->levels.size();
   int active_dofs = tree->boundary->points.size() / 2;
 
-  for (unsigned int level = lvls - 1; level > 0; level--) {
+  for (unsigned int level = lvls - 1; level > 1; level--) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
@@ -179,12 +179,13 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     tree->remove_inactive_dofs_at_level(level);
     QuadTreeLevel* current_level = tree->levels[level];
 
-    #pragma omp parallel for num_threads(4)
+    // #pragma omp parallel for num_threads(4)
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
       // node_counter++;
       // if (node_counter > NODE_CAP) {
       //   break;
       // }
+      double node_start = omp_get_wtime();
       QuadTreeNode* current_node = current_level->nodes[n];
       if (current_node->compressed) {
         continue;
@@ -200,6 +201,8 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
         continue;
       }
       schur_update(kernel, current_node);
+      double node_end = omp_get_wtime();
+      current_node->compress_time = node_end - node_start;
     }
   }
   // If the above breaks due to a cap, we need to manually propagate active
@@ -714,6 +717,9 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   modified_Psi = modified_Psi.transpose();
 
   ie_Mat Dinv_w = w;
+  // Again, C is mostly 0s, so we just apply Dinv to the nonzero block
+  ie_Mat Dinv_C_nonzero = modified_U(allredundant, 0, modified_U.width());
+
   #pragma omp parallel for num_threads(4)
   for (int n = 0; n < all_nodes.size(); n++) {
     QuadTreeNode* current_node = all_nodes[n];
@@ -725,6 +731,8 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
           current_node->src_dof_lists.redundant, red_big2small);
 
     apply_diag_inv_matrix(current_node->X_rr, &Dinv_w,
+                          small_redundants);
+    apply_diag_inv_matrix(current_node->X_rr, &Dinv_C_nonzero,
                           small_redundants);
   }
 
@@ -744,23 +752,6 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
 
   M.set_submatrix(0, allskel.size(), 0, 1, z);
   M.set_submatrix(allskel.size(), M.height(), 0, 1, -B_Dinv_w_nonzero);
-
-  // Again, C is mostly 0s, so we just apply Dinv to the nonzero block
-  ie_Mat Dinv_C_nonzero = modified_U(allredundant, 0, modified_U.width());
-
-  #pragma omp parallel for num_threads(4)
-  for (int n = 0; n < all_nodes.size(); n++) {
-    QuadTreeNode* current_node = all_nodes[n];
-    if (current_node->src_dof_lists.redundant.size() == 0) continue;
-    if (!current_node->compressed) {
-      continue;
-    }
-    std::vector<unsigned int> small_redundants = big_to_small(
-          current_node->src_dof_lists.redundant, red_big2small);
-
-    apply_diag_inv_matrix(current_node->X_rr, &Dinv_C_nonzero,
-                          small_redundants);
-  }
 
 
   ie_Mat B_Dinv_C_nonzero(modified_Psi.height(), modified_U.width());

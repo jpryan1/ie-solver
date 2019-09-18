@@ -2,6 +2,7 @@
 #ifndef IE_SOLVER_SKEL_FACTORIZATION_SKEL_FACTORIZATION_H_
 #define IE_SOLVER_SKEL_FACTORIZATION_SKEL_FACTORIZATION_H_
 
+#include <atomic>
 #include <vector>
 #include "ie_solver/ie_mat.h"
 #include "ie_solver/quadtree/quadtree.h"
@@ -24,9 +25,12 @@ class SkelFactorization {
   int solution_dimension, domain_dimension;
   ie_Mat allskel_mat, U, Psi;
 
+  std::atomic<bool> kill_factorizer;
+  std::atomic<QuadTreeNode*> block_to_factorize;
+
   SkelFactorization() {}
   SkelFactorization(double id_tol, bool strong_admissibility,
-                int solution_dimension, int domain_dimension);
+                    int solution_dimension, int domain_dimension);
   ~SkelFactorization() {}
 
   void get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,
@@ -55,6 +59,8 @@ class SkelFactorization {
   //                           const ie_Mat& vec_in, ie_Mat* vec_out);
 
   void skeletonize(const Kernel& K, QuadTree* tree);
+
+  void diag_block_factorizer();
   // void b2dskeletonize(const Kernel& K, QuadTree* tree);
 
   // void b2dsparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,

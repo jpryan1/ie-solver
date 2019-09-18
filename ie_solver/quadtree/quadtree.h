@@ -48,7 +48,7 @@ struct QuadTreeNode {
 
   unsigned int id, level;
   bool is_leaf, is_LU_factored=false, compressed = false;
-  double side_length, compression_ratio = 0.;
+  double side_length, compression_ratio = 0., compress_time = 0.;
 
   QuadTreeNode *tl, *tr, *bl, *br;
   QuadTreeNode* parent;
@@ -57,7 +57,7 @@ struct QuadTreeNode {
 
   InteractionLists src_dof_lists, tgt_dof_lists;
   // For inverse operator
-  ie_Mat T, L, U, X_rr, schur_update, X_rr_l_factor, X_rr_u_factor;
+  ie_Mat T, L, U, X_rr, schur_update, X_rr_lu_factor;
   // For forward operator
   ie_Mat src_T, tgt_T, X_rs, X_sr;
 

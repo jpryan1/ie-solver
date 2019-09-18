@@ -98,7 +98,8 @@ void io::write_quadtree_to_file(const std::string& filename,
       output << "level " << lvl << std::endl;
       for (QuadTreeNode* node : level->nodes) {
         output << node->corners[0] << "," << node->corners[1] << ","
-               << node->side_length << "," << node->compression_ratio << std::endl;
+               << node->side_length << "," << node->compression_ratio << ", " <<
+               node->compress_time << std::endl;
       }
     }
     output.close();

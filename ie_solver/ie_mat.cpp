@@ -213,7 +213,7 @@ void ie_Mat::transpose_into(ie_Mat* transpose) const {
   }
   for (unsigned int i = 0; i < height_; i++) {
     for (unsigned int j = 0; j < width_; j++) {
-      transpose->set(j, i, get(i, j));
+      transpose->mat[j + i * width_] = mat[i + lda_ * j];
     }
   }
 }
@@ -427,7 +427,6 @@ void ie_Mat::rand_vec(unsigned int dofs) {
   }
 }
 
-
 void ie_Mat::left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const {
   ie_Mat U_(height(), width()), V(height(), width());
 
@@ -459,10 +458,24 @@ void ie_Mat::left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const {
 }
 
 
-void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
+void ie_Mat::LU_factorize(ie_Mat* K_LU) const {
+
+
+
+}
+
+void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U,
+                                   bool is_factorized) const {
   // X^-1K = U
   // aka, XU = K
-  // TODO(John) insert asserts for these functions
+
+  if (is_factorized) {
+    int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , this->height_ ,
+                                U->width_ , this->mat , this->lda_ ,
+                                &ipiv[0] , U->mat, U->lda_);
+    assert(status == 0);
+    return;
+  }
 
   ie_Mat X_copy = *this;
   *U = K;
@@ -479,31 +492,38 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
 }
 
 
-void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
-  // KX^-1 = L
-  // aka X_T L^T = K^T
-  ie_Mat X_copy(height_, width_);
-  transpose_into(&X_copy);
+void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L,
+                                    bool is_factorized) const {
+
   ie_Mat K_copy(K.width_, K.height_);
   K.transpose_into(&K_copy);
-
   std::vector<lapack_int> ipiv(height_);
   memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
+  if (is_factorized) {
+    int err2 = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'T', this->height_,
+                              K_copy.width_, this->mat, this->lda_, &ipiv[0],
+                              K_copy.mat, K_copy.lda_);
+    assert(err2 == 0);
+    return;
+  }
+  // KX^-1 = L
+  // aka X_T L^T = K^T
+  ie_Mat X_copy = *this;
+
 
   int err1 = LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_,
                             X_copy.mat,
                             X_copy.lda_, &ipiv[0]);
   assert(err1 == 0);
-  int err2 = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'N', X_copy.height_,
+  int err2 = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'T', X_copy.height_,
                             K_copy.width_, X_copy.mat, X_copy.lda_, &ipiv[0],
                             K_copy.mat, K_copy.lda_);
-
   assert(err2 == 0);
-
   K_copy.transpose_into(L);
 }
 
-
+// TODO(John) considering LAPACK has transpose options, should this ever be
+// called?
 ie_Mat ie_Mat::transpose() const {
   ie_Mat transpose(width(), height());
   transpose_into(&transpose);
