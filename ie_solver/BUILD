@@ -63,6 +63,7 @@ cc_library(
 	name = "initialization",
 	hdrs = ["initialization.h"],
 	srcs = ["initialization.cpp"],
+	copts= ["-fopenmp"],
 	deps = [":ie_mat",
 			"//ie_solver/quadtree",
 			"//ie_solver/kernel"]

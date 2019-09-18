@@ -15,6 +15,7 @@ namespace ie_solver {
 struct ie_Mat {
   // storage is column major, so by default lda is the height.
   double *mat;
+  static double set_time;
   unsigned int lda_, height_, width_;
   ie_Mat();
   ~ie_Mat();
@@ -37,7 +38,7 @@ struct ie_Mat {
                      const std::vector<unsigned int>& J_, const ie_Mat& A, bool transpose_A=false);
   void set_submatrix(unsigned int row_s, unsigned int row_e, unsigned int col_s,
                      unsigned int col_e,
-                     const ie_Mat& A, bool transpose_A=false);
+                     const ie_Mat& A, bool transpose_A=false, bool timing = false);
   void set_submatrix(const std::vector<unsigned int>& I_, unsigned int col_s,
                      unsigned int col_e,
                      const ie_Mat& A, bool transpose_A=false);

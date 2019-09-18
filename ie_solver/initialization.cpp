@@ -64,7 +64,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
          "Points and normals must have same size in Stokes domain init.");
   assert(points.size() == 2 * weights.size() &&
          "In dim 2, pts must be 2*size of weights in stokes domain init.");
-
+  #pragma omp parallel for num_threads(8)
   for (int i = 0; i < test_size * test_size; i++) {
     Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
 

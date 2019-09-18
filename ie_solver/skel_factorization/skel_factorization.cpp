@@ -24,6 +24,7 @@ SkelFactorization::SkelFactorization(double id_tol, bool strong_admissibility_,
   domain_dimension = domain_dimension_;
   id_time = 0.;
   make_id_total = 0.;
+  get_time = 0.;
 }
 
 
@@ -189,13 +190,12 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     tree->remove_inactive_dofs_at_level(level);
     QuadTreeLevel* current_level = tree->levels[level];
 
+    #pragma omp parallel for num_threads(4)
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
-      tree->remove_inactive_dofs_at_level(level);
-
-      node_counter++;
-      if (node_counter > NODE_CAP) {
-        break;
-      }
+      // node_counter++;
+      // if (node_counter > NODE_CAP) {
+      //   break;
+      // }
       QuadTreeNode* current_node = current_level->nodes[n];
       if (current_node->compressed) {
         already_marked++;
@@ -208,11 +208,11 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
 
       int redundants = id_compress(kernel, tree, current_node);
 
-      active_dofs -= redundants;
+      // active_dofs -= redundants;
       if (redundants == 0) {
         continue;
       }
-      just_skelled++;
+      // just_skelled++;
       schur_update(kernel, current_node);
     }
   }
@@ -234,6 +234,8 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   std::cout << "timing: all_interpdecomps " << id_time << std::endl;
 
   std::cout << "timing: all_make_id_mats " << make_id_total << std::endl;
+  std::cout << "timing: all_sets " << ie_Mat::set_time << std::endl;
+  std::cout << "timing: all_gets " << get_time << std::endl;
 }
 
 
@@ -332,9 +334,9 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       // Now all the matrices are gathered, put them into *mat.
       *mat = ie_Mat(2 * outside_box.size(), active_box.size());
       mat->set_submatrix(0, outside_box.size(), 0, active_box.size(),
-                         kernel(outside_box, active_box));
+                         kernel(outside_box, active_box, &get_time), false, true);
       mat->set_submatrix(outside_box.size(), 2 * outside_box.size(),
-                         0, active_box.size(), kernel(active_box, outside_box), true);
+                         0, active_box.size(), kernel(active_box, outside_box, &get_time), true, true);
     } else {
       // Construct mat of interactions with pxy circle points
       ie_Mat proxy = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
@@ -347,13 +349,12 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
                     NUM_PROXY_POINTS, active_box.size());
       mat->set_submatrix(0, inner_circle.size(),
-                         0, active_box.size(), kernel(inner_circle, active_box));
+                         0, active_box.size(), kernel(inner_circle, active_box, &get_time), false, true);
       mat->set_submatrix(inner_circle.size(), 2 * inner_circle.size(),
-                         0, active_box.size(), kernel(active_box, inner_circle), true);
+                         0, active_box.size(), kernel(active_box, inner_circle, &get_time), true, true);
       mat->set_submatrix(2 * inner_circle.size(),  solution_dimension * 2 *
                          NUM_PROXY_POINTS + 2 * inner_circle.size(), 0,
-                         active_box.size(), proxy);
-
+                         active_box.size(), proxy, false, true);
     }
 
 
@@ -392,15 +393,20 @@ void SkelFactorization::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
                       tree->boundary->normals[points_vec_index + 1]);
       b.curvature = tree->boundary->curvatures[point_index];
       b.weight = tree->boundary->weights[point_index];
+      double start = omp_get_wtime();
 
       ie_Mat ab_tensor = kernel.get(a, b);
       ie_Mat ba_tensor = kernel.get(b, a);
-
+      double end = omp_get_wtime();
+      get_time += end - start;
       for (int k = 0; k < solution_dimension; k++) {
+        start = omp_get_wtime();
         pxy->set(solution_dimension * i + k, j_,
                  ab_tensor.get(k, box_inds[j_] % solution_dimension));
         pxy->set(solution_dimension * (i + NUM_PROXY_POINTS) + k, j_,
                  ba_tensor.get(box_inds[j_] % solution_dimension, k));
+        end = omp_get_wtime();
+        ie_Mat::set_time += end - start;
       }
     }
   }
@@ -646,12 +652,19 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   // TODO(John) LaTeX this up into a more readable form
   assert(x->height() == b.height());
   int lvls = quadtree.levels.size();
-  
+  std::vector<QuadTreeNode*> all_nodes;
+  for (int level = lvls - 1; level >= 0; level--) {
+    QuadTreeLevel* current_level = quadtree.levels[level];
+    for (int n = 0; n < current_level->nodes.size(); n++) {
+      all_nodes.push_back(current_level->nodes[n]);
+    }
+  }
+
   std::vector<unsigned int> allskel = quadtree.root->src_dof_lists.active_box;
   std::vector<unsigned int> sorted_allskel = allskel;
   std::sort(sorted_allskel.begin(), sorted_allskel.end());
   unsigned int skel_idx = 0;
-  
+
   std::vector<unsigned int> allredundant;
   for (unsigned int i = 0;
        i < quadtree.boundary->weights.size()*solution_dimension; i++) {
@@ -679,7 +692,10 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   // First apply the sweep matrices to x and U to modify them.
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
+
+    #pragma omp parallel for num_threads(4)
+    for (int n = 0; n < current_level->nodes.size(); n++) {
+      QuadTreeNode* current_node = current_level->nodes[n];
       if (!current_node->compressed) {
         continue;
       }
@@ -699,14 +715,16 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
                          current_node->src_dof_lists.skelnear, false);
     }
   }
-  
+
   ie_Mat w = (*mu)(allredundant, 0, 1);
   ie_Mat z = (*mu)(allskel, 0, 1);
-  
+
   // Now apply the other sweep matrices to Psi to modify it.
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
+    #pragma omp parallel for num_threads(2)
+    for (int n = 0; n < current_level->nodes.size(); n++) {
+      QuadTreeNode* current_node = current_level->nodes[n];
       if (!current_node->compressed) {
         continue;
       }
@@ -723,20 +741,20 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   modified_Psi = modified_Psi.transpose();
 
   ie_Mat Dinv_w = w;
-  for (int level = lvls - 1; level >= 0; level--) {
-    QuadTreeLevel* current_level = quadtree.levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
-      if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->compressed) {
-        continue;
-      }
-      std::vector<unsigned int> small_redundants = big_to_small(
-            current_node->src_dof_lists.redundant, red_big2small);
-
-      apply_diag_inv_matrix(current_node->X_rr, &Dinv_w,
-                            small_redundants);
+  #pragma omp parallel for num_threads(4)
+  for (int n = 0; n < all_nodes.size(); n++) {
+    QuadTreeNode* current_node = all_nodes[n];
+    if (current_node->src_dof_lists.redundant.size() == 0) continue;
+    if (!current_node->compressed) {
+      continue;
     }
+    std::vector<unsigned int> small_redundants = big_to_small(
+          current_node->src_dof_lists.redundant, red_big2small);
+
+    apply_diag_inv_matrix(current_node->X_rr, &Dinv_w,
+                          small_redundants);
   }
+
 
   // B has modified_Psi as a subblock, but is otherwise a ton of 0s, so
   // we don't actually form B.
@@ -748,35 +766,38 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
   // B_Dinv_w.set_submatrix(allskel.size(), allskel.size() + Psi.height(), 0, 1,
   //                       B_Dinv_w_nonzero);
   // The rest of the matrix is automatically zeros, as should be the case.
-  
+
   ie_Mat M(allskel.size() + Psi.height(), 1);
 
   M.set_submatrix(0, allskel.size(), 0, 1, z);
   M.set_submatrix(allskel.size(), M.height(), 0, 1, -B_Dinv_w_nonzero);
 
   // Again, C is mostly 0s, so we just apply Dinv to the nonzero block
-  ie_Mat Dinv_C_nonzero = modified_U;
-  for (int level = lvls - 1; level >= 0; level--) {  // level>=0; level--){
-    QuadTreeLevel* current_level = quadtree.levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
-      if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->compressed) {
-        continue;
-      }
-      std::vector<unsigned int> small_redundants = big_to_small(
-            current_node->src_dof_lists.redundant, red_big2small);
+  ie_Mat Dinv_C_nonzero = modified_U(allredundant, 0, modified_U.width());
 
-      apply_diag_inv_matrix(current_node->X_rr, &Dinv_C_nonzero,
-                            small_redundants);
+  #pragma omp parallel for num_threads(4)
+  for (int n = 0; n < all_nodes.size(); n++) {
+    QuadTreeNode* current_node = all_nodes[n];
+    if (current_node->src_dof_lists.redundant.size() == 0) continue;
+    if (!current_node->compressed) {
+      continue;
     }
+    std::vector<unsigned int> small_redundants = big_to_small(
+          current_node->src_dof_lists.redundant, red_big2small);
+
+    apply_diag_inv_matrix(current_node->X_rr, &Dinv_C_nonzero,
+                          small_redundants);
   }
 
+
   ie_Mat B_Dinv_C_nonzero(modified_Psi.height(), modified_U.width());
-  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_Psi, Dinv_C_nonzero, 0., &B_Dinv_C_nonzero);
+  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_Psi(0, modified_Psi.height(),
+               allredundant), Dinv_C_nonzero, 0.,
+               &B_Dinv_C_nonzero);
 
   ie_Mat S(allskel.size() + Psi.height(),
            allskel.size() + Psi.height());
-                  
+
   S.set_submatrix(0, allskel.size(),
                   0, allskel.size(), allskel_mat);
   S.set_submatrix(allskel.size(), S.height(),
@@ -795,36 +816,34 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
 
   *alpha = y(allskel.size(), y.height(), 0, 1);
 
-  ie_Mat Cy(modified_U.height(), 1);
-  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_U, *alpha, 0., &Cy);
-  
+  ie_Mat Cy(allredundant.size(), 1);
+  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_U(allredundant, 0,
+               modified_U.width()), *alpha , 0., &Cy);
+
   ie_Mat N = w - Cy;
-  // b_vec.set_submatrix(allskel.size(), b_vec.height(), 0, 1,
-  //                     b_vec(allskel.size(), b_vec.height(), 0, 1) - Cx);
 
-  // ie_Mat second_paren = b_vec;
-  // ie_Mat y = second_paren;
   ie_Mat Dinv_N = N;
-  for (int level = lvls - 1; level >= 0; level--) {
-    QuadTreeLevel* current_level = quadtree.levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
-      if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->compressed) {
-        continue;
-      }
-      std::vector<unsigned int> small_redundants = big_to_small(
-            current_node->src_dof_lists.redundant, red_big2small);
-
-      apply_diag_inv_matrix(current_node->X_rr, &Dinv_N,
-                            small_redundants);
+  #pragma omp parallel for num_threads(4)
+  for (int n = 0; n < all_nodes.size(); n++) {
+    QuadTreeNode* current_node = all_nodes[n];
+    if (current_node->src_dof_lists.redundant.size() == 0) continue;
+    if (!current_node->compressed) {
+      continue;
     }
+    std::vector<unsigned int> small_redundants = big_to_small(
+          current_node->src_dof_lists.redundant, red_big2small);
+
+    apply_diag_inv_matrix(current_node->X_rr, &Dinv_N,
+                          small_redundants);
   }
+
 
   mu->set_submatrix(allredundant, 0, 1, Dinv_N);
   mu->set_submatrix(allskel, 0, 1, y(0, allskel.size(), 0, 1));
 
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = quadtree.levels[level];
+    #pragma omp parallel for num_threads(2)
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
       // for(unsigned int n = 0; n < current_level->nodes.size(); n++){
 
@@ -848,5 +867,6 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     }
   }
 }
+
 
 }  // namespace ie_solver

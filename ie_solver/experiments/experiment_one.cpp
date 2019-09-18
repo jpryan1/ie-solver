@@ -67,7 +67,7 @@ void run_experiment1() {
 
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
-  // for (int frame = 0; frame < 120; frame++) {
+  // for (int frame = 0; frame < 30; frame++) {
   //   double ang = (frame / 120.0) * 2 * M_PI;
 
   //   perturbed_boundary->holes[0].center = Vec2(0.5 + 0.3 * cos(M_PI + ang),

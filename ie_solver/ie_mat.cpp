@@ -11,6 +11,7 @@
 
 namespace ie_solver {
 
+double ie_Mat::set_time = 0.;
 // TODO(John) honestly the lda parameter is completely unused, we should get
 // rid of it
 ie_Mat::ie_Mat() {
@@ -103,14 +104,14 @@ void ie_Mat::addset(unsigned int i, unsigned int j, double a) {
 void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
                            const std::vector<unsigned int>& J_,
                            const ie_Mat& A, bool transpose_A) {
-  if(transpose_A){
+  if (transpose_A) {
     assert(I_.size() == A.width_ && J_.size() == A.height_);
     for (unsigned int i = 0; i < I_.size(); i++) {
       for (unsigned int j = 0; j < J_.size(); j++) {
-        set(I_[i], J_[j], A.get(j,i));
+        set(I_[i], J_[j], A.get(j, i));
       }
     }
-  }else{
+  } else {
     assert(I_.size() == A.height_ && J_.size() == A.width_);
     for (unsigned int i = 0; i < I_.size(); i++) {
       for (unsigned int j = 0; j < J_.size(); j++) {
@@ -123,20 +124,28 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 
 void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
                            unsigned int col_s, unsigned int col_e,
-                           const ie_Mat& A, bool transpose_A) {
-  if(transpose_A){
+                           const ie_Mat& A, bool transpose_A, bool timing) {
+  double start, end;
+  if (timing) {
+    start = omp_get_wtime();
+  }
+  if (transpose_A) {
     for (unsigned int i = 0; i < row_e - row_s; i++) {
       for (unsigned int j = 0; j < col_e - col_s; j++) {
         set(i + row_s, j + col_s, A.get(j, i));
       }
     }
     assert(row_e - row_s == A.width_ && col_e - col_s == A.height_);
-  }
-  else{
+  } else {
     assert(row_e - row_s == A.height_ && col_e - col_s == A.width_);
     for (unsigned int j = 0; j < col_e - col_s; j++) {
-      memcpy( &(mat[row_s + lda_ * (j+col_s)]), &(A.mat[A.lda_ * j]), (row_e-row_s)*sizeof(double));
+      memcpy(&(mat[row_s + lda_ * (j + col_s)]), &(A.mat[A.lda_ * j]),
+             (row_e - row_s)*sizeof(double));
     }
+  }
+  if (timing) {
+    end = omp_get_wtime();
+    set_time += (end - start);
   }
 }
 
@@ -144,15 +153,14 @@ void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
 void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
                            unsigned int col_s, unsigned int col_e,
                            const ie_Mat& A, bool transpose_A) {
-  if(transpose_A){
+  if (transpose_A) {
     assert(I_.size() == A.width_ &&  col_e - col_s  == A.height_);
     for (unsigned int i = 0; i < I_.size(); i++) {
       for (unsigned int j = 0; j < col_e - col_s; j++) {
         set(I_[i], j + col_s, A.get(j, i));
       }
     }
-  }
-  else{
+  } else {
     assert(I_.size() == A.height_ &&  col_e - col_s  == A.width_);
     for (unsigned int i = 0; i < I_.size(); i++) {
       for (unsigned int j = 0; j < col_e - col_s; j++) {
@@ -166,17 +174,18 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
                            const std::vector<unsigned int>& J_,
                            const ie_Mat& A, bool transpose_A) {
-  if(transpose_A){
+  if (transpose_A) {
     assert(row_e - row_s == A.width_ && J_.size() == A.height_);
     for (unsigned int i = 0; i < row_e - row_s; i++) {
       for (unsigned int j = 0; j < J_.size(); j++) {
-        set(i + row_s, J_[j], A.get(j,i));
+        set(i + row_s, J_[j], A.get(j, i));
       }
     }
-  }else{
+  } else {
     assert(row_e - row_s == A.height_ && J_.size() == A.width_);
     for (unsigned int j = 0; j < J_.size(); j++) {
-      memcpy( &(mat[row_s + lda_ * J_[j] ]), &(A.mat[A.lda_ * j]), (row_e-row_s)*sizeof(double));
+      memcpy(&(mat[row_s + lda_ * J_[j] ]), &(A.mat[A.lda_ * j]),
+             (row_e - row_s)*sizeof(double));
     }
   }
 }
@@ -267,7 +276,7 @@ ie_Mat& ie_Mat::operator*=(double o) {
 }
 
 ie_Mat& ie_Mat::operator/=(double o) {
-  assert(std::abs(o)>1e-8 && "Error: divide matrix by 0.");
+  assert(std::abs(o) > 1e-8 && "Error: divide matrix by 0.");
   for (unsigned int i = 0; i < height_; i++) {
     for (unsigned int j = 0; j < width_; j++) {
       mat[i + lda_ * j] =  mat[i + lda_ * j] / o;
@@ -324,11 +333,11 @@ ie_Mat ie_Mat::operator*(double o) const {
 
 
 ie_Mat ie_Mat::operator/(double o) const {
-  assert(std::abs(o)>1e-8 && "Error: divide matrix by 0.");
+  assert(std::abs(o) > 1e-8 && "Error: divide matrix by 0.");
   ie_Mat result(height_, width_);
   for (unsigned int i = 0; i < height_; i++) {
     for (unsigned int j = 0; j < width_; j++) {
-      result.set(i, j, this->get(i, j) /o);
+      result.set(i, j, this->get(i, j) / o);
     }
   }
   return result;

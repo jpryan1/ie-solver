@@ -10,7 +10,6 @@
 
 namespace ie_solver {
 
-
 struct Dof {
   Vec2 point;
   Vec2 normal;
@@ -23,7 +22,6 @@ struct Dof {
 struct Kernel {
   double diag_00, diag_01, diag_11;
   int solution_dimension, domain_dimension;
-
   ie_solver_config::Pde pde;
   // TODO(John) don't have the kernel store the boundary
   Boundary* boundary;
@@ -41,7 +39,7 @@ struct Kernel {
 
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
   ie_Mat operator()(const std::vector<unsigned int>& I_,
-                    const std::vector<unsigned int>& J_) const;
+                    const std::vector<unsigned int>& J_, double* timing = nullptr) const;
 
   ie_Mat forward_get(const std::vector<unsigned int>& I_,
                      const std::vector<unsigned int>& J_) const;
