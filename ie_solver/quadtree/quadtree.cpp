@@ -53,7 +53,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   }
   double tree_min = min - 0.01;
   double tree_max = max + 0.01;
-  
+
   root = new QuadTreeNode();
   root->level = 0;
   root->parent = nullptr;
@@ -135,7 +135,8 @@ void QuadTree::initialize_tree(Boundary* boundary_,
     }
   }
   double tree_end_time = omp_get_wtime();
-  std::cout<<"timing: tree_init "<<(tree_end_time-tree_start_time)<<std::endl;
+  std::cout << "timing: tree_init " << (tree_end_time - tree_start_time) <<
+            std::endl;
 }
 
 
@@ -459,6 +460,18 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       additions.push_back(i);
     }
   }
+  int num_compressed = 0;
+  int num_total = 0;
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      num_total++;
+      if (node->compressed) {
+        num_compressed++;
+      }
+    }
+  }
+  std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
+            " are compressed." << std::endl;
   // TODO(John) the below needs to be changed for stokes
   // go through all leaf original box vectors and apply mapping.
   // (if there is a deletion it will be processed later)
@@ -645,6 +658,21 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       }
     }
   }
+
+
+
+  num_compressed = 0;
+  num_total = 0;
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
+      num_total++;
+      if (node->compressed) {
+        num_compressed++;
+      }
+    }
+  }
+  std::cout << "After perturb, " << num_compressed << " of " << num_total <<
+            " are compressed." << std::endl;
 }
 
 

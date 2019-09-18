@@ -22,9 +22,6 @@ SkelFactorization::SkelFactorization(double id_tol, bool strong_admissibility_,
   strong_admissibility = strong_admissibility_;
   solution_dimension = solution_dimension_;
   domain_dimension = domain_dimension_;
-  id_time = 0.;
-  make_id_total = 0.;
-  get_time = 0.;
 }
 
 
@@ -38,10 +35,7 @@ int SkelFactorization::id_compress(const Kernel& kernel,
          "Num of DOFs must be positive in InterpolativeDecomposition.");
   // TODO(John) better variable name
   ie_Mat pxy;
-  double make_id_start = omp_get_wtime();
   make_id_mat(kernel, &pxy, tree, node);
-  double make_id_end = omp_get_wtime();
-  make_id_total += make_id_end - make_id_start;
 
   if (pxy.height() == 0) {
     return 0;
@@ -176,8 +170,7 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   double skel_start = omp_get_wtime();
   int node_counter = 0;
-  int already_marked = 0;
-  int just_skelled = 0;
+
   unsigned int lvls = tree->levels.size();
   int active_dofs = tree->boundary->points.size() / 2;
 
@@ -185,7 +178,6 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
-    // std::cout << "Skelling level " << level << std::endl;
 
     tree->remove_inactive_dofs_at_level(level);
     QuadTreeLevel* current_level = tree->levels[level];
@@ -198,7 +190,6 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
       // }
       QuadTreeNode* current_node = current_level->nodes[n];
       if (current_node->compressed) {
-        already_marked++;
         continue;
       }
       if (current_node->src_dof_lists.active_box.size()
@@ -208,11 +199,9 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
 
       int redundants = id_compress(kernel, tree, current_node);
 
-      // active_dofs -= redundants;
       if (redundants == 0) {
         continue;
       }
-      // just_skelled++;
       schur_update(kernel, current_node);
     }
   }
@@ -226,16 +215,9 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     get_all_schur_updates(&allskel_updates, allskel, tree->root, false);
     allskel_mat = kernel(allskel, allskel) - allskel_updates;
   }
-  std::cout << "skel_count: already_marked/newly_skelled: " << already_marked <<
-            " " << just_skelled << std::endl;
   // check_factorization_against_kernel(kernel, tree);
   double skel_end = omp_get_wtime();
   std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
-  std::cout << "timing: all_interpdecomps " << id_time << std::endl;
-
-  std::cout << "timing: all_make_id_mats " << make_id_total << std::endl;
-  std::cout << "timing: all_sets " << ie_Mat::set_time << std::endl;
-  std::cout << "timing: all_gets " << get_time << std::endl;
 }
 
 
@@ -393,20 +375,14 @@ void SkelFactorization::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
                       tree->boundary->normals[points_vec_index + 1]);
       b.curvature = tree->boundary->curvatures[point_index];
       b.weight = tree->boundary->weights[point_index];
-      double start = omp_get_wtime();
 
       ie_Mat ab_tensor = kernel.get(a, b);
       ie_Mat ba_tensor = kernel.get(b, a);
-      double end = omp_get_wtime();
-      get_time += end - start;
       for (int k = 0; k < solution_dimension; k++) {
-        start = omp_get_wtime();
         pxy->set(solution_dimension * i + k, j_,
                  ab_tensor.get(k, box_inds[j_] % solution_dimension));
         pxy->set(solution_dimension * (i + NUM_PROXY_POINTS) + k, j_,
                  ba_tensor.get(box_inds[j_] % solution_dimension, k));
-        end = omp_get_wtime();
-        ie_Mat::set_time += end - start;
       }
     }
   }
