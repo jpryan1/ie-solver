@@ -41,10 +41,7 @@ int SkelFactorization::id_compress(const Kernel& kernel,
     return 0;
   }
   std::vector<unsigned int> p;
-  double id_start = omp_get_wtime();
   unsigned int numskel = pxy.id(&p, &node->T, id_tol);
-  double id_end = omp_get_wtime();
-  id_time += (id_end - id_start);
   if (numskel == 0) {
     node->compression_ratio = 0.;
     return 0;
@@ -316,9 +313,9 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       // Now all the matrices are gathered, put them into *mat.
       *mat = ie_Mat(2 * outside_box.size(), active_box.size());
       mat->set_submatrix(0, outside_box.size(), 0, active_box.size(),
-                         kernel(outside_box, active_box, &get_time), false, true);
+                         kernel(outside_box, active_box), false, true);
       mat->set_submatrix(outside_box.size(), 2 * outside_box.size(),
-                         0, active_box.size(), kernel(active_box, outside_box, &get_time), true, true);
+                         0, active_box.size(), kernel(active_box, outside_box), true, true);
     } else {
       // Construct mat of interactions with pxy circle points
       ie_Mat proxy = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
@@ -331,9 +328,9 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
                     NUM_PROXY_POINTS, active_box.size());
       mat->set_submatrix(0, inner_circle.size(),
-                         0, active_box.size(), kernel(inner_circle, active_box, &get_time), false, true);
+                         0, active_box.size(), kernel(inner_circle, active_box), false, true);
       mat->set_submatrix(inner_circle.size(), 2 * inner_circle.size(),
-                         0, active_box.size(), kernel(active_box, inner_circle, &get_time), true, true);
+                         0, active_box.size(), kernel(active_box, inner_circle), true, true);
       mat->set_submatrix(2 * inner_circle.size(),  solution_dimension * 2 *
                          NUM_PROXY_POINTS + 2 * inner_circle.size(), 0,
                          active_box.size(), proxy, false, true);
