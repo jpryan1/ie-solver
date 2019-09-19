@@ -45,58 +45,60 @@ void run_experiment1() {
   ie_solver_config config = get_experiment_one_config();
   int domain_dimension = 2;
   int solution_dimension = 2;
+  for (int n_dofs : {200, 500, 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200}) {
+    config.num_boundary_points = n_dofs;
+    std::cout << "num_dofs: " << n_dofs << std::endl;
+    std::unique_ptr<Boundary> boundary =
+      std::unique_ptr<Boundary>(new Ex1Boundary());
+    boundary->initialize(config.num_boundary_points,
+                         BoundaryCondition::STOKES);
 
-  std::unique_ptr<Boundary> boundary =
-    std::unique_ptr<Boundary>(new Ex1Boundary());
-  boundary->initialize(config.num_boundary_points,
-                       BoundaryCondition::STOKES);
+    QuadTree quadtree;
 
-  QuadTree quadtree;
+    quadtree.initialize_tree(boundary.get(), std::vector<double>(),
+                             solution_dimension, domain_dimension);
 
-  quadtree.initialize_tree(boundary.get(), std::vector<double>(),
-                           solution_dimension, domain_dimension);
+    std::vector<double> domain_points;
+    get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                      quadtree.max);
 
-  std::vector<double> domain_points;
-  get_domain_points(config.domain_size, &domain_points, quadtree.min,
-                    quadtree.max);
+    // We'll iteratively reinitialized another Boundary and use that
+    // to update the quadtree's Boundary.
+    std::unique_ptr<Boundary> perturbed_boundary =
+      std::unique_ptr<Boundary>(new Ex1Boundary());
 
-  // We'll iteratively reinitialized another Boundary and use that
-  // to update the quadtree's Boundary.
-  std::unique_ptr<Boundary> perturbed_boundary =
-    std::unique_ptr<Boundary>(new Ex1Boundary());
+    perturbed_boundary->initialize(config.num_boundary_points,
+                                   config.boundary_condition);
+    for (int frame = 0; frame < 60; frame++) {
+      double ang = (frame / 120.0) * 2 * M_PI;
 
-  perturbed_boundary->initialize(config.num_boundary_points,
-                                 config.boundary_condition);
-  // for (int frame = 0; frame < 30; frame++) {
-  //   double ang = (frame / 120.0) * 2 * M_PI;
+      perturbed_boundary->holes[0].center = Vec2(0.5 + 0.3 * cos(M_PI + ang),
+                                            0.5 + 0.3 * sin(M_PI + ang));
+      perturbed_boundary->holes[3].center = Vec2(0.5 + 0.3 * cos(ang),
+                                            0.5 + 0.3 * sin(ang));
 
-  //   perturbed_boundary->holes[0].center = Vec2(0.5 + 0.3 * cos(M_PI + ang),
-  //                                         0.5 + 0.3 * sin(M_PI + ang));
-  //   perturbed_boundary->holes[3].center = Vec2(0.5 + 0.3 * cos(ang),
-  //                                         0.5 + 0.3 * sin(ang));
+      perturbed_boundary->initialize(config.num_boundary_points,
+                                     config.boundary_condition);
+      quadtree.perturb(*perturbed_boundary.get());
+      ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
+      io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)  + ".txt",
+                                 solution, domain_points, config.solution_dimension);
+      io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
+                                   frame)  + ".txt",
+                                 perturbed_boundary->points);
+      io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt", quadtree);
 
-  //   perturbed_boundary->initialize(config.num_boundary_points,
-  //                                  config.boundary_condition);
-  //   quadtree.perturb(*perturbed_boundary.get());
-  //   ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
-  //   io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)  + ".txt",
-  //                              solution, domain_points, config.solution_dimension);
-  //   io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
-  //                                frame)  + ".txt",
-  //                              perturbed_boundary->points);
-  //   io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt", quadtree);
+    }
+    // ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
+  }
+  // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
+  //                            domain_points, config.solution_dimension);
+  // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
+  //                            boundary->points);
+  // io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
 
-  // }
-  ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
-
-  io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
-                             domain_points, config.solution_dimension);
-  io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
-                             boundary->points);
-  io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
-
-  double end = omp_get_wtime();
-  std::cout << "timing: experiment_one_total " << (end - start) << std::endl;
+  // double end = omp_get_wtime();
+  // std::cout << "timing: experiment_one_total " << (end - start) << std::endl;
 }
 
 

@@ -3,6 +3,7 @@
 #define IE_SOLVER_IE_MAT_H_
 
 #include <cblas.h>
+#include <lapacke.h>
 #include <vector>
 #include <string>
 
@@ -84,11 +85,13 @@ struct ie_Mat {
   void rand_vec(unsigned  dofs);
   double condition_number() const;
 
-  void LU_factorize(ie_Mat* K_LU) const;
-  void left_multiply_inverse(const ie_Mat& K, ie_Mat* U,
-                             bool is_factorized = false) const;
-  void right_multiply_inverse(const ie_Mat& K, ie_Mat* L,
-                              bool is_factorized = false) const;
+  void LU_factorize(ie_Mat* K_LU, std::vector<lapack_int>* piv) const;
+  void left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const;
+  void right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const;
+  void left_multiply_inverse(const ie_Mat& K, const std::vector<lapack_int>& piv,
+                             ie_Mat* U) const;
+  void right_multiply_inverse(const ie_Mat& K, const std::vector<lapack_int>& piv,
+                              ie_Mat* L) const;
   void left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const;
 
   int id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const;

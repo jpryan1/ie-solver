@@ -57,7 +57,8 @@ struct QuadTreeNode {
 
   InteractionLists src_dof_lists, tgt_dof_lists;
   // For inverse operator
-  ie_Mat T, L, U, X_rr, schur_update, X_rr_lu_factor;
+  ie_Mat T, L, U, X_rr, schur_update, X_rr_lu;
+  std::vector<lapack_int> X_rr_piv;
   // For forward operator
   ie_Mat src_T, tgt_T, X_rs, X_sr;
 

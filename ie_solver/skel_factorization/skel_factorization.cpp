@@ -143,6 +143,8 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   node->X_rr = ie_Mat(num_redundant, num_redundant);
   get_x_matrices(&K_BN, node->T, &(node->X_rr), r, s, n);
 
+  node->X_rr.LU_factorize(&node->X_rr_lu, &node->X_rr_piv);
+  node->is_LU_factored = true;
   // Generate left and right schur complement matrices
   // TODO(John) change this variable naming
   int num_skelnear = sn.size();
@@ -153,8 +155,8 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   ie_Mat K_BN_sn_r = K_BN(sn, r);
   ie_Mat K_BN_r_sn = K_BN(r, sn);
 
-  node->X_rr.right_multiply_inverse(K_BN_sn_r, &node->L);
-  node->X_rr.left_multiply_inverse(K_BN_r_sn, &node->U);
+  node->X_rr_lu.right_multiply_inverse(K_BN_sn_r, node->X_rr_piv, &node->L);
+  node->X_rr_lu.left_multiply_inverse(K_BN_r_sn, node->X_rr_piv,  &node->U);
 
   node->schur_update = ie_Mat(sn.size(), sn.size());
   ie_Mat::gemm(NORMAL, NORMAL, 1.0, node->L, K_BN_r_sn, 0.,
@@ -171,7 +173,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   unsigned int lvls = tree->levels.size();
   int active_dofs = tree->boundary->points.size() / 2;
 
-  for (unsigned int level = lvls - 1; level > 1; level--) {
+  for (unsigned int level = lvls - 1; level > 0; level--) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
@@ -214,12 +216,24 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     ie_Mat allskel_updates = ie_Mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_updates, allskel, tree->root, false);
     allskel_mat = kernel(allskel, allskel) - allskel_updates;
+    std::cout<<"num_skel_dofs: "<<allskel_mat.height()<<std::endl;
+    // allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
   }
   // check_factorization_against_kernel(kernel, tree);
   double skel_end = omp_get_wtime();
   std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 }
 
+
+void SkelFactorization::diag_block_factorizer() {
+  while (true) {
+    while (!kill_factorizer && block_to_factorize == nullptr);
+    if (kill_factorizer) {
+      return;
+    }
+
+  }
+}
 
 
 void SkelFactorization::get_all_schur_updates(ie_Mat* updates,
@@ -428,12 +442,12 @@ const {
 }
 
 
-void SkelFactorization::apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
-    const std::vector<unsigned int>& range)
-const {
+void SkelFactorization::apply_diag_inv_matrix(const ie_Mat& mat,
+    const std::vector<lapack_int>& piv, ie_Mat* vec,
+    const std::vector<unsigned int>& range) const {
   if (range.size() == 0) return;
   ie_Mat product(range.size(),  vec->width());
-  mat.left_multiply_inverse((*vec)(range,  0, vec->width()), &product);
+  mat.left_multiply_inverse((*vec)(range,  0, vec->width()), piv, &product);
   vec->set_submatrix(range,  0, vec->width(), product);
 }
 
@@ -566,7 +580,9 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
       //   std::cout << "Node " << current_node->id << " solve X_rr inv -- ";
       //   std::cout << "Inverting w/ condition number " << cond << std::endl;
       // }
-      apply_diag_inv_matrix(current_node->X_rr, x,
+      assert(current_node->is_LU_factored);
+
+      apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, x,
                             current_node->src_dof_lists.redundant);
     }
   }
@@ -582,7 +598,11 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
     //   std::cout << "Allskel inv -- ";
     //   std::cout << "Inverting w/ condition number " << cond2 << std::endl;
     // }
-    apply_diag_inv_matrix(allskel_mat, x, allskel);
+    ie_Mat tmp;
+    std::vector<lapack_int> tmp2;
+    allskel_mat.LU_factorize(&tmp, &tmp2);
+
+    apply_diag_inv_matrix(tmp, tmp2, x, allskel);
   }
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = quadtree.levels[level];
@@ -626,7 +646,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     ie_Mat* mu, ie_Mat* alpha,
     const ie_Mat& b) const {
   // TODO(John) LaTeX this up into a more readable form
-  assert(x->height() == b.height());
+  assert(mu->height() == b.height());
   int lvls = quadtree.levels.size();
   std::vector<QuadTreeNode*> all_nodes;
   for (int level = lvls - 1; level >= 0; level--) {
@@ -729,10 +749,11 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     }
     std::vector<unsigned int> small_redundants = big_to_small(
           current_node->src_dof_lists.redundant, red_big2small);
-
-    apply_diag_inv_matrix(current_node->X_rr, &Dinv_w,
+    assert(current_node->is_LU_factored);
+    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, &Dinv_w,
                           small_redundants);
-    apply_diag_inv_matrix(current_node->X_rr, &Dinv_C_nonzero,
+    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
+                          &Dinv_C_nonzero,
                           small_redundants);
   }
 
@@ -796,8 +817,9 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     }
     std::vector<unsigned int> small_redundants = big_to_small(
           current_node->src_dof_lists.redundant, red_big2small);
+    assert(current_node->is_LU_factored);
 
-    apply_diag_inv_matrix(current_node->X_rr, &Dinv_N,
+    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, &Dinv_N,
                           small_redundants);
   }
 

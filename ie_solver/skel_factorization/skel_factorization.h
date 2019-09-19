@@ -23,8 +23,8 @@ class SkelFactorization {
   double id_tol;
   bool strong_admissibility;
   int solution_dimension, domain_dimension;
-  ie_Mat allskel_mat, U, Psi;
-
+  ie_Mat allskel_mat, allskel_mat_lu, U, Psi;
+  std::vector<lapack_int> allskel_mat_piv;
   std::atomic<bool> kill_factorizer;
   std::atomic<QuadTreeNode*> block_to_factorize;
 
@@ -89,7 +89,8 @@ class SkelFactorization {
                           bool transpose) const;
   void apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
                          const std::vector<unsigned int>& range) const;
-  void apply_diag_inv_matrix(const ie_Mat& mat, ie_Mat* vec,
+  void apply_diag_inv_matrix(const ie_Mat& mat,
+                             const std::vector<lapack_int>& piv, ie_Mat* vec,
                              const std::vector<unsigned int>& range) const;
   void apply_diag_pinv_matrix(const ie_Mat& mat, ie_Mat* vec,
                               const std::vector<unsigned int>& range) const;

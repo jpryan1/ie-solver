@@ -1,6 +1,5 @@
 // Copyright 2019 John Paul Ryan
 #include <string.h>
-#include <lapacke.h>
 #include <omp.h>
 #include <string>
 #include <cassert>
@@ -458,32 +457,22 @@ void ie_Mat::left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const {
 }
 
 
-void ie_Mat::LU_factorize(ie_Mat* K_LU) const {
+void ie_Mat::LU_factorize(ie_Mat* K_LU, std::vector<lapack_int>* piv) const {
+  *K_LU = *this;
+  *piv = std::vector<lapack_int>(height_);
 
-
-
+  LAPACKE_dgetrf(LAPACK_COL_MAJOR, K_LU->height_, K_LU->width_, K_LU->mat,
+                 K_LU->lda_, &(*piv)[0]);
 }
 
-void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U,
-                                   bool is_factorized) const {
+void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
   // X^-1K = U
   // aka, XU = K
 
-  if (is_factorized) {
-    int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , this->height_ ,
-                                U->width_ , this->mat , this->lda_ ,
-                                &ipiv[0] , U->mat, U->lda_);
-    assert(status == 0);
-    return;
-  }
-
-  ie_Mat X_copy = *this;
+  ie_Mat X_copy;
   *U = K;
-  std::vector<lapack_int> ipiv(height_);
-  memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
-
-  LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_, X_copy.mat,
-                 X_copy.lda_, &ipiv[0]);
+  std::vector<lapack_int> ipiv;
+  LU_factorize(&X_copy, &ipiv);
 
   int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , X_copy.height_ ,
                               U->width_ , X_copy.mat , X_copy.lda_ ,
@@ -492,31 +481,51 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U,
 }
 
 
-void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L,
-                                    bool is_factorized) const {
+void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
 
   ie_Mat K_copy(K.width_, K.height_);
   K.transpose_into(&K_copy);
-  std::vector<lapack_int> ipiv(height_);
-  memset(&ipiv[0], 0, height_ * sizeof(lapack_int));
-  if (is_factorized) {
-    int err2 = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'T', this->height_,
-                              K_copy.width_, this->mat, this->lda_, &ipiv[0],
-                              K_copy.mat, K_copy.lda_);
-    assert(err2 == 0);
-    return;
-  }
+  std::vector<lapack_int> ipiv;
+
   // KX^-1 = L
   // aka X_T L^T = K^T
-  ie_Mat X_copy = *this;
+  ie_Mat X_copy;
+  LU_factorize(&X_copy, &ipiv);
 
-
-  int err1 = LAPACKE_dgetrf(LAPACK_COL_MAJOR, X_copy.height_, X_copy.width_,
-                            X_copy.mat,
-                            X_copy.lda_, &ipiv[0]);
-  assert(err1 == 0);
   int err2 = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'T', X_copy.height_,
                             K_copy.width_, X_copy.mat, X_copy.lda_, &ipiv[0],
+                            K_copy.mat, K_copy.lda_);
+  assert(err2 == 0);
+  K_copy.transpose_into(L);
+}
+
+
+void ie_Mat::left_multiply_inverse(const ie_Mat& K,
+                                   const std::vector<lapack_int>& piv, ie_Mat* U) const {
+  // X^-1K = U
+  // aka, XU = K
+
+  ie_Mat X_copy = *this;
+  *U = K;
+
+  int status = LAPACKE_dgetrs(LAPACK_COL_MAJOR , 'N' , this->height_ ,
+                              U->width_ , this->mat , this->lda_ ,
+                              &piv[0] , U->mat, U->lda_);
+  assert(status == 0);
+}
+
+
+void ie_Mat::right_multiply_inverse(const ie_Mat& K,
+                                    const std::vector<lapack_int>& piv, ie_Mat* L) const {
+
+  ie_Mat K_copy(K.width_, K.height_);
+  K.transpose_into(&K_copy);
+
+  // KX^-1 = L
+  // aka X_T L^T = K^T
+
+  int err2 = LAPACKE_dgetrs(LAPACK_COL_MAJOR, 'T', this->height_,
+                            K_copy.width_, this->mat, this->lda_, &piv[0],
                             K_copy.mat, K_copy.lda_);
   assert(err2 == 0);
   K_copy.transpose_into(L);
