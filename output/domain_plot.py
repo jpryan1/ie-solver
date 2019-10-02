@@ -7,14 +7,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
+fig = plt.figure(figsize=(14,14))
+
 WINDOW_SIZE = 140*5
 IMAGE_SIZE = 100*5
 CMAP = copy(matplotlib.cm.hot)
 CMAP.set_bad('lightgray', 1.)
 MASKED_VALUE = 11111.1
-fig = plt.figure(figsize=(14,14))
 
-
+print("args: {ZOOM} {X_SHIFT}")
 ZOOM = 1
 if(len(sys.argv) > 1):
   ZOOM = int(sys.argv[1])
@@ -22,7 +23,11 @@ SHIFT = 0
 if(len(sys.argv) > 2):
   SHIFT = int(sys.argv[2])*ZOOM
 
+quiver_normalizer = matplotlib.colors.Normalize(vmin=0,vmax=1.)
+quiver_scale = 40./ZOOM
+
 CENTER = WINDOW_SIZE/2.0
+
 ###########################################################
 #
 #							READING THE FILES
@@ -73,8 +78,6 @@ dif_x = max_x-min_x
 dif_y = max_y-min_y
 
 # Translation needed so that the image is centered
-# Note from John: I do not understand why this works, I should probably
-# get on that
 gamma=0
 delta=0
 if(dif_x>dif_y):
@@ -123,7 +126,8 @@ def draw_solution(img, points):
 				  
 				  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT
 				  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
-				  if x_zoom+i < 0 or x_zoom+i > WINDOW_SIZE-1 or y_zoom+j < 0 or y_zoom+j > WINDOW_SIZE-1:
+				  if (x_zoom+i < 0 or x_zoom+i > WINDOW_SIZE-1 or 
+				  		y_zoom+j < 0 or y_zoom+j > WINDOW_SIZE-1):
 				    continue
 				  x_coord = max(0,min(WINDOW_SIZE-1, x_zoom+i))
 				  y_coord = max(0,min(WINDOW_SIZE-1, y_zoom+j))
@@ -143,7 +147,8 @@ def get_quiver_data(points):
 		pixel = scaled_point(point[:2])
 		x_zoom = (pixel[0]  - CENTER)*ZOOM + CENTER+SHIFT
 		y_zoom = (pixel[1]  - CENTER)*ZOOM + CENTER
-		if x_zoom < 0 or x_zoom > WINDOW_SIZE-1 or y_zoom < 0 or y_zoom > WINDOW_SIZE-1:
+		if (x_zoom < 0 or x_zoom > WINDOW_SIZE-1 or 
+				y_zoom < 0 or y_zoom > WINDOW_SIZE-1):
 		  continue
 		x_coord = max(0,min(WINDOW_SIZE-1, x_zoom))
 		y_coord = max(0,min(WINDOW_SIZE-1, y_zoom))
@@ -164,7 +169,8 @@ def get_quiver_data(points):
 ###########################################################
 
 # SOLUTION PLOT
-solution_img = np.array([[MASKED_VALUE for x in range(WINDOW_SIZE)] for y in range(WINDOW_SIZE)])
+solution_img = np.array([[MASKED_VALUE for x in range(WINDOW_SIZE)] 
+																			 for y in range(WINDOW_SIZE)])
 stokes_data = []
 if(is_stokes):
 	draw_boundary(solution_img, boundary_points, val=1.0)
@@ -178,7 +184,7 @@ plt.imshow(solution_img.T, cmap=CMAP, origin = "lower")
 if(is_stokes):
 	plt.quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
 		stokes_data[4], cmap = "Purples", #cmap='autumn',
-		norm=matplotlib.colors.Normalize(vmin=0,vmax=1.), scale=20./ZOOM)
+		norm=quiver_normalizer, scale=quiver_scale)
 
 ############################################################
 #

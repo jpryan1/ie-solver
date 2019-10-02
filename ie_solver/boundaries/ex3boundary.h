@@ -13,11 +13,10 @@ class Ex3Boundary : public CubicBoundary {
 
   void get_spline_points(std::vector<double>* outer_x0_spline_points,
                          std::vector<double>* outer_x1_spline_points);
-                              
+
   void get_fin_spline_points(std::vector<double>* x0_points,
-                                    std::vector<double>* x1_points);
-                              
-  double fin_theta = -M_PI/4.;
+                             std::vector<double>* x1_points);
+
 };
 
 }  // namespace ie_solver

@@ -204,9 +204,9 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   // is 2* this size, because the wall grows on either side of the bump.
   int bc_index = 0;
   if (bc == BoundaryCondition::STOKES) {
-    boundary_values = ie_Mat(2 * (N + 2 * perturbation_size), 1);
+    boundary_values = ie_Mat(2 * (N + 2 * perturbation_parameter), 1);
   } else {
-    boundary_values = ie_Mat(N + 2 * perturbation_size, 1);
+    boundary_values = ie_Mat(N + 2 * perturbation_parameter, 1);
   }
 
   // line ed
@@ -234,11 +234,11 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   bc_index += corner_points;
 
   // line co
-  double o_x = 0.2 + ((0.0 + perturbation_size) / 20.0) * 0.1;
-  if (perturbation_size > 0) {
+  double o_x = 0.2 + ((0.0 + perturbation_parameter) / 20.0) * 0.1;
+  if (perturbation_parameter > 0) {
     weights.push_back(middie);
-    draw_line(bc_index, perturbation_size, 0.2, 0.4, o_x, 0.4, true);
-    bc_index += perturbation_size;
+    draw_line(bc_index, perturbation_parameter, 0.2, 0.4, o_x, 0.4, true);
+    bc_index += perturbation_parameter;
   }
 
   // corner o1
@@ -254,10 +254,10 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   bc_index += corner_points;
 
   // line ob
-  if (perturbation_size > 0) {
+  if (perturbation_parameter > 0) {
     weights.push_back(middie);
-    draw_line(bc_index, perturbation_size, o_x, 0.6, 0.2, 0.6, true);
-    bc_index += perturbation_size;
+    draw_line(bc_index, perturbation_parameter, o_x, 0.6, 0.2, 0.6, true);
+    bc_index += perturbation_parameter;
   }
   // corner b
 
@@ -300,7 +300,7 @@ void RoundedSquareWithBump::initialize(int N, BoundaryCondition bc) {
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
-  assert(bc_index == N + 2 * perturbation_size);
+  assert(bc_index == N + 2 * perturbation_parameter);
 
 }
 
@@ -310,7 +310,7 @@ bool RoundedSquareWithBump::is_in_domain(const Vec2& a) {
 
   double eps = 1e-2;
 
-  double o_x = 0.2 + ((0.0 + perturbation_size) / 20.0) * 0.1;
+  double o_x = 0.2 + ((0.0 + perturbation_parameter) / 20.0) * 0.1;
 
   double o_dist = sqrt(pow(v[0] - o_x, 2) + pow(v[1] - 0.5, 2));
   if (o_dist - eps < 0.1) {

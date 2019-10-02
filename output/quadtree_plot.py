@@ -46,7 +46,7 @@ for line in tree_lines[1:]:
 	else:
 		linesplit = line.split(',')
 		current_level_data.append([float(linesplit[0]), float(linesplit[1]),
-			float(linesplit[2]), float(linesplit[3])])
+			float(linesplit[2]), float(linesplit[3]), float(linesplit[4])])
 num_levels = len(quadtree_data)
 ###########################################################
 #
@@ -115,9 +115,9 @@ def draw_box(img, datum):
 	side_length = datum[2]
 	bottom_left = datum[:2]
 
-	compression_ratio = datum[3]
-	# time_data = datum[4]
-
+	pixel_data = datum[3]
+	if(pixel_data == 0.):
+		pixel_data = MASKED_VALUE
 	top_right = [bottom_left[0] + side_length, bottom_left[1] + side_length]
 	bottom_left = scaled_point(bottom_left)
 	top_right = scaled_point(top_right)
@@ -139,7 +139,7 @@ def draw_box(img, datum):
 
 	for x in range(bottom_left[0]+1, top_right[0]):
 		for y in range(bottom_left[1]+1, top_right[1]):
-			img[x][y] = compression_ratio
+			img[x][y] = pixel_data
 
 
 def draw_quadtree(img, quadtree_data):
@@ -165,6 +165,7 @@ for i in range(num_levels):
 	tree_images.append(tree_img)
 
 plt.title("Quadtree")
+# im = plt.imshow(tree_images[current_shown_level].T, cmap=CMAP, vmin=0., vmax=1., origin = "lower")
 im = plt.imshow(tree_images[current_shown_level].T, cmap=CMAP, vmin=0., vmax=1., origin = "lower")
 plt.colorbar(im)
 
@@ -179,7 +180,7 @@ def on_key(event):
 
 	if(event.key == "down" and current_shown_level < num_levels-1):
 		current_shown_level += 1
-		im.set_data(tree_images[current_shown_level].T)
+		im.set_data(tree_images[current_shown_level].T)		
 		plt.draw()
 	elif(event.key == "up" and current_shown_level > 0):
 		current_shown_level -= 1

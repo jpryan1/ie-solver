@@ -435,11 +435,11 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   for (unsigned int i = 0; i < new_points.size(); i += 2) {
     pair new_point(new_points[i], new_points[i + 1]);
     point_to_new_index[new_point] = i / 2;
-  }
+  }  
   std::vector<bool> found_in_old(new_points.size() / 2);
   for (unsigned int i = 0; i < found_in_old.size(); i++) {
     found_in_old[i] = false;
-  }
+  } 
   // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
   for (unsigned int i = 0; i < old_points.size(); i += 2) {
@@ -454,12 +454,12 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       // If it's in the old vec but not the new vec, it was deleted
       deletions.push_back(i / 2);
     }
-  }
+  }  
   for (unsigned int i = 0; i < found_in_old.size(); i++) {
     if (!found_in_old[i]) {
       additions.push_back(i);
     }
-  }
+  } 
   int num_compressed = 0;
   int num_total = 0;
   for (QuadTreeLevel* level : levels) {
@@ -469,7 +469,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
         num_compressed++;
       }
     }
-  }
+  }  
   std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
             " are compressed." << std::endl;
   // TODO(John) the below needs to be changed for stokes
@@ -585,7 +585,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   boundary->weights = perturbed_boundary.weights;
   boundary->curvatures = perturbed_boundary.curvatures;
   boundary->boundary_values = perturbed_boundary.boundary_values;
-  boundary->perturbation_size = perturbed_boundary.perturbation_size;
+  boundary->perturbation_parameter = perturbed_boundary.perturbation_parameter;
   boundary->holes = perturbed_boundary.holes;
 
   for (int l = levels.size() - 1; l >= 0; l--) {

@@ -28,7 +28,7 @@ enum BoundaryCondition {
 
 class Boundary {
  public:
-  int perturbation_size = 0;
+  double perturbation_parameter = 0.;
   std::vector<double> points, normals, curvatures, weights;
   std::vector<Hole> holes;
   ie_Mat boundary_values;
@@ -50,29 +50,28 @@ class Boundary {
 };
 
 class CubicBoundary : public Boundary {
-  public:
-    // Note, the outer nodes must appear first in the point data vectors.
-    int num_outer_nodes;
-    std::vector<std::vector<double>> all_cubics_x0, all_cubics_x1;
+ public:
+  // Note, the outer nodes must appear first in the point data vectors.
+  int num_outer_nodes;
+  std::vector<std::vector<double>> all_cubics_x0, all_cubics_x1;
 
-    virtual void get_spline_points(std::vector<double>* outer_x0_spline_points,
-                           std::vector<double>* outer_x1_spline_points) = 0;
-    
-    void get_cubics(const std::vector<double>& x0_points,
-                    const std::vector<double>& x1_points,
-                    std::vector<std::vector<double>>* x0_cubics,
-                    std::vector<std::vector<double>>* x1_cubics);
-  
-    void interpolate(int bc_index, bool is_interior,
-                              int nodes_per_spline, BoundaryCondition boundary_condition,
-                              const std::vector<std::vector<double>>& x0_cubics,
-                              const std::vector<std::vector<double>>& x1_cubics);
-                   
-    void find_real_roots_of_cubic(const std::vector<double>& y_cubic,
-                                  std::vector<double>* t_vals);
-    int num_right_intersections(double x, double y, int index);
-    bool is_in_domain(const Vec2& a);
+  virtual void get_spline_points(std::vector<double>* outer_x0_spline_points,
+                                 std::vector<double>* outer_x1_spline_points) = 0;
 
+  void get_cubics(const std::vector<double>& x0_points,
+                  const std::vector<double>& x1_points,
+                  std::vector<std::vector<double>>* x0_cubics,
+                  std::vector<std::vector<double>>* x1_cubics);
+
+  void interpolate(int bc_index, bool is_interior,
+                   int nodes_per_spline, BoundaryCondition boundary_condition,
+                   const std::vector<std::vector<double>>& x0_cubics,
+                   const std::vector<std::vector<double>>& x1_cubics);
+
+  void find_real_roots_of_cubic(const std::vector<double>& y_cubic,
+                                std::vector<double>* t_vals);
+  int num_right_intersections(double x, double y, int index);
+  bool is_in_domain(const Vec2& a);
 
 };
 
