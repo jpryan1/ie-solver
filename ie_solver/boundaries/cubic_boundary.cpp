@@ -1,5 +1,6 @@
 // Copyright 2019 John Paul Ryan
 #include <cmath>
+#include <cassert>
 #include <iostream>
 #include "ie_solver/boundaries/boundary.h"
 
@@ -88,32 +89,6 @@ void CubicBoundary::find_real_roots_of_cubic(const std::vector<double>& y_cubic,
 }
 
 
-int CubicBoundary::num_right_intersections(double x, double y, int index) {
-  // Find intersection on spline, if no t in [0,1] return 0
-  // For each t in that range, find corresponding x val, check if
-  // greater than x.
-
-  std::vector<double> x_cubic = all_cubics_x0[index];
-  std::vector<double> y_cubic = all_cubics_x1[index];
-  y_cubic[0] -= y;
-  std::vector<double> t_vals;
-
-  find_real_roots_of_cubic(y_cubic, &t_vals);
-  int intersections = 0;
-  for (double t : t_vals) {
-    if (t > 0 && t < 1) {
-      double dif = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2]
-                   + pow(t, 3) * x_cubic[3] - x;
-      if (fabs(dif) < 0.05) return -1;
-      if (dif > 0) {
-        intersections++;
-      }
-    }
-  }
-  return intersections;
-}
-
-
 void CubicBoundary::interpolate(int bc_index, bool is_interior,
                                 int nodes_per_spline,
                                 BoundaryCondition boundary_condition,
@@ -166,11 +141,17 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
 
       switch (boundary_condition) {
         case BoundaryCondition::SINGLE_ELECTRON:
-          boundary_values.set(bc_index, 0, log(sqrt(pow(x + 2, 2) + pow(y + 2,
+          boundary_values.set(bc_index, 0, log(sqrt(pow(x + 3, 2) + pow(y + 2,
                                                2))) / (2 * M_PI));
           break;
         case BoundaryCondition::ALL_ONES:
           boundary_values.set(bc_index, 0, 1.0);
+          break;
+        case BoundaryCondition::ALL_HALFS:
+          boundary_values.set(bc_index, 0, 0.5);
+          break;
+        case BoundaryCondition::ALL_ZEROS:
+          boundary_values.set(bc_index, 0, 0.);
           break;
         case BoundaryCondition::BUMP_FUNCTION: {
           double N = boundary_values.height();
@@ -270,11 +251,39 @@ bool CubicBoundary::is_in_domain(const Vec2& a) {
   if (winding_number % 2 == 0) {
     return false;
   }
+
+  int node_idx = num_outer_nodes;
+
+  int totl = 2 * num_outer_nodes;
   for (Hole hole : holes) {
-    Vec2 r = a - hole.center;
-    if (r.norm() < hole.radius + 1e-2) {
+    totl += hole.num_nodes;
+  }
+  for (int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+    Hole hole = holes[hole_idx];
+    // Vec2 r = a - hole.center;
+    // if (r.norm() < hole.radius + 1e-2) {
+    //   return false;
+    // }
+
+    winding_number = 0;
+    for (int i = 2 * node_idx; i < 2 * node_idx + 2 * hole.num_nodes; i += 2) {
+      double dist = sqrt(pow(v[0] - points[i], 2) + pow(v[1] - points[i + 1], 2));
+      if (dist < 1e-2) {
+        return false;
+      }
+      int next_i = 2 * node_idx + ((i + 2 - (2 * node_idx)) % (2 * hole.num_nodes));
+      if (points[i] > v[0]) {
+        if (points[i + 1] < v[1] && points[next_i + 1] > v[1]) {
+          winding_number++;
+        } else if (points[i + 1] > v[1] && points[next_i + 1] < v[1]) {
+          winding_number--;
+        }
+      }
+    }
+    if (winding_number % 2 == 1) {
       return false;
     }
+    node_idx += hole.num_nodes;
   }
 
 

@@ -65,7 +65,7 @@ void run_experiment3() {
   for (int frame = 0; frame < 60; frame++) {
     double ang = (frame / 60.) * 2 * M_PI;
 
-    perturbed_boundary->perturbation_parameter = ang;
+    perturbed_boundary->perturbation_parameters[0] = ang;
     perturbed_boundary->initialize(config.num_boundary_points,
                                    config.boundary_condition);
 

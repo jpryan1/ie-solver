@@ -51,27 +51,25 @@ void Ex3Boundary::get_fin_spline_points(std::vector<double>* x0_points,
   x0_points->push_back(0.);
   x1_points->push_back(-0.075);
 
-  // Rotate by perturbation_parameter
+  // Rotate by perturbation_parameters[0]
 
   for (int i = x0_points->size() - 4; i < x0_points->size(); i++) {
-    double temp = cos(perturbation_parameter) * (*x0_points)[i] - sin(
-                    perturbation_parameter) * (*x1_points)[i];
-    (*x1_points)[i] = 0.5 + sin(perturbation_parameter) * (*x0_points)[i] + cos(
-                        perturbation_parameter) * (*x1_points)[i];
+    double temp = cos(perturbation_parameters[0]) * (*x0_points)[i] - sin(
+                    perturbation_parameters[0]) * (*x1_points)[i];
+    (*x1_points)[i] = 0.5 + sin(perturbation_parameters[0]) * (*x0_points)[i] + cos(
+                        perturbation_parameters[0]) * (*x1_points)[i];
     (*x0_points)[i] = 0.5 + temp;
   }
 }
 
 
 void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
-  boundary_shape = BoundaryShape::CUBIC_SPLINE;
+  boundary_shape = BoundaryShape::EX3;
   boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();
   curvatures.clear();
-  all_cubics_x0.clear();
-  all_cubics_x1.clear();
 
   //
   int OUTER_NODES_PER_SPLINE = (3 * N / 4) / OUTER_NUM_SPLINE_POINTS;
@@ -81,27 +79,37 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
     Hole circle1, circle2, circle3, circle4, circle5, circle6, fin;
     circle1.center = Vec2(0.2, 0.4);
     circle1.radius = 0.025;
+    circle1.num_nodes =  NUM_CIRCLE_POINTS;
     holes.push_back(circle1);
     circle2.center = Vec2(0.3, 0.4);
     circle2.radius = 0.025;
+    circle2.num_nodes =  NUM_CIRCLE_POINTS;
     holes.push_back(circle2);
 
     circle3.center = Vec2(0.4, 0.4);
     circle3.radius = 0.025;
+    circle3.num_nodes =  NUM_CIRCLE_POINTS;
     holes.push_back(circle3);
     circle4.center = Vec2(0.6, 0.6);
     circle4.radius = 0.025;
+    circle4.num_nodes =  NUM_CIRCLE_POINTS;
     holes.push_back(circle4);
 
     circle5.center = Vec2(0.7, 0.6);
     circle5.radius = 0.025;
+    circle5.num_nodes = NUM_CIRCLE_POINTS;
     holes.push_back(circle5);
     circle6.center = Vec2(0.8, 0.6);
     circle6.radius = 0.025;
+    circle6.num_nodes =  NUM_CIRCLE_POINTS;
     holes.push_back(circle6);
     fin.center = Vec2(0.5, 0.5);
     fin.radius = FIN_RAD;
+    fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
     holes.push_back(fin);
+  }
+  if (perturbation_parameters.size() == 0) {
+    perturbation_parameters.push_back(0);
   }
 
   int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE +
@@ -117,11 +125,6 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(outer_x0_spline_points, outer_x1_spline_points,
              &outer_x0_cubics, &outer_x1_cubics);
 
-  for (int i = 0; i < outer_x0_cubics.size(); i++) {
-    all_cubics_x0.push_back(outer_x0_cubics[i]);
-    all_cubics_x1.push_back(outer_x1_cubics[i]);
-  }
-
   interpolate(bc_index, false, OUTER_NODES_PER_SPLINE, LEFT_TO_RIGHT_FLOW,
               outer_x0_cubics, outer_x1_cubics);
   bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
@@ -133,11 +136,6 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   std::vector<std::vector<double>> fin_x0_cubics, fin_x1_cubics;
   get_cubics(fin_x0_spline_points, fin_x1_spline_points,
              &fin_x0_cubics, &fin_x1_cubics);
-
-  for (int i = 0; i < fin_x0_cubics.size(); i++) {
-    all_cubics_x0.push_back(fin_x0_cubics[i]);
-    all_cubics_x1.push_back(fin_x1_cubics[i]);
-  }
 
   interpolate(bc_index, true, FIN_NODES_PER_SPLINE, NO_SLIP,
               fin_x0_cubics, fin_x1_cubics);

@@ -47,8 +47,10 @@ void CubicSpline::initialize(int N, BoundaryCondition bc) {
   }
   std::vector<double> x0_spline_points, x1_spline_points;
   get_spline_points(&x0_spline_points, &x1_spline_points);
-  get_cubics(x0_spline_points, x1_spline_points, &all_cubics_x0, &all_cubics_x1);
-  interpolate(0, false,  NODES_PER_SPLINE, boundary_condition, all_cubics_x0, all_cubics_x1);
+    std::vector<std::vector<double>> x0_cubics, x1_cubics;
+
+  get_cubics(x0_spline_points, x1_spline_points, &x0_cubics, &x1_cubics);
+  interpolate(0, false,  NODES_PER_SPLINE, boundary_condition, x0_cubics, x1_cubics);
   num_outer_nodes = NODES_PER_SPLINE * NUM_SPLINE_POINTS;
 
 }

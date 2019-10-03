@@ -193,6 +193,7 @@ images = []
 quivers = []
 boundaries = []
 for i in range(len(files_solution_points)):
+  print(i)
   solution_points = files_solution_points[i]
   boundary_points = files_boundary_points[i]
   image = np.array([[MASKED_VALUE for x in range(WINDOW_SIZE)] for y in range(WINDOW_SIZE)])
@@ -228,6 +229,6 @@ def animate(i):
     image_plot.set_array(images[idx].T)
     return patches
 ani = animation.FuncAnimation(fig, animate, interval=25, blit=True)
-ani.save('movie.mp4', writer=writer)
-# plt.show()
+# ani.save('movie.mp4', writer=writer)
+plt.show()
 

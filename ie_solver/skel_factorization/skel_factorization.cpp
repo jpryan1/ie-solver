@@ -216,7 +216,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     ie_Mat allskel_updates = ie_Mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_updates, allskel, tree->root, false);
     allskel_mat = kernel(allskel, allskel) - allskel_updates;
-    std::cout<<"num_skel_dofs: "<<allskel_mat.height()<<std::endl;
+    std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     // allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
   }
   // check_factorization_against_kernel(kernel, tree);
