@@ -182,6 +182,7 @@ void schur_solve(const SkelFactorization& skel_factorization,
   forward_op_start = omp_get_wtime();
   ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
   ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
+
   (*solution) += U_forward_alpha;
   forward_op_end = omp_get_wtime();
   std::cout << "timing: forward_op " << (forward_op_end - forward_op_start) <<
@@ -299,7 +300,6 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
               &domain_solution);
 
   return domain_solution;
-
 }
 
 

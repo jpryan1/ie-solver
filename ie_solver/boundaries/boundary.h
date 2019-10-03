@@ -11,11 +11,14 @@ namespace ie_solver {
 struct Hole {
   Vec2 center;
   double radius;
+  int num_nodes;
 };
 
 enum BoundaryCondition {
   SINGLE_ELECTRON,
   ALL_ONES,
+  ALL_HALFS,
+  ALL_ZEROS,
   BUMP_FUNCTION,
   STOKES,
   TANGENT_VEC,
@@ -23,12 +26,13 @@ enum BoundaryCondition {
   NORMAL_VEC,
   REVERSE_NORMAL_VEC,
   LEFT_TO_RIGHT_FLOW,
-  NO_SLIP
+  NO_SLIP,
+  DEFAULT  // This is special, means use BC inherent to experiment/function.
 };
 
 class Boundary {
  public:
-  double perturbation_parameter = 0.;
+  std::vector<double> perturbation_parameters;
   std::vector<double> points, normals, curvatures, weights;
   std::vector<Hole> holes;
   ie_Mat boundary_values;
@@ -40,6 +44,7 @@ class Boundary {
     ANNULUS,
     CUBIC_SPLINE,
     EX1,
+    EX2,
     EX3
   };
 
@@ -53,7 +58,6 @@ class CubicBoundary : public Boundary {
  public:
   // Note, the outer nodes must appear first in the point data vectors.
   int num_outer_nodes;
-  std::vector<std::vector<double>> all_cubics_x0, all_cubics_x1;
 
   virtual void get_spline_points(std::vector<double>* outer_x0_spline_points,
                                  std::vector<double>* outer_x1_spline_points) = 0;

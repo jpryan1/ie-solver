@@ -135,30 +135,71 @@ void Kernel::load(Boundary* boundary_,
 
 
 // // TODO(John) shouldn't this->I have the underscore after it, not this arg?
-// ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
-//                           const std::vector<unsigned int>& J_, double* timing) const {
-//   double start, end;
-//   if (timing != nullptr) {
-//     start = omp_get_wtime();
-//   }
-//   ie_Mat ret(I_.size(), J_.size());
-//   int olda_ = I_.size();
-//   for (unsigned int j = 0; j < J_.size(); j++) {
-//     for (unsigned int i = 0; i < I_.size(); i++) {
-//       ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
-//     }
-//   }
-//   if (timing != nullptr) {
-//     end = omp_get_wtime();
-//     *timing += end - start;
-//   }
-//   return ret;
-// }
-
-
-// TODO(John) shouldn't this->I have the underscore after it, not this arg?
 ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
                           const std::vector<unsigned int>& J_, double* timing) const {
+  switch (pde) {
+    case ie_solver_config::Pde::LAPLACE:
+      return fast_laplace_get(I_, J_, timing);
+      break;
+    case ie_solver_config::Pde::STOKES:
+      return fast_stokes_get(I_, J_, timing);
+      break;
+  }
+}
+
+
+ie_Mat Kernel::fast_laplace_get(const std::vector<unsigned int>& I_,
+                                const std::vector<unsigned int>& J_, double* timing) const {
+  double start, end;
+  if (timing != nullptr) {
+    start = omp_get_wtime();
+  }
+  double scale = 1.0 / (2 * M_PI);
+  ie_Mat ret(I_.size(), J_.size());
+  int olda_ = I_.size();
+  for (unsigned int j = 0; j < J_.size(); j++) {
+    //   for (unsigned int i = 0; i < I_.size(); i++) {
+    //     ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
+    //   }
+    // }
+    unsigned int src_ind = J_[j];
+
+    double sp1 = boundary->points[2 * src_ind];
+    double sp2 =  boundary->points[2 * src_ind + 1];
+    double sn1 =  boundary->normals[2 * src_ind];
+    double sn2 = boundary->normals[2 * src_ind + 1];
+    double sw =  boundary->weights[src_ind];
+    double sc = boundary->curvatures[src_ind];
+
+    for (unsigned int i = 0; i < I_.size(); i++) {
+      unsigned int tgt_ind = I_[i];
+
+      double tp1 = boundary->points[2 * tgt_ind];
+      double tp2 = boundary->points[2 * tgt_ind + 1];
+      double tn1 = boundary->normals[2 * tgt_ind];
+      double tn2 = boundary->normals[2 * tgt_ind + 1];
+
+      if (tp1 == sp1 && sp2 == tp2) {
+        double potential = - 0.5 * sc * sw * scale;
+        ret.mat[i + olda_ * j] =  0.5 + 0.5 * sc * sw * scale;
+      } else {
+        double r0 = tp1 - sp1;
+        double r1 = tp2 - sp2;
+        ret.mat[i + olda_ * j] = -sw * scale * (r0 * sn1 + r1 * sn2) /
+                                 (r0 * r0 + r1 * r1);
+      }
+    }
+  }
+  if (timing != nullptr) {
+    end = omp_get_wtime();
+    *timing += end - start;
+  }
+  return ret;
+}
+
+
+ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
+                               const std::vector<unsigned int>& J_, double* timing) const {
   double start, end;
   double scale = 1.0 / (M_PI);
 

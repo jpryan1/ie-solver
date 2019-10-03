@@ -585,7 +585,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   boundary->weights = perturbed_boundary.weights;
   boundary->curvatures = perturbed_boundary.curvatures;
   boundary->boundary_values = perturbed_boundary.boundary_values;
-  boundary->perturbation_parameter = perturbed_boundary.perturbation_parameter;
+  boundary->perturbation_parameters[0] = perturbed_boundary.perturbation_parameters[0];
   boundary->holes = perturbed_boundary.holes;
 
   for (int l = levels.size() - 1; l >= 0; l--) {

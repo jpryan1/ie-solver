@@ -13,7 +13,6 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     const Kernel& kernel, int solution_dimension) {
   double domain_init_start = omp_get_wtime();
   double domain_init_end;
-
   // is stokes TODO
   std::vector<double> points = kernel.boundary->points;
   std::vector<double> normals = kernel.boundary->normals;
@@ -22,9 +21,11 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
                                   test_size, kernel);
     domain_init_end = omp_get_wtime();
-    std::cout<<"timing: domain_init "<<(domain_init_end-domain_init_start)<<std::endl;
+    std::cout << "timing: domain_init " << (domain_init_end - domain_init_start) <<
+              std::endl;
     return;
   }
+
   // columns for phi (aka dofs), rows for spatial domain
   int dofs = points.size() / 2;
   for (int i = 0; i < test_size * test_size; i++) {
@@ -49,7 +50,8 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     }
   }
   domain_init_end = omp_get_wtime();
-  std::cout<<"timing: domain_init "<<(domain_init_end-domain_init_start)<<std::endl;
+  std::cout << "timing: domain_init " << (domain_init_end - domain_init_start) <<
+            std::endl;
 }
 
 void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,

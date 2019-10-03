@@ -228,6 +228,6 @@ def animate(i):
     image_plot.set_array(images[idx].T)
     return patches
 ani = animation.FuncAnimation(fig, animate, interval=25, blit=True)
-ani.save('movie.mp4', writer=writer)
-# plt.show()
+# ani.save('movie.mp4', writer=writer)
+plt.show()
 

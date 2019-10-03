@@ -43,6 +43,10 @@ struct Kernel {
 
   ie_Mat forward_get(const std::vector<unsigned int>& I_,
                      const std::vector<unsigned int>& J_) const;
+  ie_Mat fast_laplace_get(const std::vector<unsigned int>& I_,
+                          const std::vector<unsigned int>& J_, double* timing) const;
+  ie_Mat fast_stokes_get(const std::vector<unsigned int>& I_,
+                         const std::vector<unsigned int>& J_, double* timing) const;
 
   ie_Mat operator()(const std::vector<Dof>& tgts,
                     const std::vector<Dof>& srcs) const;
@@ -50,4 +54,4 @@ struct Kernel {
 
 }  // namespace ie_solver
 
-#endif  // IE_SOLVER_KERNEL_H_
+#endif  // IE_SOLVER_KERNEL_KERNEL_H_
