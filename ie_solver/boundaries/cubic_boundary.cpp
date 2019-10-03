@@ -254,24 +254,18 @@ bool CubicBoundary::is_in_domain(const Vec2& a) {
 
   int node_idx = num_outer_nodes;
 
-  int totl = 2 * num_outer_nodes;
-  for (Hole hole : holes) {
-    totl += hole.num_nodes;
-  }
   for (int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
     Hole hole = holes[hole_idx];
-    // Vec2 r = a - hole.center;
-    // if (r.norm() < hole.radius + 1e-2) {
-    //   return false;
-    // }
 
     winding_number = 0;
     for (int i = 2 * node_idx; i < 2 * node_idx + 2 * hole.num_nodes; i += 2) {
-      double dist = sqrt(pow(v[0] - points[i], 2) + pow(v[1] - points[i + 1], 2));
+      double dist = sqrt(pow(v[0] - points[i], 2) +
+                         pow(v[1] - points[i + 1], 2));
       if (dist < 1e-2) {
         return false;
       }
-      int next_i = 2 * node_idx + ((i + 2 - (2 * node_idx)) % (2 * hole.num_nodes));
+      int next_i = 2 * node_idx +
+                   ((i + 2 - (2 * node_idx)) % (2 * hole.num_nodes));
       if (points[i] > v[0]) {
         if (points[i + 1] < v[1] && points[next_i + 1] > v[1]) {
           winding_number++;

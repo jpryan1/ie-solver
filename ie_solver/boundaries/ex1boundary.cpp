@@ -83,7 +83,6 @@ void Ex1Boundary::get_star_spline_points(double x, double y,
 
 void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   boundary_shape = BoundaryShape::EX1;
-  boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();

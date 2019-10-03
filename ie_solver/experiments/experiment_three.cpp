@@ -34,7 +34,7 @@ ie_solver_config get_experiment_three_config() {
   config.domain_size = 150;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
-  config.boundary_condition = BoundaryCondition::STOKES;
+  config.boundary_condition = BoundaryCondition::DEFAULT;
   config.boundary_shape = Boundary::BoundaryShape::EX3;
   return config;
 }
@@ -48,7 +48,7 @@ void run_experiment3() {
   std::unique_ptr<Boundary> boundary;
   boundary.reset(new Ex3Boundary());
   boundary->initialize(config.num_boundary_points,
-                       BoundaryCondition::STOKES);
+                       BoundaryCondition::DEFAULT);
 
   QuadTree quadtree;
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),

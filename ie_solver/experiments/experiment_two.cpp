@@ -30,11 +30,11 @@ ie_solver_config get_experiment_two_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE;
-  config.num_boundary_points = 1000;
+  config.num_boundary_points = 2000;
   config.domain_size = 100;
   config.domain_dimension = 2;
   config.solution_dimension = 1;
-  config.boundary_condition = BoundaryCondition::SINGLE_ELECTRON;
+  config.boundary_condition = BoundaryCondition::DEFAULT;
   config.boundary_shape = Boundary::BoundaryShape::EX2;
   return config;
 }
@@ -44,12 +44,12 @@ void run_experiment2() {
   ie_solver_config config = get_experiment_two_config();
   int domain_dimension = 2;
   int solution_dimension = 1;
-  int n_dofs = 1000;
+  int n_dofs = 2000;
   config.num_boundary_points = n_dofs;
   std::unique_ptr<Boundary> boundary =
     std::unique_ptr<Boundary>(new Ex2Boundary());
   boundary->initialize(config.num_boundary_points,
-                       BoundaryCondition::SINGLE_ELECTRON);
+                       BoundaryCondition::DEFAULT);
 
   QuadTree quadtree;
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),

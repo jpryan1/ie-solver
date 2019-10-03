@@ -65,7 +65,6 @@ void Ex3Boundary::get_fin_spline_points(std::vector<double>* x0_points,
 
 void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   boundary_shape = BoundaryShape::EX3;
-  boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();
