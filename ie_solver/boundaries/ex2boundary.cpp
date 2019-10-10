@@ -59,7 +59,6 @@ void Ex2Boundary::get_star_spline_points(double x, double y,
 
 void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   boundary_shape = BoundaryShape::EX2;
-  boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();
@@ -115,7 +114,7 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(outer_x0_spline_points, outer_x1_spline_points, &outer_x0_cubics,
              &outer_x1_cubics);
 
-  interpolate(bc_index, false,  OUTER_NODES_PER_SPLINE, ALL_HALFS,
+  interpolate(bc_index, false,  OUTER_NODES_PER_SPLINE, BoundaryCondition::ALL_ZEROS,
               outer_x0_cubics, outer_x1_cubics);
 
   bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
@@ -139,7 +138,8 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(star2_x0_points, star2_x1_points,
              &star2_x0_cubics, &star2_x1_cubics);
 
-  interpolate(bc_index, true, STAR_NODES_PER_SPLINE, BoundaryCondition::ALL_ZEROS,
+  interpolate(bc_index, true, STAR_NODES_PER_SPLINE,
+              BoundaryCondition::ALL_ZEROS,
               star2_x0_cubics, star2_x1_cubics);
   bc_index += STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
 

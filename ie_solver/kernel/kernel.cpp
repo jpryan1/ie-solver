@@ -180,7 +180,6 @@ ie_Mat Kernel::fast_laplace_get(const std::vector<unsigned int>& I_,
       double tn2 = boundary->normals[2 * tgt_ind + 1];
 
       if (tp1 == sp1 && sp2 == tp2) {
-        double potential = - 0.5 * sc * sw * scale;
         ret.mat[i + olda_ * j] =  0.5 + 0.5 * sc * sw * scale;
       } else {
         double r0 = tp1 - sp1;

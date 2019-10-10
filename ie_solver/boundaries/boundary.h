@@ -17,7 +17,7 @@ struct Hole {
 enum BoundaryCondition {
   SINGLE_ELECTRON,
   ALL_ONES,
-  ALL_HALFS,
+  ALL_NEG_ONES,
   ALL_ZEROS,
   BUMP_FUNCTION,
   STOKES,

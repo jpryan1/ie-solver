@@ -147,8 +147,8 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
         case BoundaryCondition::ALL_ONES:
           boundary_values.set(bc_index, 0, 1.0);
           break;
-        case BoundaryCondition::ALL_HALFS:
-          boundary_values.set(bc_index, 0, 0.5);
+        case BoundaryCondition::ALL_NEG_ONES:
+          boundary_values.set(bc_index, 0, -1.);
           break;
         case BoundaryCondition::ALL_ZEROS:
           boundary_values.set(bc_index, 0, 0.);

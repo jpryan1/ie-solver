@@ -254,7 +254,15 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                  &K_domain, domain_points,
                                  config.domain_size, kernel,
                                  config.solution_dimension);
+
+  std::vector<unsigned int> all_inds;
+  for (unsigned int i = 0; i < boundary->points.size() / 2; i++) {
+    all_inds.push_back(i);
+  }
+  ie_Mat all = kernel(all_inds, all_inds);
+  std::cout << "Condition number: " << all.condition_number() << std::endl;
   skel_factorization.skeletonize(kernel, quadtree);
+
 
   ie_Mat f = boundary->boundary_values;
 
@@ -267,7 +275,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                       domain_points);
 
 
-
+  // Zero out points outside the domain
   for (unsigned int i = 0; i < domain_points.size(); i += 2) {
     Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
     if (!boundary->is_in_domain(point)) {
