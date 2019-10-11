@@ -8,7 +8,7 @@
 #include "ie_solver/log.h"
 
 #define OUTER_NUM_SPLINE_POINTS 20
-#define STAR_NUM_SPLINE_POINTS 20
+#define STAR_NUM_SPLINE_POINTS 8
 namespace ie_solver {
 
 
@@ -26,17 +26,34 @@ void Ex2Boundary::get_spline_points(std::vector<double>* x0_spline_points,
 }
 
 
-void Ex2Boundary::get_star_spline_points(double c_x, double c_y, double rad,
+void Ex2Boundary::get_star_spline_points(double x, double y,
     std::vector<double>* x0_points, std::vector<double>* x1_points) {
-  for (int i = 0; i < STAR_NUM_SPLINE_POINTS; i++) {
-    double ang = 2 * M_PI * (i / (STAR_NUM_SPLINE_POINTS + 0.));
+  double longer = 0.3;
+  double shorter = 0.12;
 
-    double x = (rad / 5.) * cos(ang) * (sin(5 * ang) + 4);
-    double y = (rad / 5.) * sin(ang) * (sin(5 * ang) + 4);
+  x0_points->push_back(x);
+  x1_points->push_back(y - longer);
 
-    x0_points->push_back(c_x + x);
-    x1_points->push_back(c_y + y);
-  }
+  x0_points->push_back(x + shorter);
+  x1_points->push_back(y - shorter);
+
+  x0_points->push_back(x + longer);
+  x1_points->push_back(y);
+
+  x0_points->push_back(x + shorter);
+  x1_points->push_back(y + shorter);
+
+  x0_points->push_back(x);
+  x1_points->push_back(y + longer);
+
+  x0_points->push_back(x - shorter);
+  x1_points->push_back(y + shorter);
+
+  x0_points->push_back(x - longer);
+  x1_points->push_back(y);
+
+  x0_points->push_back(x - shorter);
+  x1_points->push_back(y - shorter);
 }
 
 
@@ -97,14 +114,12 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(outer_x0_spline_points, outer_x1_spline_points, &outer_x0_cubics,
              &outer_x1_cubics);
 
-  interpolate(bc_index, false,  OUTER_NODES_PER_SPLINE,
-              BoundaryCondition::ALL_ZEROS,
+  interpolate(bc_index, false,  OUTER_NODES_PER_SPLINE, BoundaryCondition::ALL_ZEROS,
               outer_x0_cubics, outer_x1_cubics);
 
   bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
   std::vector<double> star_x0_points, star_x1_points;
-  get_star_spline_points(star1.center.a[0], star1.center.a[1], star1.radius,
-                         &star_x0_points,
+  get_star_spline_points(star1.center.a[0], star1.center.a[1], &star_x0_points,
                          &star_x1_points);
 
   std::vector<std::vector<double>> star_x0_cubics, star_x1_cubics;
@@ -116,8 +131,7 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   bc_index += STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
 
   std::vector<double> star2_x0_points, star2_x1_points;
-  get_star_spline_points(star2.center.a[0], star2.center.a[1], star2.radius,
-                         &star2_x0_points,
+  get_star_spline_points(star2.center.a[0], star2.center.a[1], &star2_x0_points,
                          &star2_x1_points);
 
   std::vector<std::vector<double>> star2_x0_cubics, star2_x1_cubics;

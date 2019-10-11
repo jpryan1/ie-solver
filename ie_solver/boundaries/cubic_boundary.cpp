@@ -120,13 +120,13 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
       points.push_back(y);
 
       for (int qt = 0; qt < quad_size; qt++) {
-        double t_ = ((j * quad_size) + qt) / (0.0 + quad_size * nodes_per_spline);
-        double x_ = x_cubic[0] + t_ * x_cubic[1] + pow(t_, 2) * x_cubic[2]
+        double t_quad = ((j * quad_size) + qt) / (0.0 + quad_size * nodes_per_spline);
+        double x_quad = x_cubic[0] + t_ * x_cubic[1] + pow(t_, 2) * x_cubic[2]
                     + pow(t_, 3) * x_cubic[3];
-        double y_ = y_cubic[0] + t_ * y_cubic[1] + pow(t_, 2) * y_cubic[2]
+        double y_quad = y_cubic[0] + t_ * y_cubic[1] + pow(t_, 2) * y_cubic[2]
                     + pow(t_, 3) * y_cubic[3];
-        quad[quad_idx++] = x_;
-        quad[quad_idx++] = y_;
+        quad[quad_idx++] = x_quad;
+        quad[quad_idx++] = y_quad;
       }
 
       double x_prime = x_cubic[1] + 2 * t * x_cubic[2]
