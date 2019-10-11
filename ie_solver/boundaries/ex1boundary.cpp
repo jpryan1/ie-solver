@@ -53,7 +53,7 @@ void Ex1Boundary::get_spline_points(std::vector<double>* x0_points,
 void Ex1Boundary::get_star_spline_points(double x, double y,
     std::vector<double>* x0_points, std::vector<double>* x1_points) {
   double longer = 0.05;
-  double shorter = 0.02;
+  double shorter = 0.05;
 
   x0_points->push_back(x);
   x1_points->push_back(y - longer);

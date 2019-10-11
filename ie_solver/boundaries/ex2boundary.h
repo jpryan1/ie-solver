@@ -14,7 +14,7 @@ class Ex2Boundary : public CubicBoundary {
   void get_spline_points(std::vector<double>* x0_spline_points,
                          std::vector<double>* x1_spline_points);
 
-  void get_star_spline_points(double x, double y,
+  void get_star_spline_points(double x, double y, double rad,
                               std::vector<double>* x0_points,
                               std::vector<double>* x1_points);
 };

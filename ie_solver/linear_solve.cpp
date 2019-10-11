@@ -256,7 +256,8 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                  config.solution_dimension);
 
   std::vector<unsigned int> all_inds;
-  for (unsigned int i = 0; i < boundary->points.size() / 2; i++) {
+  for (unsigned int i = 0;
+       i < boundary->points.size() / (3-config.solution_dimension); i++) {
     all_inds.push_back(i);
   }
   ie_Mat all = kernel(all_inds, all_inds);

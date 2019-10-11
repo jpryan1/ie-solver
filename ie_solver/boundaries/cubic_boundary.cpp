@@ -99,14 +99,18 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
   // Normals = tangent of points rotated 90 deg clockwise
   // Curvatures = (x'y'' - x''y') / (x'^2 + y'^2)^1.5
   // assert positive curvature when testing pl0x
-  // Weights = uggggh just estimate it
+  // Weights = estimate integral with uniform quadrature (quad_size)
   int start = bc_index;
   int num_spline_points = x0_cubics.size();
+  int quad_size = 10;
+  std::vector<double> quad(2 * quad_size * num_spline_points * nodes_per_spline);
+  int quad_idx = 0;
   for (int i = 0; i < num_spline_points; i++) {
     std::vector<double> x_cubic = x0_cubics[i];
     std::vector<double> y_cubic = x1_cubics[i];
     for (int j = 0; j < nodes_per_spline; j++) {
       double t = j / (nodes_per_spline + 0.0);
+
       double x = x_cubic[0] + t * x_cubic[1] + pow(t, 2) * x_cubic[2]
                  + pow(t, 3) * x_cubic[3];
       double y = y_cubic[0] + t * y_cubic[1] + pow(t, 2) * y_cubic[2]
@@ -114,6 +118,16 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
 
       points.push_back(x);
       points.push_back(y);
+
+      for (int qt = 0; qt < quad_size; qt++) {
+        double t_ = ((j * quad_size) + qt) / (0.0 + quad_size * nodes_per_spline);
+        double x_ = x_cubic[0] + t_ * x_cubic[1] + pow(t_, 2) * x_cubic[2]
+                    + pow(t_, 3) * x_cubic[3];
+        double y_ = y_cubic[0] + t_ * y_cubic[1] + pow(t_, 2) * y_cubic[2]
+                    + pow(t_, 3) * y_cubic[3];
+        quad[quad_idx++] = x_;
+        quad[quad_idx++] = y_;
+      }
 
       double x_prime = x_cubic[1] + 2 * t * x_cubic[2]
                        + 3 * pow(t, 2) * x_cubic[3];
@@ -199,39 +213,28 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
   }
   int end = bc_index;
 
-  double dist1 = sqrt(pow(points[2 * start]
-                          - points[2 * (end - 1)], 2)
-                      + pow(points[2 * start + 1]
-                            - points[2 * (end - 1) + 1], 2));
+  std::vector<double> distances(end - start);
+  int d_idx = 0;
+  for (unsigned int i = 0; i < distances.size(); i++) {
+    double dist_sum = 0;
+    for (int j = 0; j < quad_size; j++) {
+      int idx = 2 * (quad_size * i + j);
 
-  double dist2 = sqrt(pow(points[2 * start]
-                          - points[2 * (start + 1)], 2)
-                      + pow(points[2 * start + 1]
-                            - points[2 * (start + 1) + 1], 2));
-  weights.push_back((dist1 + dist2) / 2.0);
-  for (unsigned int i = start + 1; i < end - 1; i++) {
-    dist1 = sqrt(pow(points[2 * i] - points[2 * (i - 1)], 2)
-                 + pow(points[2 * i + 1] - points[2 * (i - 1) + 1], 2));
-    dist2 = sqrt(pow(points[2 * i] - points[2 * (i + 1)], 2)
-                 + pow(points[2 * i + 1] - points[2 * (i + 1) + 1], 2));
-    weights.push_back((dist1 + dist2) / 2.0);
+      dist_sum += sqrt(pow(quad[idx] - quad[(idx + 2) % quad.size()], 2)
+                       + pow(quad[idx + 1] - quad[(idx + 3) % quad.size()], 2));
+
+    }
+    distances[d_idx++] = dist_sum;
   }
-
-  dist1 = sqrt(pow(points[2 * (end - 1)]
-                   - points[2 * ((end - 1) - 1)], 2)
-               + pow(points[2 * (end - 1) + 1]
-                     - points[2 * ((end - 1) - 1) + 1], 2));
-  dist2 = sqrt(pow(points[2 * (end - 1)]
-                   - points[2 * (start)], 2)
-               + pow(points[2 * (end - 1) + 1]
-                     - points[2 * (start) + 1], 2));
-  weights.push_back((dist1 + dist2) / 2.0);
+  weights.push_back((distances[distances.size() - 1] + distances[0]) / 2.);
+  for (int i = 1; i < distances.size(); i++) {
+    weights.push_back((distances[i - 1] + distances[i]) / 2.);
+  }
 }
 
 
 bool CubicBoundary::is_in_domain(const Vec2& a) {
   const double* v = a.a;
-
 
   int winding_number = 0;
   for (int i = 0; i < 2 * num_outer_nodes; i += 2) {
