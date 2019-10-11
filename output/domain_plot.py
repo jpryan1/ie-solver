@@ -105,7 +105,6 @@ def scaled_point(point):
 def draw_boundary(img, points, val):
 	for point in points:
 		pixel = scaled_point(point)
-		
 		for r in range(-1, 2):
 			for c in range(-1,2):
 			  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT

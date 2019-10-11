@@ -219,6 +219,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     // allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
   }
+  
   // check_factorization_against_kernel(kernel, tree);
   double skel_end = omp_get_wtime();
   std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
