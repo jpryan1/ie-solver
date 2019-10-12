@@ -17,6 +17,7 @@ namespace ie_solver {
 struct ie_solver_config {
   enum Pde {
     LAPLACE,
+    LAPLACE_NEUMANN,
     STOKES
   };
   int num_boundary_points = DEFAULT_NUM_DISCRETIZATION_POINTS;

@@ -20,18 +20,20 @@ struct Dof {
 
 
 struct Kernel {
-  double diag_00, diag_01, diag_11;
+  // double diag_00, diag_01, diag_11;
   int solution_dimension, domain_dimension;
   ie_solver_config::Pde pde;
   // TODO(John) don't have the kernel store the boundary
   Boundary* boundary;
   std::vector<double> domain_points;
-  double get(unsigned int i, unsigned int j) const;
-  double forward_get(unsigned int i, unsigned int j) const;
+  // double get(unsigned int i, unsigned int j) const;
+  // double forward_get(unsigned int i, unsigned int j) const;
   ie_Mat get(const Dof& a, const Dof& b) const;
 
   ie_Mat stokes_kernel(const Dof& a, const Dof& b) const;
   ie_Mat laplace_kernel(const Dof& a, const Dof& b) const;
+  ie_Mat laplace_neumann_kernel(const Dof& a, const Dof& b) const;
+  ie_Mat laplace_neumann_kernel_forward(const Dof& a, const Dof& b) const;
 
   void load(Boundary* boundary, const std::vector<double>& domain_points,
             ie_solver_config::Pde pde, int solution_dimension,
@@ -41,15 +43,22 @@ struct Kernel {
   ie_Mat operator()(const std::vector<unsigned int>& I_,
                     const std::vector<unsigned int>& J_, double* timing = nullptr) const;
 
-  ie_Mat forward_get(const std::vector<unsigned int>& I_,
-                     const std::vector<unsigned int>& J_) const;
+  // ie_Mat forward_get(const std::vector<unsigned int>& I_,
+  //                    const std::vector<unsigned int>& J_) const;
   ie_Mat fast_laplace_get(const std::vector<unsigned int>& I_,
                           const std::vector<unsigned int>& J_, double* timing) const;
+  ie_Mat fast_laplace_neumann_get(const std::vector<unsigned int>& I_,
+                                  const std::vector<unsigned int>& J_, double* timing) const;
   ie_Mat fast_stokes_get(const std::vector<unsigned int>& I_,
                          const std::vector<unsigned int>& J_, double* timing) const;
 
-  ie_Mat operator()(const std::vector<Dof>& tgts,
-                    const std::vector<Dof>& srcs) const;
+  // ie_Mat fast_laplace_get(const std::vector<Dof>& tgts,
+  //                         const std::vector<Dof>& srcs, double* timing) const;
+  // ie_Mat fast_stokes_get(const std::vector<Dof>& tgts,
+  //                        const std::vector<Dof>& srcs, double* timing) const;
+
+  // ie_Mat operator()(const std::vector<Dof>& tgts,
+  //                   const std::vector<Dof>& srcs) const;
 };  // struct
 
 }  // namespace ie_solver

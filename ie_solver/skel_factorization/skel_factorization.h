@@ -68,10 +68,10 @@ class SkelFactorization {
 
   void make_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
                    const QuadTreeNode* node);
-  void make_proxy_mat(const Kernel& kernel, ie_Mat* pxy, double cntr_x,
-                      double cntr_y, double r,
-                      const QuadTree* tree,
-                      const std::vector<unsigned int>& box_indices);
+  ie_Mat make_proxy_mat(const Kernel& kernel, double cntr_x,
+                        double cntr_y, double r,
+                        const QuadTree* tree,
+                        const std::vector<unsigned int>& box_indices);
 
   // void make_src_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
   //                      const QuadTreeNode* node);
