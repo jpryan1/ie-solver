@@ -112,7 +112,7 @@ void io::write_quadtree_to_file(const std::string& filename,
 int io::parse_input_into_config(int argc, char** argv,
                                 ie_solver_config* config) {
   std::string usage = "\n\tusage: ./ie_solver "
-                      "-pde {LAPLACE|STOKES} "
+                      "-pde {LAPLACE|LAPLACE_NEUMANN|STOKES} "
                       "-boundary {CIRCLE|ROUNDED_SQUARE|"
                       "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|CUBIC_SPLINE|ANNULUS "
                       "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
@@ -134,6 +134,8 @@ int io::parse_input_into_config(int argc, char** argv,
           config->pde = ie_solver_config::STOKES;
         } else if (!strcmp(argv[i + 1], "LAPLACE")) {
           config->pde = ie_solver_config::LAPLACE;
+        }else if (!strcmp(argv[i + 1], "LAPLACE_NEUMANN")) {
+          config->pde = ie_solver_config::LAPLACE_NEUMANN;
         } else {
           LOG::ERROR("Unrecognized pde: " + std::string(argv[i + 1])
                      + "\n Acceptable pdes: LAPLACE, STOKES");

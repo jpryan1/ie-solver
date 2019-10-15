@@ -162,7 +162,7 @@ void schur_solve(const SkelFactorization& skel_factorization,
          Dinv_u(U.height(), 1), Psi_Dinv_u(U.width(), 1),
          U_alpha(U.height(), 1), mu(K_domain.width(),  1),
          U_forward_alpha(solution->height(), 1);
-  if (U.width() == 0) {
+  if (true) { //U.width() == 0) {
     skel_factorization.solve(quadtree, &mu, f);
     solve_end = omp_get_wtime();
     std::cout << "timing: solve " << (solve_end - solve_start) << std::endl;
@@ -255,13 +255,13 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                  config.domain_size, kernel,
                                  config.solution_dimension);
 
-  // std::vector<unsigned int> all_inds;
-  // for (unsigned int i = 0;
-  //      i < boundary->points.size() / (3-config.solution_dimension); i++) {
-  //   all_inds.push_back(i);
-  // }
-  // ie_Mat all = kernel(all_inds, all_inds);
-  // std::cout << "Condition number: " << all.condition_number() << std::endl;
+  std::vector<unsigned int> all_inds;
+  for (unsigned int i = 0;
+       i < boundary->points.size() / (3 - config.solution_dimension); i++) {
+    all_inds.push_back(i);
+  }
+  ie_Mat all = kernel(all_inds, all_inds);
+  std::cout << "Condition number: " << all.condition_number() << std::endl;
   skel_factorization.skeletonize(kernel, quadtree);
 
   ie_Mat f = boundary->boundary_values;
