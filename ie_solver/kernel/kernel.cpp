@@ -78,11 +78,12 @@ ie_Mat Kernel::laplace_neumann_kernel(const Dof & tgt, const Dof & src) const {
   double scale = 1.0 / (2 * M_PI);
   ie_Mat tensor(1, 1);
   if (tgt.point.a[0] == src.point.a[0] && tgt.point.a[1] == src.point.a[1]) {
-    tensor.set(0, 0, -0.5 + 0.5 * src.curvature * src.weight * scale);
+    tensor.set(0, 0, -0.5 + 0.5 * src.curvature * src.weight * scale + src.weight);
     return tensor;
   }
   Vec2 r = tgt.point - src.point;
-  tensor.set(0, 0, src.weight * scale * (r.dot(tgt.normal)) / (r.dot(r)));
+  tensor.set(0, 0, src.weight * scale * (r.dot(tgt.normal)) / (r.dot(
+               r)) + src.weight);
   return tensor;
 }
 
@@ -201,11 +202,11 @@ ie_Mat Kernel::fast_laplace_neumann_get(const std::vector<unsigned int>& I_,
       double tn1 = boundary->normals[2 * tgt_ind];
       double tn2 = boundary->normals[2 * tgt_ind + 1];
       if (tp1 == sp1 && sp2 == tp2) {
-        ret.mat[i + olda_ * j] =  -0.5 + 0.5 * sc * sw * scale;
+        ret.mat[i + olda_ * j] =  sw - 0.5 + 0.5 * sc * sw * scale;
       } else {
         double r0 = tp1 - sp1;
         double r1 = tp2 - sp2;
-        ret.mat[i + olda_ * j] = sw * scale * (r0 * tn1 + r1 * tn2) /
+        ret.mat[i + olda_ * j] = sw + sw * scale * (r0 * tn1 + r1 * tn2) /
                                  (r0 * r0 + r1 * r1);
       }
     }

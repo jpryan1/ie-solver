@@ -67,6 +67,9 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
         }
       }
     }
+    case ie_solver_config::Pde::LAPLACE_NEUMANN: {
+      U = ie_Mat(0, 0);
+    }
   }
   return U;
 }
@@ -106,13 +109,16 @@ ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
         }
       }
     }
+    case ie_solver_config::Pde::LAPLACE_NEUMANN: {
+      Psi = ie_Mat(0, 0);
+    }
   }
   return Psi;
 }
 
-void check_factorization_against_kernel(const Kernel& kernel,
-                                        const SkelFactorization&
-                                        skel_factorization, QuadTree* tree) {
+void check_factorization_against_kernel(const Kernel & kernel,
+                                        const SkelFactorization &
+                                        skel_factorization, QuadTree * tree) {
   int check_size = 100;
   // This ensures that operations know what the remaining skels are.
 
@@ -150,7 +156,7 @@ void check_factorization_against_kernel(const Kernel& kernel,
 }
 
 
-void schur_solve(const SkelFactorization& skel_factorization,
+void schur_solve(const SkelFactorization & skel_factorization,
                  const QuadTree & quadtree, const ie_Mat & U,
                  const ie_Mat & Psi,
                  const ie_Mat & f, const ie_Mat & K_domain,
@@ -172,7 +178,6 @@ void schur_solve(const SkelFactorization& skel_factorization,
     forward_op_end = omp_get_wtime();
     std::cout << "timing: forward_op " << (forward_op_end - forward_op_start) <<
               std::endl;
-
     return;
   }
   skel_factorization.multiply_connected_solve(quadtree, &mu, &alpha, f);
@@ -192,8 +197,8 @@ void schur_solve(const SkelFactorization& skel_factorization,
 }
 
 void bie_time_trial(const ie_solver_config & config,
-                    QuadTree * quadtree, double* avg_skel_time,
-                    double* avg_solve_time) {
+                    QuadTree * quadtree, double * avg_skel_time,
+                    double * avg_solve_time) {
   Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
   SkelFactorization skel_factorization(config.id_tol,
@@ -257,7 +262,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
 
   // std::vector<unsigned int> all_inds;
   // for (unsigned int i = 0;
-  //      i < boundary->points.size() / (3-config.solution_dimension); i++) {
+  //      i < boundary->points.size() / (3 - config.solution_dimension); i++) {
   //   all_inds.push_back(i);
   // }
   // ie_Mat all = kernel(all_inds, all_inds);
@@ -275,29 +280,31 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                       domain_points);
 
   // Zero out points outside the domain
-  for (unsigned int i = 0; i < domain_points.size(); i += 2) {
-    Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
-    if (!boundary->is_in_domain(point)) {
-      for (unsigned int hole_idx = 0; hole_idx < num_holes; hole_idx++) {
-        switch (config.pde) {
-          case ie_solver_config::Pde::LAPLACE: {
-            U_forward.set(i / 2, hole_idx, 0);
-            break;
-          }
-          case ie_solver_config::Pde::STOKES: {
-            U_forward.set(i, 3 * hole_idx, 0);
-            U_forward.set(i + 1, 3 * hole_idx, 0);
-            U_forward.set(i, 3 * hole_idx + 1, 0);
-            U_forward.set(i + 1, 3 * hole_idx + 1, 0);
-            U_forward.set(i, 3 * hole_idx + 2, 0);
-            U_forward.set(i + 1, 3 * hole_idx + 2, 0);
-            break;
+  if (config.pde == ie_solver_config::Pde::LAPLACE
+      || config.pde == ie_solver_config::Pde::STOKES) {
+    for (unsigned int i = 0; i < domain_points.size(); i += 2) {
+      Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
+      if (!boundary->is_in_domain(point)) {
+        for (unsigned int hole_idx = 0; hole_idx < num_holes; hole_idx++) {
+          switch (config.pde) {
+            case ie_solver_config::Pde::LAPLACE: {
+              U_forward.set(i / 2, hole_idx, 0);
+              break;
+            }
+            case ie_solver_config::Pde::STOKES: {
+              U_forward.set(i, 3 * hole_idx, 0);
+              U_forward.set(i + 1, 3 * hole_idx, 0);
+              U_forward.set(i, 3 * hole_idx + 1, 0);
+              U_forward.set(i + 1, 3 * hole_idx + 1, 0);
+              U_forward.set(i, 3 * hole_idx + 2, 0);
+              U_forward.set(i + 1, 3 * hole_idx + 2, 0);
+              break;
+            }
           }
         }
       }
     }
   }
-
   ie_Mat domain_solution(config.domain_size * config.domain_size *
                          config.solution_dimension, 1);
   skel_factorization.U = U;
