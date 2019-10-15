@@ -264,7 +264,6 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   // std::cout << "Condition number: " << all.condition_number() << std::endl;
   skel_factorization.skeletonize(kernel, quadtree);
 
-
   ie_Mat f = boundary->boundary_values;
 
   int num_holes = boundary->holes.size();
@@ -274,7 +273,6 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                   boundary);
   ie_Mat U_forward = initialize_U_mat(config.pde, boundary->holes,
                                       domain_points);
-
 
   // Zero out points outside the domain
   for (unsigned int i = 0; i < domain_points.size(); i += 2) {

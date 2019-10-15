@@ -219,7 +219,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     // allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
   }
-  
+
   // check_factorization_against_kernel(kernel, tree);
   double skel_end = omp_get_wtime();
   std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
@@ -336,11 +336,8 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
                          0, active_box.size(), kernel(active_box, outside_box), true, true);
     } else {
       // Construct mat of interactions with pxy circle points
-      ie_Mat proxy = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS,
-                            active_box.size());
-
-      make_proxy_mat(kernel, &proxy, cntr_x, cntr_y, node->side_length
-                     * RADIUS_RATIO, tree, active_box);
+      ie_Mat proxy =   make_proxy_mat(kernel, cntr_x, cntr_y, node->side_length
+                                      * RADIUS_RATIO, tree, active_box);
 
       // Now all the matrices are gathered, put them into *mat.
       *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
@@ -353,20 +350,18 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
                          NUM_PROXY_POINTS + 2 * inner_circle.size(), 0,
                          active_box.size(), proxy, false, true);
     }
-
-
   } else {
-    *mat = ie_Mat(solution_dimension * 2 * NUM_PROXY_POINTS, active_box.size());
-    make_proxy_mat(kernel, mat, cntr_x, cntr_y, node->side_length * 1.5, tree,
-                   active_box);
+    *mat = make_proxy_mat(kernel, cntr_x, cntr_y, node->side_length * 1.5, tree,
+                          active_box);
   }
 }
 
 
-void SkelFactorization::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
-                                       double cntr_x, double cntr_y,
-                                       double r, const QuadTree * tree,
-                                       const std::vector<unsigned int>& box_inds) {
+ie_Mat SkelFactorization::make_proxy_mat(const Kernel & kernel,
+    double cntr_x, double cntr_y,
+    double r, const QuadTree * tree,
+    const std::vector<unsigned int>& box_inds) {
+  ie_Mat ret(2 * NUM_PROXY_POINTS * solution_dimension, box_inds.size());
   // each row is a pxy point, cols are box dofs
   double proxy_weight = 2.0 * M_PI * r / NUM_PROXY_POINTS;
   double proxy_curvature = 1.0 / r;
@@ -374,33 +369,37 @@ void SkelFactorization::make_proxy_mat(const Kernel & kernel, ie_Mat * pxy,
   for (int i = 0; i < NUM_PROXY_POINTS; i++) {
     double ang = 2 * M_PI * i * (1.0 / NUM_PROXY_POINTS);
     Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
-    for (unsigned int j_ = 0; j_ < box_inds.size(); j_++) {
-      Dof a, b;
-      a.point = p;
-      a.normal = Vec2(cos(ang), sin(ang));
-      a.curvature = proxy_curvature;
-      a.weight = proxy_weight;
+    Dof a;
+    a.point = p;
+    a.normal = Vec2(cos(ang), sin(ang));
+    a.curvature = proxy_curvature;
+    a.weight = proxy_weight;
 
+    for (unsigned int j_ = 0; j_ < box_inds.size(); j_++) {
       unsigned int matrix_index = box_inds[j_];
       unsigned int point_index = matrix_index / solution_dimension;
       unsigned int points_vec_index = point_index * domain_dimension;
+      Dof b;
       b.point = Vec2(tree->boundary->points[points_vec_index],
                      tree->boundary->points[points_vec_index + 1]);
       b.normal = Vec2(tree->boundary->normals[points_vec_index],
                       tree->boundary->normals[points_vec_index + 1]);
       b.curvature = tree->boundary->curvatures[point_index];
       b.weight = tree->boundary->weights[point_index];
-
+      // TODO(John) this is the only call to kernel.get - maybe we should
+      // make this a bulk call and delete the get() function
+      // Note - the call to get grabs two more entries than we want
       ie_Mat ab_tensor = kernel.get(a, b);
       ie_Mat ba_tensor = kernel.get(b, a);
       for (int k = 0; k < solution_dimension; k++) {
-        pxy->set(solution_dimension * i + k, j_,
-                 ab_tensor.get(k, box_inds[j_] % solution_dimension));
-        pxy->set(solution_dimension * (i + NUM_PROXY_POINTS) + k, j_,
-                 ba_tensor.get(box_inds[j_] % solution_dimension, k));
+        ret.set(solution_dimension * i + k, j_,
+                ab_tensor.get(k, box_inds[j_] % solution_dimension));
+        ret.set(solution_dimension * (i + NUM_PROXY_POINTS) + k, j_,
+                ba_tensor.get(box_inds[j_] % solution_dimension, k));
       }
     }
   }
+  return ret;
 }
 
 
