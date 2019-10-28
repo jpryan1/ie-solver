@@ -46,7 +46,8 @@ class SkelFactorization {
 
   void get_all_schur_updates(ie_Mat* updates,
                              const std::vector<unsigned int>& BN,
-                             const QuadTreeNode* node, bool get_neighbors) const;
+                             const QuadTreeNode* node,
+                             bool get_neighbors) const;
   void get_descendents_updates(ie_Mat* updates,
                                const std::vector<unsigned int>& BN,
                                const QuadTreeNode* node) const;
@@ -63,8 +64,8 @@ class SkelFactorization {
   void diag_block_factorizer();
   // void b2dskeletonize(const Kernel& K, QuadTree* tree);
 
-  // void b2dsparse_matvec(const Kernel& K, const QuadTree& tree, const ie_Mat& x,
-  //                       ie_Mat* b)
+  // void b2dsparse_matvec(const Kernel& K, const QuadTree& tree,
+  // const ie_Mat& x, ie_Mat* b)
 
   void make_id_mat(const Kernel& K, ie_Mat* pxy, const QuadTree* tree,
                    const QuadTreeNode* node);
@@ -94,7 +95,8 @@ class SkelFactorization {
                              const std::vector<unsigned int>& range) const;
   void apply_diag_pinv_matrix(const ie_Mat& mat, ie_Mat* vec,
                               const std::vector<unsigned int>& range) const;
-  void sparse_matvec(const QuadTree& quadtree, const ie_Mat& x, ie_Mat* b) const;
+  void sparse_matvec(const QuadTree& quadtree, const ie_Mat& x,
+                     ie_Mat* b) const;
 
   void solve(const QuadTree& quadtree, ie_Mat* x, const ie_Mat& b) const;
   void multiply_connected_solve(const QuadTree& quadtree, ie_Mat* x,

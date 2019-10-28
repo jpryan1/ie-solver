@@ -39,7 +39,6 @@ void Ex1Boundary::get_spline_points(std::vector<double>* x0_points,
     x1_points->push_back(0.95);
   }
 
-
   for (int i = 0; i < 3; i++) {
     x0_points->push_back(0);
     x1_points->push_back(1.0 - (i / 3.0));
@@ -183,7 +182,6 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
     boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index + 1]);
     bc_index++;
   }
-
 }
 
 

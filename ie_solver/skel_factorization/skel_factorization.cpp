@@ -228,11 +228,10 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
 
 void SkelFactorization::diag_block_factorizer() {
   while (true) {
-    while (!kill_factorizer && block_to_factorize == nullptr);
+    while (!kill_factorizer && block_to_factorize == nullptr) {}
     if (kill_factorizer) {
       return;
     }
-
   }
 }
 
@@ -333,7 +332,8 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       mat->set_submatrix(0, outside_box.size(), 0, active_box.size(),
                          kernel(outside_box, active_box), false, true);
       mat->set_submatrix(outside_box.size(), 2 * outside_box.size(),
-                         0, active_box.size(), kernel(active_box, outside_box), true, true);
+                         0, active_box.size(), kernel(active_box, outside_box),
+                         true, true);
     } else {
       // Construct mat of interactions with pxy circle points
       ie_Mat proxy =   make_proxy_mat(kernel, cntr_x, cntr_y, node->side_length
@@ -343,9 +343,11 @@ void SkelFactorization::make_id_mat(const Kernel& kernel, ie_Mat* mat,
       *mat = ie_Mat(2 * inner_circle.size() + solution_dimension * 2 *
                     NUM_PROXY_POINTS, active_box.size());
       mat->set_submatrix(0, inner_circle.size(),
-                         0, active_box.size(), kernel(inner_circle, active_box), false, true);
+                         0, active_box.size(), kernel(inner_circle, active_box),
+                         false, true);
       mat->set_submatrix(inner_circle.size(), 2 * inner_circle.size(),
-                         0, active_box.size(), kernel(active_box, inner_circle), true, true);
+                         0, active_box.size(), kernel(active_box, inner_circle),
+                         true, true);
       mat->set_submatrix(2 * inner_circle.size(),  solution_dimension * 2 *
                          NUM_PROXY_POINTS + 2 * inner_circle.size(), 0,
                          active_box.size(), proxy, false, true);
@@ -641,7 +643,7 @@ std::vector<unsigned int> big_to_small(const std::vector<unsigned int>& big,
   return small;
 }
 
-// TODO make usage of psi height and u width more readable
+// TODO(John) make usage of psi height and u width more readable
 void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     ie_Mat* mu, ie_Mat* alpha,
     const ie_Mat& b) const {
@@ -670,8 +672,9 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
       allredundant.push_back(i);
     }
   }
-  // In our bordered linear system, the skel and redundant indices are partitioned
-  // so we create a map from their original index into their partition
+  // In our bordered linear system, the skel and redundant indices are
+  // partitioned so we create a map from their original index into their
+  // partition
   std::unordered_map<unsigned int, unsigned int> skel_big2small, red_big2small;
   for (int i = 0; i < allskel.size(); i++) {
     skel_big2small[allskel[i]] = i;
@@ -750,8 +753,8 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
     std::vector<unsigned int> small_redundants = big_to_small(
           current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->is_LU_factored);
-    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, &Dinv_w,
-                          small_redundants);
+    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
+                          &Dinv_w, small_redundants);
     apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
                           &Dinv_C_nonzero,
                           small_redundants);
@@ -819,8 +822,8 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
           current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->is_LU_factored);
 
-    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, &Dinv_N,
-                          small_redundants);
+    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
+                          &Dinv_N, small_redundants);
   }
 
 

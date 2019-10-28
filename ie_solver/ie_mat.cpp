@@ -482,7 +482,6 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
 
 
 void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
-
   ie_Mat K_copy(K.width_, K.height_);
   K.transpose_into(&K_copy);
   std::vector<lapack_int> ipiv;
@@ -501,7 +500,8 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
 
 
 void ie_Mat::left_multiply_inverse(const ie_Mat& K,
-                                   const std::vector<lapack_int>& piv, ie_Mat* U) const {
+                                   const std::vector<lapack_int>& piv,
+                                   ie_Mat* U) const {
   // X^-1K = U
   // aka, XU = K
 
@@ -516,8 +516,8 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K,
 
 
 void ie_Mat::right_multiply_inverse(const ie_Mat& K,
-                                    const std::vector<lapack_int>& piv, ie_Mat* L) const {
-
+                                    const std::vector<lapack_int>& piv,
+                                    ie_Mat* L) const {
   ie_Mat K_copy(K.width_, K.height_);
   K.transpose_into(&K_copy);
 

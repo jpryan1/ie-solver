@@ -92,8 +92,10 @@ void CubicBoundary::find_real_roots_of_cubic(const std::vector<double>& y_cubic,
 void CubicBoundary::interpolate(int bc_index, bool is_interior,
                                 int nodes_per_spline,
                                 BoundaryCondition boundary_condition,
-                                const std::vector<std::vector<double>>& x0_cubics,
-                                const std::vector<std::vector<double>>& x1_cubics) {
+                                const std::vector<std::vector<double>>&
+                                x0_cubics,
+                                const std::vector<std::vector<double>>&
+                                x1_cubics) {
   // Must fill points, normals, curvatures, weights.
   // Points = duh
   // Normals = tangent of points rotated 90 deg clockwise
@@ -103,7 +105,8 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
   int start = bc_index;
   int num_spline_points = x0_cubics.size();
   int quad_size = 10;
-  std::vector<double> quad(2 * quad_size * num_spline_points * nodes_per_spline);
+  std::vector<double> quad(2 * quad_size * num_spline_points
+                           * nodes_per_spline);
   int quad_idx = 0;
   for (int i = 0; i < num_spline_points; i++) {
     std::vector<double> x_cubic = x0_cubics[i];
@@ -120,11 +123,14 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
       points.push_back(y);
 
       for (int qt = 0; qt < quad_size; qt++) {
-        double t_quad = ((j * quad_size) + qt) / (0.0 + quad_size * nodes_per_spline);
-        double x_quad = x_cubic[0] + t_quad * x_cubic[1] + pow(t_quad, 2) * x_cubic[2]
-                    + pow(t_quad, 3) * x_cubic[3];
-        double y_quad = y_cubic[0] + t_quad * y_cubic[1] + pow(t_quad, 2) * y_cubic[2]
-                    + pow(t_quad, 3) * y_cubic[3];
+        double t_quad = ((j * quad_size) + qt)
+                        / (0.0 + quad_size * nodes_per_spline);
+        double x_quad = x_cubic[0] + t_quad * x_cubic[1]
+                        + pow(t_quad, 2) * x_cubic[2]
+                        + pow(t_quad, 3) * x_cubic[3];
+        double y_quad = y_cubic[0] + t_quad * y_cubic[1]
+                        + pow(t_quad, 2) * y_cubic[2]
+                        + pow(t_quad, 3) * y_cubic[3];
         quad[quad_idx++] = x_quad;
         quad[quad_idx++] = y_quad;
       }
@@ -142,7 +148,7 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
       double norm = sqrt(pow(x_prime, 2) + pow(y_prime, 2));
       x_prime /= norm;
       y_prime /= norm;
-      //BUG have observed x_prime = 0 ?
+      // BUG have observed x_prime = 0 ?
       if (is_interior) {
         curvatures.push_back(-curvature);
         normals.push_back(-y_prime);
@@ -222,7 +228,6 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
 
       dist_sum += sqrt(pow(quad[idx] - quad[(idx + 2) % quad.size()], 2)
                        + pow(quad[idx + 1] - quad[(idx + 3) % quad.size()], 2));
-
     }
     distances[d_idx++] = dist_sum;
   }
@@ -282,8 +287,6 @@ bool CubicBoundary::is_in_domain(const Vec2& a) {
     }
     node_idx += hole.num_nodes;
   }
-
-
   return true;
 }
 

@@ -41,16 +41,20 @@ struct Kernel {
 
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
   ie_Mat operator()(const std::vector<unsigned int>& I_,
-                    const std::vector<unsigned int>& J_, double* timing = nullptr) const;
+                    const std::vector<unsigned int>& J_,
+                    double* timing = nullptr) const;
 
   // ie_Mat forward_get(const std::vector<unsigned int>& I_,
   //                    const std::vector<unsigned int>& J_) const;
   ie_Mat fast_laplace_get(const std::vector<unsigned int>& I_,
-                          const std::vector<unsigned int>& J_, double* timing) const;
+                          const std::vector<unsigned int>& J_,
+                          double* timing) const;
   ie_Mat fast_laplace_neumann_get(const std::vector<unsigned int>& I_,
-                                  const std::vector<unsigned int>& J_, double* timing) const;
+                                  const std::vector<unsigned int>& J_,
+                                  double* timing) const;
   ie_Mat fast_stokes_get(const std::vector<unsigned int>& I_,
-                         const std::vector<unsigned int>& J_, double* timing) const;
+                         const std::vector<unsigned int>& J_,
+                         double* timing) const;
 
   // ie_Mat fast_laplace_get(const std::vector<Dof>& tgts,
   //                         const std::vector<Dof>& srcs, double* timing) const;

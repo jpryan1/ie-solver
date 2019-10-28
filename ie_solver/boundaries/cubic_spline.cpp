@@ -13,8 +13,8 @@
 namespace ie_solver {
 
 
-void CubicSpline::get_spline_points( std::vector<double>* x0_spline_points,
-                                     std::vector<double>* x1_spline_points) {
+void CubicSpline::get_spline_points(std::vector<double>* x0_spline_points,
+                                    std::vector<double>* x1_spline_points) {
   for (int i = 0; i < 10; i++) {
     double ang = 2 * M_PI * (i / 10.0);
 
@@ -47,12 +47,12 @@ void CubicSpline::initialize(int N, BoundaryCondition bc) {
   }
   std::vector<double> x0_spline_points, x1_spline_points;
   get_spline_points(&x0_spline_points, &x1_spline_points);
-    std::vector<std::vector<double>> x0_cubics, x1_cubics;
+  std::vector<std::vector<double>> x0_cubics, x1_cubics;
 
   get_cubics(x0_spline_points, x1_spline_points, &x0_cubics, &x1_cubics);
-  interpolate(0, false,  NODES_PER_SPLINE, boundary_condition, x0_cubics, x1_cubics);
+  interpolate(0, false,  NODES_PER_SPLINE, boundary_condition, x0_cubics,
+              x1_cubics);
   num_outer_nodes = NODES_PER_SPLINE * NUM_SPLINE_POINTS;
-
 }
 
 }  // namespace ie_solver

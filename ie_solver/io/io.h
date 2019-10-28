@@ -54,8 +54,6 @@ struct io {
 
   static int parse_input_into_config(int argc, char** argv,
                                      ie_solver_config* config);
-
-
 };
 
 }  // namespace ie_solver
