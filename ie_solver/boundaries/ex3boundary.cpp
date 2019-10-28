@@ -54,10 +54,10 @@ void Ex3Boundary::get_fin_spline_points(std::vector<double>* x0_points,
   // Rotate by perturbation_parameters[0]
 
   for (int i = x0_points->size() - 4; i < x0_points->size(); i++) {
-    double temp = cos(perturbation_parameters[0]) * (*x0_points)[i] - sin(
-                    perturbation_parameters[0]) * (*x1_points)[i];
-    (*x1_points)[i] = 0.5 + sin(perturbation_parameters[0]) * (*x0_points)[i] + cos(
-                        perturbation_parameters[0]) * (*x1_points)[i];
+    double temp = cos(perturbation_parameters[0]) * (*x0_points)[i]
+                  - sin(perturbation_parameters[0]) * (*x1_points)[i];
+    (*x1_points)[i] = 0.5 + sin(perturbation_parameters[0]) * (*x0_points)[i]
+                      + cos(perturbation_parameters[0]) * (*x1_points)[i];
     (*x0_points)[i] = 0.5 + temp;
   }
 }
@@ -111,8 +111,9 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
     perturbation_parameters.push_back(0);
   }
 
-  int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE +
-                  + 6 * NUM_CIRCLE_POINTS + FIN_SPLINE_POINTS * FIN_NODES_PER_SPLINE;
+  int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE
+                  + 6 * NUM_CIRCLE_POINTS
+                  + FIN_SPLINE_POINTS * FIN_NODES_PER_SPLINE;
   boundary_values = ie_Mat(2 * total_num, 1);
 
   int bc_index = 0;

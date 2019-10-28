@@ -39,10 +39,12 @@ struct ie_Mat {
   void set(unsigned int i, unsigned int j, double a);
   void addset(unsigned int i, unsigned int j, double a);
   void set_submatrix(const std::vector<unsigned int>& I_,
-                     const std::vector<unsigned int>& J_, const ie_Mat& A, bool transpose_A = false);
+                     const std::vector<unsigned int>& J_, const ie_Mat& A,
+                     bool transpose_A = false);
   void set_submatrix(unsigned int row_s, unsigned int row_e, unsigned int col_s,
                      unsigned int col_e,
-                     const ie_Mat& A, bool transpose_A = false, bool timing = false);
+                     const ie_Mat& A, bool transpose_A = false,
+                     bool timing = false);
   void set_submatrix(const std::vector<unsigned int>& I_, unsigned int col_s,
                      unsigned int col_e,
                      const ie_Mat& A, bool transpose_A = false);
@@ -91,9 +93,11 @@ struct ie_Mat {
   void LU_factorize(ie_Mat* K_LU, std::vector<lapack_int>* piv) const;
   void left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const;
   void right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const;
-  void left_multiply_inverse(const ie_Mat& K, const std::vector<lapack_int>& piv,
+  void left_multiply_inverse(const ie_Mat& K,
+                             const std::vector<lapack_int>& piv,
                              ie_Mat* U) const;
-  void right_multiply_inverse(const ie_Mat& K, const std::vector<lapack_int>& piv,
+  void right_multiply_inverse(const ie_Mat& K,
+                              const std::vector<lapack_int>& piv,
                               ie_Mat* L) const;
   void left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const;
 

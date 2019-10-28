@@ -13,7 +13,6 @@ class CubicSpline : public CubicBoundary {
 
   void get_spline_points(std::vector<double>* x0_spline_points,
                          std::vector<double>* x1_spline_points);
-                         
 };
 
 }  // namespace ie_solver

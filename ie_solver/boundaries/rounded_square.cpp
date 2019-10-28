@@ -61,7 +61,6 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
         break;
     }
   }
-  
 }
 
 
@@ -239,7 +238,6 @@ void RoundedSquare::initialize(int N, BoundaryCondition bc) {
   weights.push_back(middie);
   draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
   bc_index += corner_points;
-
 }
 
 

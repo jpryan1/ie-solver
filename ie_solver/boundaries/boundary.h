@@ -59,8 +59,8 @@ class CubicBoundary : public Boundary {
   // Note, the outer nodes must appear first in the point data vectors.
   int num_outer_nodes;
 
-  virtual void get_spline_points(std::vector<double>* outer_x0_spline_points,
-                                 std::vector<double>* outer_x1_spline_points) = 0;
+  virtual void get_spline_points(std::vector<double>* outer_x0_points,
+                                 std::vector<double>* outer_x1_points) = 0;
 
   void get_cubics(const std::vector<double>& x0_points,
                   const std::vector<double>& x1_points,
@@ -76,7 +76,6 @@ class CubicBoundary : public Boundary {
                                 std::vector<double>* t_vals);
   int num_right_intersections(double x, double y, int index);
   bool is_in_domain(const Vec2& a);
-
 };
 
 }  // namespace ie_solver

@@ -16,7 +16,6 @@ class Ex3Boundary : public CubicBoundary {
 
   void get_fin_spline_points(std::vector<double>* x0_points,
                              std::vector<double>* x1_points);
-
 };
 
 }  // namespace ie_solver

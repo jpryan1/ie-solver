@@ -80,7 +80,7 @@ void run_animation(const ie_solver_config& config) {
     ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
     std::string filename = "output/bake/sol/" + std::to_string(frame)  + ".txt";
     io::write_solution_to_file(filename, solution, domain_points,
-                           config.solution_dimension);
+                               config.solution_dimension);
   }
 }
 
@@ -140,8 +140,9 @@ void run_single_solve(const ie_solver_config & config) {
   ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
 
   io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
-                         domain_points, config.solution_dimension);
-  io::write_boundary_to_file("output/data/ie_solver_boundary.txt", boundary->points);
+                             domain_points, config.solution_dimension);
+  io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
+                             boundary->points);
   io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
 
   // double error;

@@ -44,8 +44,6 @@ void run_experiment2() {
   ie_solver_config config = get_experiment_two_config();
   int domain_dimension = 2;
   int solution_dimension = 1;
-  int n_dofs = 2000;
-  config.num_boundary_points = n_dofs;
   std::unique_ptr<Boundary> boundary =
     std::unique_ptr<Boundary>(new Ex2Boundary());
 
@@ -81,7 +79,7 @@ void run_experiment2() {
     ie_Mat solution = boundary_integral_solve(config, &quadtree,
                       domain_points);
 
-    //make solution zero mean
+    // Make solution zero mean.
     double avg = 0.;
     int total = 0;
     for (int i = 0; i < solution.height(); i++) {

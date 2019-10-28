@@ -1,8 +1,8 @@
 // Copyright 2019 John Paul Ryan
+#include <omp.h>
 #include <cmath>
 #include <iostream>
 #include <cassert>
-#include <omp.h>
 #include "ie_solver/kernel/kernel.h"
 
 namespace ie_solver {
@@ -78,7 +78,8 @@ ie_Mat Kernel::laplace_neumann_kernel(const Dof & tgt, const Dof & src) const {
   double scale = 1.0 / (2 * M_PI);
   ie_Mat tensor(1, 1);
   if (tgt.point.a[0] == src.point.a[0] && tgt.point.a[1] == src.point.a[1]) {
-    tensor.set(0, 0, -0.5 + 0.5 * src.curvature * src.weight * scale + src.weight);
+    tensor.set(0, 0, -0.5 + 0.5 * src.curvature * src.weight * scale
+               + src.weight);
     return tensor;
   }
   Vec2 r = tgt.point - src.point;
@@ -114,7 +115,8 @@ void Kernel::load(Boundary * boundary_,
 
 // // TODO(John) shouldn't this->I have the underscore after it, not this arg?
 ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
-                          const std::vector<unsigned int>& J_, double * timing) const {
+                          const std::vector<unsigned int>& J_,
+                          double * timing) const {
   switch (pde) {
     case ie_solver_config::Pde::LAPLACE:
       return fast_laplace_get(I_, J_, timing);
@@ -130,7 +132,8 @@ ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
 
 
 ie_Mat Kernel::fast_laplace_get(const std::vector<unsigned int>& I_,
-                                const std::vector<unsigned int>& J_, double * timing) const {
+                                const std::vector<unsigned int>& J_,
+                                double * timing) const {
   double start, end;
   if (timing != nullptr) {
     start = omp_get_wtime();
@@ -139,7 +142,6 @@ ie_Mat Kernel::fast_laplace_get(const std::vector<unsigned int>& I_,
   ie_Mat ret(I_.size(), J_.size());
   int olda_ = I_.size();
   for (unsigned int j = 0; j < J_.size(); j++) {
-
     unsigned int src_ind = J_[j];
 
     double sp1 = boundary->points[2 * src_ind];
@@ -174,7 +176,8 @@ ie_Mat Kernel::fast_laplace_get(const std::vector<unsigned int>& I_,
 
 
 ie_Mat Kernel::fast_laplace_neumann_get(const std::vector<unsigned int>& I_,
-                                        const std::vector<unsigned int>& J_, double * timing) const {
+                                        const std::vector<unsigned int>& J_,
+                                        double * timing) const {
   double start, end;
   if (timing != nullptr) {
     start = omp_get_wtime();
@@ -220,7 +223,8 @@ ie_Mat Kernel::fast_laplace_neumann_get(const std::vector<unsigned int>& I_,
 
 
 ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
-                               const std::vector<unsigned int>& J_, double * timing) const {
+                               const std::vector<unsigned int>& J_,
+                               double * timing) const {
   double start, end;
   double scale = 1.0 / (M_PI);
 
@@ -250,7 +254,6 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
       double tp2 = boundary->points[i_points_vec_index + 1];
       double tn1 = boundary->normals[i_points_vec_index];
       double tn2 = boundary->normals[i_points_vec_index + 1];
-
 
       if (tp1 == sp1 && sp2 == tp2) {
         double potential = - 0.5 * sc * sw * scale;
@@ -306,7 +309,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 
 
 // ie_Mat Kernel::fast_laplace_get(const std::vector<Dof>& tgts,
-//                                 const std::vector<Dof>& srcs, double* timing) const {
+//                                 const std::vector<Dof>& srcs,
+//                                 double* timing) const {
 //   double start, end;
 //   if (timing != nullptr) {
 //     start = omp_get_wtime();
@@ -351,7 +355,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 
 
 // ie_Mat Kernel::fast_stokes_get(const std::vector<Dof>& tgts,
-//                                const std::vector<Dof>& srcs, double* timing) const {
+//                                const std::vector<Dof>& srcs,
+//                                double* timing) const {
 //   double start, end;
 //   double scale = 1.0 / (M_PI);
 
@@ -383,17 +388,18 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 //         double potential = - 0.5 * sc * sw * scale;
 
 
-//         ret.mat[2 * i + olda_ * (2 * j)] = -0.5 + potential * sn2 * sn2 +  sw *
+//         ret.mat[2 * i + olda_ * (2 * j)] = -0.5
+//                                            + potential * sn2 * sn2 +  sw *
 //                                            tn1 * sn1;
 
-//         ret.mat[2 * i + olda_ * (2 * j + 1)] = -potential * sn1 * sn2 + sw * tn2 *
-//                                                sn1;
+//         ret.mat[2 * i + olda_ * (2 * j + 1)] = -potential * sn1 * sn2
+//                                                 + sw * tn2 * sn1;
 
-//         ret.mat[2 * i + 1 + olda_ * (2 * j)] =  -potential * sn1 * sn2 + sw * tn2 *
-//                                                 sn1;
+//         ret.mat[2 * i + 1 + olda_ * (2 * j)] =  -potential * sn1 * sn2
+//                                                 + sw * tn2 * sn1;
 
-//         ret.mat[2 * i + 1 + olda_ * (2 * j + 1)] = -0.5 + potential * sn1 * sn1 + sw *
-//             tn2 * sn2;
+//         ret.mat[2 * i + 1 + olda_ * (2 * j + 1)] = -0.5 + potential * sn1
+//                                                    * sn1 + sw * tn2 * sn2;
 
 //       } else {
 //         double r0 = tp1 - sp1;
@@ -402,12 +408,12 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 //                            (pow(r0 * r0 + r1 * r1, 2));
 //         ret.mat[2 * i + olda_ * (2 * j)] = potential * r0 * r0 + sw * tn1 *
 //                                            sn1;
-//         ret.mat[2 * i + olda_ * (2 * j + 1)] = potential * r0 * r1 + sw * tn1 *
-//                                                sn2;
-//         ret.mat[2 * i + 1 + olda_ * (2 * j)] = potential * r1 * r0 + sw * tn2 *
-//                                                sn1;
-//         ret.mat[2 * i + 1 + olda_ * (2 * j + 1)] = potential * r1 * r1 + sw * tn2 *
-//             sn2;
+//         ret.mat[2 * i + olda_ * (2 * j + 1)] = potential * r0 * r1
+//                                                + sw * tn1 * sn2;
+//         ret.mat[2 * i + 1 + olda_ * (2 * j)] = potential * r1 * r0
+//                                                + sw * tn2 * sn1;
+//         ret.mat[2 * i + 1 + olda_ * (2 * j + 1)] = potential * r1 * r1
+//                                                    + sw * tn2 * sn2;
 //       }
 //     }
 //   }
@@ -419,7 +425,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 // }
 
 
-// double Kernel::forward_get(unsigned int tgt_ind, unsigned int src_ind) const {
+// double Kernel::forward_get(unsigned int tgt_ind,
+//                            unsigned int src_ind) const {
 //   Dof tgt, src;
 //   unsigned int i_point_index = tgt_ind / solution_dimension;
 //   unsigned int i_points_vec_index = i_point_index * domain_dimension;
@@ -438,7 +445,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 //   src.weight = boundary->weights[j_point_index];
 //   src.is_boundary = true;
 //   ie_Mat tensor = get(tgt, src);
-//   return tensor.get(tgt_ind % solution_dimension, src_ind % solution_dimension);
+//   return tensor.get(tgt_ind % solution_dimension,
+//                     src_ind % solution_dimension);
 // }
 
 
@@ -466,7 +474,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 //   src.is_boundary = true;
 
 //   ie_Mat tensor = get(tgt, src);
-//   return tensor.get(tgt_ind % solution_dimension, src_ind % solution_dimension);
+//   return tensor.get(tgt_ind % solution_dimension,
+//                     src_ind % solution_dimension);
 // }
 
 // ie_Mat Kernel::forward_get(const std::vector<unsigned int>& I_,
@@ -536,7 +545,7 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 //         break;
 //       }
 //       case BoundaryCondition::STOKES:
-//         std::cout << "Error: check Laplace called on Stokes BC." << std::endl;
+//         std::cout << "Error: check Laplace called on Stokes BC." <<std::endl;
 //         break;
 //     }
 //     if (std::isnan(domain.get(i / 2, 0))) {
@@ -558,8 +567,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 //                     const std::vector<double>& domain_points,
 //                     Boundary * boundary) {
 //   if (boundary->boundary_shape != Boundary::ANNULUS) {
-//     std::cout << "Error: cannot currently check stokes error on non-annulus" <<
-//               std::endl;
+//     std::cout << "Error: cannot currently check stokes error on non-annulus"
+//               << std::endl;
 //     return -1;
 //   }
 //   if (boundary->holes.size() != 1) {
@@ -569,8 +578,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 //   } else if (boundary->holes[0].center.a[0] != 0.5
 //              || boundary->holes[0].center.a[1] != 0.5
 //              || boundary->holes[0].radius != 0.05) {
-//     std::cout << "Error: can only check error on boundary with hole at center "
-//               << "and radius 0.05" << std::endl;
+//     std::cout << "Error: can only check error on boundary with hole at "
+//               << "center and radius 0.05" << std::endl;
 //     return -1;
 //   }
 //   double truth_size = 0;
@@ -587,7 +596,8 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 
 
 //     Vec2 r = x - center;
-//     Vec2 sol = Vec2(domain_solution.get(i, 0), domain_solution.get(i + 1, 0));
+//     Vec2 sol = Vec2(domain_solution.get(i, 0),
+//                     domain_solution.get(i + 1, 0));
 
 //     Vec2 truth = Vec2(-r.a[1], r.a[0]);
 //     truth = truth * (1 / truth.norm());

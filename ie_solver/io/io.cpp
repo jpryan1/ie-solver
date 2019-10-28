@@ -134,7 +134,7 @@ int io::parse_input_into_config(int argc, char** argv,
           config->pde = ie_solver_config::STOKES;
         } else if (!strcmp(argv[i + 1], "LAPLACE")) {
           config->pde = ie_solver_config::LAPLACE;
-        }else if (!strcmp(argv[i + 1], "LAPLACE_NEUMANN")) {
+        } else if (!strcmp(argv[i + 1], "LAPLACE_NEUMANN")) {
           config->pde = ie_solver_config::LAPLACE_NEUMANN;
         } else {
           LOG::ERROR("Unrecognized pde: " + std::string(argv[i + 1])
