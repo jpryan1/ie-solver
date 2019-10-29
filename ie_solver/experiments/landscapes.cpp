@@ -41,77 +41,77 @@ ie_solver_config get_landscape_config() {
 
 void print_landscapes() {
   ie_solver_config config = get_landscape_config();
-  // std::unique_ptr<Boundary> boundary2 =
-  //   std::unique_ptr<Boundary>(new Ex2Boundary());
-  // boundary2->initialize(config.num_boundary_points,
-  //                       BoundaryCondition::DEFAULT);
-  // QuadTree quadtree2;
-  // quadtree2.initialize_tree(boundary2.get(), std::vector<double>(),
-  //                           config.solution_dimension, config.domain_dimension);
-  // std::vector<double> domain_points2;
-  // get_domain_points(config.domain_size, &domain_points2, quadtree2.min,
-  //                   quadtree2.max);
+  std::unique_ptr<Boundary> boundary2 =
+    std::unique_ptr<Boundary>(new Ex2Boundary());
+  boundary2->initialize(config.num_boundary_points,
+                        BoundaryCondition::DEFAULT);
+  QuadTree quadtree2;
+  quadtree2.initialize_tree(boundary2.get(), std::vector<double>(),
+                            config.solution_dimension, config.domain_dimension);
+  std::vector<double> domain_points2;
+  get_domain_points(config.domain_size, &domain_points2, quadtree2.min,
+                    quadtree2.max);
 
 
-  // domain_points2.push_back(0.49);
-  // domain_points2.push_back(0.49);
+  domain_points2.push_back(0.49);
+  domain_points2.push_back(0.49);
 
-  // domain_points2.push_back(0.49);
-  // domain_points2.push_back(0.51);
+  domain_points2.push_back(0.49);
+  domain_points2.push_back(0.51);
 
-  // domain_points2.push_back(0.51);
-  // domain_points2.push_back(0.49);
+  domain_points2.push_back(0.51);
+  domain_points2.push_back(0.49);
 
-  // domain_points2.push_back(0.51);
-  // domain_points2.push_back(0.51);
+  domain_points2.push_back(0.51);
+  domain_points2.push_back(0.51);
 
-  // std::unique_ptr<Boundary> perturbed_boundary2 =
-  //   std::unique_ptr<Boundary>(new Ex2Boundary());
-  // perturbed_boundary2->initialize(config.num_boundary_points,
-  //                                 config.boundary_condition);
+  std::unique_ptr<Boundary> perturbed_boundary2 =
+    std::unique_ptr<Boundary>(new Ex2Boundary());
+  perturbed_boundary2->initialize(config.num_boundary_points,
+                                  config.boundary_condition);
 
-  // int FRAME_CAP = 10;
-  // std::vector<double> angs_and_grads;
-  // for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
-  //   double ang1 = (frame1 / (0.0 + FRAME_CAP)) * 2 * M_PI;
+  int FRAME_CAP = 20;
+  std::vector<double> angs_and_grads;
+  for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
+    double ang1 = (frame1 / (0.0 + FRAME_CAP)) * 2 * M_PI;
 
-  //   for (int frame2 = 0; frame2 < FRAME_CAP; frame2++) {
-  //     double ang2 = ((frame2 / (0.0 + FRAME_CAP)) * (M_PI)) +
-  //                   (M_PI / 2.) + ang1;
-  //     perturbed_boundary2->perturbation_parameters[0] = ang1;
-  //     perturbed_boundary2->perturbation_parameters[1] = ang2;
+    for (int frame2 = 0; frame2 < FRAME_CAP; frame2++) {
+      double ang2 = ((frame2 / (0.0 + FRAME_CAP)) * (M_PI)) +
+                    (M_PI / 2.) + ang1;
+      perturbed_boundary2->perturbation_parameters[0] = ang1;
+      perturbed_boundary2->perturbation_parameters[1] = ang2;
 
-  //     perturbed_boundary2->initialize(config.num_boundary_points,
-  //                                     config.boundary_condition);
-  //     quadtree2.perturb(*perturbed_boundary2.get());
-  //     ie_Mat solution = boundary_integral_solve(config, &quadtree2,
-  //                       domain_points2);
+      perturbed_boundary2->initialize(config.num_boundary_points,
+                                      config.boundary_condition);
+      quadtree2.perturb(*perturbed_boundary2.get());
+      ie_Mat solution = boundary_integral_solve(config, &quadtree2,
+                        domain_points2);
 
-  //     // Make solution zero mean.
-  //     double avg = 0.;
-  //     int total = 0;
-  //     for (int i = 0; i < solution.height(); i++) {
-  //       if (solution.get(i, 0) != 0.0) {
-  //         avg += solution.get(i, 0);
-  //         total++;
-  //       }
-  //     }
-  //     avg /= total;
-  //     for (int i = 0; i < solution.height(); i++) {
-  //       if (solution.get(i, 0) != 0.0) {
-  //         solution.set(i, 0, solution.get(i, 0) - avg);
-  //       }
-  //     }
+      // Make solution zero mean.
+      double avg = 0.;
+      int total = 0;
+      for (int i = 0; i < solution.height(); i++) {
+        if (solution.get(i, 0) != 0.0) {
+          avg += solution.get(i, 0);
+          total++;
+        }
+      }
+      avg /= total;
+      for (int i = 0; i < solution.height(); i++) {
+        if (solution.get(i, 0) != 0.0) {
+          solution.set(i, 0, solution.get(i, 0) - avg);
+        }
+      }
 
-  //     int sh = solution.height();
-  //     double gradient = solution.get(sh - 1, 0) + solution.get(sh - 2,
-  //                       0) - solution.get(sh - 3, 0) - solution.get(sh - 4, 0);
-  //     angs_and_grads.push_back(ang1);
-  //     angs_and_grads.push_back(ang2);
-  //     angs_and_grads.push_back(gradient);
-  //   }
-  // }
-  // io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
+      int sh = solution.height();
+      double gradient = solution.get(sh - 1, 0) + solution.get(sh - 2,
+                        0) - solution.get(sh - 3, 0) - solution.get(sh - 4, 0);
+      angs_and_grads.push_back(ang1);
+      angs_and_grads.push_back(ang2);
+      angs_and_grads.push_back(gradient);
+    }
+  }
+  io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
 
   /////////////////////////////////////////////////////////////////////////
 
@@ -131,26 +131,32 @@ void print_landscapes() {
   get_domain_points(config.domain_size, &domain_points3, quadtree3.min,
                     quadtree3.max);
 
-  // domain_points2.push_back(0.49);
-  // domain_points2.push_back(0.49);
+  domain_points3.push_back(0.2);
+  domain_points3.push_back(0.675);
 
-  // domain_points2.push_back(0.49);
-  // domain_points2.push_back(0.51);
+  domain_points3.push_back(0.3);
+  domain_points3.push_back(0.675);
 
-  // domain_points2.push_back(0.51);
-  // domain_points2.push_back(0.49);
+  domain_points3.push_back(0.4);
+  domain_points3.push_back(0.675);
 
-  // domain_points2.push_back(0.51);
-  // domain_points2.push_back(0.51);
+  domain_points3.push_back(0.6);
+  domain_points3.push_back(0.325);
+
+  domain_points3.push_back(0.6);
+  domain_points3.push_back(0.325);
+
+  domain_points3.push_back(0.6);
+  domain_points3.push_back(0.325);
 
   std::unique_ptr<Boundary> perturbed_boundary3 =
     std::unique_ptr<Boundary>(new Ex3Boundary());
   perturbed_boundary3->initialize(config.num_boundary_points,
                                   config.boundary_condition);
-  FRAME_CAP = 10;
+  FRAME_CAP = 50;
   std::vector<double> ang_and_flow;
   for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
-    double ang = (frame1 / (0.0 + FRAME_CAP)) * 2 * M_PI;
+    double ang = (frame1 / (0.0 + FRAME_CAP)) * M_PI;
 
     perturbed_boundary3->perturbation_parameters[0] = ang;
 
@@ -159,12 +165,15 @@ void print_landscapes() {
     quadtree3.perturb(*perturbed_boundary3.get());
     ie_Mat solution = boundary_integral_solve(config, &quadtree3,
                       domain_points3);
-    std::cout<<"yo"<<std::endl;
+
     int sh = solution.height();
-    // double flow = solution.get(sh - 1, 0) + solution.get(sh - 2,
-    //               0) - solution.get(sh - 3, 0) - solution.get(sh - 4, 0);
-    // ang_and_flow.push_back(ang);
-    // ang_and_flow.push_back(flow);
+    double flow = 0.;
+
+    for (int i = sh - 12; i < sh; i += 2) {
+      flow += solution.get(i, 0);
+    }
+    ang_and_flow.push_back(ang);
+    ang_and_flow.push_back(flow);
   }
 
   io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);

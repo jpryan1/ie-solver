@@ -66,9 +66,11 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
           U.set(i + 1, 3 * hole_idx + 2, -r.a[0] * (scale / pow(r.norm(), 2)));
         }
       }
+      break;
     }
     case ie_solver_config::Pde::LAPLACE_NEUMANN: {
       U = ie_Mat(0, 0);
+      break;
     }
   }
   return U;
@@ -108,9 +110,11 @@ ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
           }
         }
       }
+      break;
     }
     case ie_solver_config::Pde::LAPLACE_NEUMANN: {
       Psi = ie_Mat(0, 0);
+      break;
     }
   }
   return Psi;
