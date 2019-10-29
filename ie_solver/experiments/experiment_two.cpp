@@ -50,6 +50,7 @@ void run_experiment2() {
   double init_start = omp_get_wtime();
   boundary->initialize(config.num_boundary_points,
                        BoundaryCondition::DEFAULT);
+
   double init_end = omp_get_wtime();
   std::cout << "timing: boundary_init " << (init_end - init_start) << std::endl;
 
@@ -67,41 +68,49 @@ void run_experiment2() {
 
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
-  for (int frame = 0; frame < 30; frame++) {
-    double ang = (frame / 30.0) * 2 * M_PI;
 
-    perturbed_boundary->perturbation_parameters[0] = ang;
-    perturbed_boundary->perturbation_parameters[1] = ang + M_PI;
+  int FRAME_CAP = 10;
+  for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
+    double ang1 = (frame1 / (0.0 + FRAME_CAP)) * 4 * M_PI / 5.;
 
-    perturbed_boundary->initialize(config.num_boundary_points,
-                                   config.boundary_condition);
-    quadtree.perturb(*perturbed_boundary.get());
-    ie_Mat solution = boundary_integral_solve(config, &quadtree,
-                      domain_points);
+    for (int frame2 = 0; frame2 < FRAME_CAP; frame2++) {
 
-    // Make solution zero mean.
-    double avg = 0.;
-    int total = 0;
-    for (int i = 0; i < solution.height(); i++) {
-      if (solution.get(i, 0) != 0.0) {
-        avg += solution.get(i, 0);
-        total++;
+
+      double ang2 = ((frame2 / (0.0 + FRAME_CAP)) * 4 * M_PI / 5.) + M_PI;
+      perturbed_boundary->perturbation_parameters[0] = ang1;
+      perturbed_boundary->perturbation_parameters[1] = ang2;
+
+      perturbed_boundary->initialize(config.num_boundary_points,
+                                     config.boundary_condition);
+      quadtree.perturb(*perturbed_boundary.get());
+      ie_Mat solution = boundary_integral_solve(config, &quadtree,
+                        domain_points);
+
+      // Make solution zero mean.
+      double avg = 0.;
+      int total = 0;
+      for (int i = 0; i < solution.height(); i++) {
+        if (solution.get(i, 0) != 0.0) {
+          avg += solution.get(i, 0);
+          total++;
+        }
       }
-    }
-    avg /= total;
-    for (int i = 0; i < solution.height(); i++) {
-      if (solution.get(i, 0) != 0.0) {
-        solution.set(i, 0, solution.get(i, 0) - avg);
+      avg /= total;
+      for (int i = 0; i < solution.height(); i++) {
+        if (solution.get(i, 0) != 0.0) {
+          solution.set(i, 0, solution.get(i, 0) - avg);
+        }
       }
+      io::write_solution_to_file("output/bake/sol/" + std::to_string(
+                                   frame1 * FRAME_CAP + frame2)
+                                 + ".txt", solution, domain_points,
+                                 config.solution_dimension);
+      io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
+                                   frame1 * FRAME_CAP + frame2)  + ".txt",
+                                 perturbed_boundary->points);
+      io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
+                                 quadtree);
     }
-    io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)
-                               + ".txt", solution, domain_points,
-                               config.solution_dimension);
-    io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
-                                 frame)  + ".txt",
-                               perturbed_boundary->points);
-    io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
-                               quadtree);
   }
 
   // ie_Mat solution = boundary_integral_solve(config, &quadtree,

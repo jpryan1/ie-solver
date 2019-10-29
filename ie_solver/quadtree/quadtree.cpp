@@ -588,16 +588,24 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     perturbed_boundary.perturbation_parameters[0];
   boundary->holes = perturbed_boundary.holes;
 
+  // If any nodes are bursting now, subdivide them.
   for (int l = levels.size() - 1; l >= 0; l--) {
     QuadTreeLevel* level = levels[l];
     for (QuadTreeNode* node : level->nodes) {
       if (node->is_leaf
           && node->src_dof_lists.original_box.size() +
           node->tgt_dof_lists.original_box.size() > MAX_LEAF_DOFS) {
+        for (int hh = 0; hh < 4; hh++) {
+          if (node->children[hh] != nullptr) {
+            std::cout << "leaf with children?" << std::endl;
+            exit(0);
+          }
+        }
         node_subdivide(node);
       }
     }
   }
+  // If we can consolidate nodes into their parent, do that.
   for (int l = levels.size() - 1; l >= 0; l--) {
     QuadTreeLevel* level = levels[l];
     for (QuadTreeNode* node : level->nodes) {

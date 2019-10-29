@@ -109,6 +109,36 @@ void io::write_quadtree_to_file(const std::string& filename,
 }
 
 
+void io::write_ex2_gradients_to_file(const std::string& filename,
+                                     std::vector<double> angs_and_grads) {
+  std::ofstream output;
+  output.open(filename);
+  if (output.is_open()) {
+    for (int i = 0; i < angs_and_grads.size() / 3; i++) {
+      output << angs_and_grads[3 * i] << " " << angs_and_grads[3 * i + 1] << " " <<
+             angs_and_grads[3 * i + 2] << std::endl;
+    }
+    output.close();
+  } else {
+    LOG::ERROR("failed to open output file!");
+  }
+}
+
+void io::write_ex3_flows_to_file(const std::string& filename,
+                                 std::vector<double> ang_and_flow) {
+  std::ofstream output;
+  output.open(filename);
+  if (output.is_open()) {
+    for (int i = 0; i < ang_and_flow.size() / 2; i++) {
+      output << ang_and_flow[2 * i] << " " << ang_and_flow[2 * i + 1] <<
+             std::endl;
+    }
+    output.close();
+  } else {
+    LOG::ERROR("failed to open output file!");
+  }
+}
+
 int io::parse_input_into_config(int argc, char** argv,
                                 ie_solver_config* config) {
   std::string usage = "\n\tusage: ./ie_solver "

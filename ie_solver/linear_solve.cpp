@@ -246,7 +246,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
               config.solution_dimension, config.domain_dimension);
 
   // Domain kernel init takes less time than skel, init in background
-  ie_Mat K_domain(config.domain_size * config.domain_size *
+  ie_Mat K_domain((domain_points.size() / 2)*
                   config.solution_dimension,
                   boundary->weights.size() * config.solution_dimension);
   // Initialization init;
@@ -257,8 +257,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   //                             config.solution_dimension);
   std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
                                  &K_domain, domain_points,
-                                 config.domain_size, kernel,
-                                 config.solution_dimension);
+                                 kernel, config.solution_dimension);
 
   // std::vector<unsigned int> all_inds;
   // for (unsigned int i = 0;
@@ -305,7 +304,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
       }
     }
   }
-  ie_Mat domain_solution(config.domain_size * config.domain_size *
+  ie_Mat domain_solution((domain_points.size() / 2)*
                          config.solution_dimension, 1);
   skel_factorization.U = U;
   skel_factorization.Psi = Psi;
