@@ -1,12 +1,15 @@
 // Copyright 2019 John Paul Ryan
-#ifndef IE_SOLVER_KERNEL_H_
-#define IE_SOLVER_KERNEL_H_
+#ifndef IE_SOLVER_KERNEL_KERNEL_H_
+#define IE_SOLVER_KERNEL_KERNEL_H_
 
 #include <vector>
 #include "ie_solver/boundaries/boundary.h"
 #include "ie_solver/ie_mat.h"
 #include "ie_solver/io/io.h"
 #include "ie_solver/quadtree/quadtree.h"
+
+#define NUM_PROXY_POINTS 64
+#define RADIUS_RATIO 1.5
 
 namespace ie_solver {
 
@@ -56,6 +59,14 @@ struct Kernel {
                          const std::vector<unsigned int>& J_,
                          double* timing) const;
 
+
+
+  ie_Mat make_proxy_mat(double cntr_x, double cntr_y,
+                        double r, const QuadTree * tree,
+                        const std::vector<unsigned int>& box_inds) const ;
+
+  void make_id_mat(ie_Mat* mat, const QuadTree* tree,
+                   const QuadTreeNode* node, bool strong_admissibility) const;
   // ie_Mat fast_laplace_get(const std::vector<Dof>& tgts,
   //                         const std::vector<Dof>& srcs, double* timing) const;
   // ie_Mat fast_stokes_get(const std::vector<Dof>& tgts,

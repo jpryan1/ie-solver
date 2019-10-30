@@ -9,8 +9,6 @@
 #include "ie_solver/kernel/kernel.h"
 
 #define MIN_DOFS_TO_COMPRESS 16
-#define NUM_PROXY_POINTS 64
-#define RADIUS_RATIO 1.5
 #define NODE_CAP INFINITY
 #define LEVEL_CAP INFINITY
 
