@@ -20,11 +20,11 @@ namespace ie_solver {
 // Or maybe make everything static.
 class SkelFactorization {
  public:
-  double id_tol;
+  double id_tol, make_mat_time, id_time;
   bool strong_admissibility;
   int solution_dimension, domain_dimension;
-  ie_Mat allskel_mat, allskel_mat_lu, U, Psi;
-  std::vector<lapack_int> allskel_mat_piv;
+  ie_Mat allskel_mat, allskel_mat_lu, U, Psi, S_LU;
+  std::vector<lapack_int> allskel_mat_piv, S_piv;
   std::atomic<bool> kill_factorizer;
   std::atomic<QuadTreeNode*> block_to_factorize;
 

@@ -47,7 +47,7 @@ struct QuadTreeNode {
   static unsigned int id_count;
 
   unsigned int id, level;
-  bool is_leaf, is_LU_factored = false, compressed = false;
+  bool is_leaf, X_rr_is_LU_factored = false, compressed = false;
   double side_length, compression_ratio = 0., compress_time = 0.;
 
   QuadTreeNode *tl, *tr, *bl, *br;

@@ -111,7 +111,7 @@ void print_landscapes() {
       angs_and_grads.push_back(gradient);
     }
   }
-  io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
+  // io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
 
   /////////////////////////////////////////////////////////////////////////
 
@@ -176,7 +176,7 @@ void print_landscapes() {
     ang_and_flow.push_back(flow);
   }
 
-  io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
+  // io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
 }
 
 }  // namespace ie_solver

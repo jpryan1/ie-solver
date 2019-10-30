@@ -536,6 +536,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       node->src_dof_lists.redundant = r;
     }
   }
+
   // go through all additions, find their leaves, make addition and call mark
   // function
   std::vector<bool> found(additions.size());
@@ -562,6 +563,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       }
     }
   }
+
 // go through all deletions, find their leaves, make deletion and call mark
 // function
   for (QuadTreeLevel* level : levels) {
@@ -579,13 +581,17 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       }
     }
   }
+
   boundary->points = perturbed_boundary.points;
   boundary->normals = perturbed_boundary.normals;
   boundary->weights = perturbed_boundary.weights;
   boundary->curvatures = perturbed_boundary.curvatures;
   boundary->boundary_values = perturbed_boundary.boundary_values;
-  boundary->perturbation_parameters[0] =
-    perturbed_boundary.perturbation_parameters[0];
+  boundary->perturbation_parameters.clear();
+  for (int i = 0; i < boundary->perturbation_parameters.size(); i++) {
+    boundary->perturbation_parameters.push_back(
+      perturbed_boundary.perturbation_parameters[0]);
+  }
   boundary->holes = perturbed_boundary.holes;
 
   // If any nodes are bursting now, subdivide them.

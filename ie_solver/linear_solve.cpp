@@ -270,7 +270,6 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   // }
   // ie_Mat all = kernel(all_inds, all_inds);
   // std::cout << "Condition number: " << all.condition_number() << std::endl;
-  skel_factorization.skeletonize(kernel, quadtree);
 
   ie_Mat f = boundary->boundary_values;
 
@@ -312,6 +311,8 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                          config.solution_dimension, 1);
   skel_factorization.U = U;
   skel_factorization.Psi = Psi;
+  skel_factorization.skeletonize(kernel, quadtree);
+
   init_domain_kernel.join();
   schur_solve(skel_factorization, *quadtree, U, Psi, f, K_domain, U_forward,
               &domain_solution);
