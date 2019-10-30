@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 fig = plt.figure(figsize=(12,12))
-
+RESOLUTION = 3
 WINDOW_SIZE = 140*5
 IMAGE_SIZE = 100*5
 CMAP = copy(matplotlib.cm.hot)
@@ -140,8 +140,8 @@ def draw_solution(img, points):
     if(np.isnan(point[2]) or point[2] == 0):
       img[pixel[0]][pixel[1]] = MASKED_VALUE
     else:
-      for i in range(-8,9):
-        for j in range(-8,9):
+      for i in range(-RESOLUTION+1,RESOLUTION):
+        for j in range(-RESOLUTION+1,RESOLUTION):
           
           x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT
           y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
@@ -227,7 +227,7 @@ def animate(i):
       stokes_plot.set_UVC(stokes_data[2], stokes_data[3], stokes_data[4])
     image_plot.set_array(images[idx].T)
     return patches
-ani = animation.FuncAnimation(fig, animate, interval=25, blit=True)
+ani = animation.FuncAnimation(fig, animate, interval=100, blit=True)
 # ani.save('movie.mp4', writer=writer)
 plt.show()
 

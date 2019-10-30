@@ -52,6 +52,10 @@ struct io {
   static void write_quadtree_to_file(const std::string& filename,
                                      const QuadTree& quadtree);
 
+  static void write_ex2_gradients_to_file(const std::string& filename,
+                                          std::vector<double> angs_and_grads);
+  static void write_ex3_flows_to_file(const std::string& filename,
+                                      std::vector<double> ang_and_flow);
   static int parse_input_into_config(int argc, char** argv,
                                      ie_solver_config* config);
 };
