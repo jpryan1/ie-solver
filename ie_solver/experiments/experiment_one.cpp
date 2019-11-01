@@ -29,7 +29,7 @@ ie_solver_config get_experiment_one_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = 30000;
+  config.num_boundary_points = pow(2, 18);
   config.domain_size = 49;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
@@ -78,7 +78,6 @@ void run_experiment1() {
 
     ie_Mat solution = boundary_integral_solve(config, &quadtree,
                       domain_points);
-
     io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)
                                + ".txt", solution, domain_points,
                                config.solution_dimension);

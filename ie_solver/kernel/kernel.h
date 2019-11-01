@@ -67,6 +67,17 @@ struct Kernel {
 
   void make_id_mat(ie_Mat* mat, const QuadTree* tree,
                    const QuadTreeNode* node, bool strong_admissibility) const;
+
+
+  ie_Mat fast_stokes_proxy_get(const std::vector<double> & pxy_p,
+                               const std::vector<double> & pxy_n,
+                               double pxy_c, double pxy_w,
+                               const std::vector<unsigned int> & box_inds) const ;
+  ie_Mat fast_laplace_proxy_get(const std::vector<double> & pxy_p,
+                                const std::vector<double> & pxy_n,
+                                double pxy_c, double pxy_w,
+                                const std::vector<unsigned int> & box_inds) const ;
+
   // ie_Mat fast_laplace_get(const std::vector<Dof>& tgts,
   //                         const std::vector<Dof>& srcs, double* timing) const;
   // ie_Mat fast_stokes_get(const std::vector<Dof>& tgts,

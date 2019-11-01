@@ -181,12 +181,15 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   double skel_start = omp_get_wtime();
   int node_counter = 0;
-
   unsigned int lvls = tree->levels.size();
   int active_dofs = tree->boundary->points.size() / 2;
   make_mat_time = 0.0;
   id_time = 0.0;
-  for (unsigned int level = lvls - 1; level > 1; level--) {
+  schur_time = 0;
+  ie_Mat::proxy_time = 0.;
+  ie_Mat::kernel_time = 0.;
+
+  for (unsigned int level = lvls - 1; level > 0; level--) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
@@ -215,7 +218,11 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
       if (redundants == 0) {
         continue;
       }
+      double scstart = omp_get_wtime();
       schur_update(kernel, current_node);
+
+      double scend = omp_get_wtime();
+      schur_time += (scend - scstart) ;
       double node_end = omp_get_wtime();
       current_node->compress_time = node_end - node_start;
     }
@@ -232,12 +239,10 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     //
   }
+  double lustrt = omp_get_wtime();
 
   // check_factorization_against_kernel(kernel, tree);
-  double skel_end = omp_get_wtime();
-  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
-  std::cout << "timing: make_mat " << make_mat_time << std::endl;
-  std::cout << "timing: id " << id_time << std::endl;
+
   if (U.width() == 0) {
     allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
     return;
@@ -367,6 +372,20 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
                   - ident - B_Dinv_C_nonzero);
   S.LU_factorize(&S_LU, &S_piv);
   // S.left_multiply_inverse(M, &y);
+  double skel_end = omp_get_wtime();
+  double slutime = skel_end - lustrt;
+  double percent_not_make = (id_time + schur_time + slutime) /
+                            (slutime + id_time + schur_time +
+                             make_mat_time);
+  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+  std::cout << "timing: id_time " << id_time << std::endl;
+  std::cout << "timing: make_mat_time " << make_mat_time << std::endl;
+  // std::cout << "percent out of make " << percent_not_make << std::endl;
+  // std::cout << "true skel " << (skel_end - skel_start)*percent_not_make <<
+  //           std::endl;
+  // std::cout << "timing: slu " << slutime << std::endl;
+  std::cout << "pxy krn " << ie_Mat::proxy_time << " " <<
+            ie_Mat::kernel_time << " " << std::endl;
 
 }
 

@@ -14,8 +14,13 @@
 namespace ie_solver {
 
 struct InteractionLists {
-  std::vector<unsigned int> original_box, active_box, redundant, skel, near,
-      skelnear, permutation;
+  std::vector<unsigned int> original_box,
+      active_box,
+      redundant,
+      skel,
+      near,
+      skelnear,
+      permutation;
 
   void set_rs_ranges(const std::vector<unsigned int>& prm, unsigned int sk,
                      unsigned int rd) {

@@ -73,7 +73,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   QuadTreeLevel* level_one = new QuadTreeLevel();
   level_one->nodes.push_back(root);
   levels.push_back(level_one);
-  // all near and far ranges should be taken care of by this guy
+
   for (unsigned int i = 0; i < boundary->points.size(); i += domain_dimension) {
     recursive_add(this->root, boundary->points[i], boundary->points[i + 1],
                   i / domain_dimension, true);
@@ -82,41 +82,35 @@ void QuadTree::initialize_tree(Boundary* boundary_,
     recursive_add(this->root, domain_points[i], domain_points[i + 1],
                   i / domain_dimension, false);
   }
+
   // make neighbor lists in a stupid way
   for (unsigned int level = 0; level < levels.size(); level++) {
     QuadTreeLevel* current_level = levels[level];
     for (unsigned int k = 0; k < current_level->nodes.size(); k++) {
       QuadTreeNode* node_a = current_level->nodes[k];
-      // if (level > no_proxy_level && node_a->src_dof_lists.original_box.size()
-      //     > 0.25 * solution_dimension *
-      //     (boundary->points.size() / domain_dimension)) {
-      //   no_proxy_level = level;
-      //   std::cout << "No proxy level "
-      //             << no_proxy_level << " threshold " <<
-      //             0.25 * solution_dimension *
-      //             (boundary->points.size() /
-      //               domain_dimension)  << " total " <<
-      //             node_a->src_dof_lists.original_box.size()
-      //             << std::endl;
-      // } else {
-      //   std::cout << level << " " << no_proxy_level << std::endl;
-      //   std::cout << node_a->src_dof_lists.original_box.size()  <<
-      //  " > " << 0.25 *
-      //             solution_dimension * (boundary->points.size() /
-      //                                   domain_dimension) << std::endl;
-      // }
-      // first check against all nodes on this level
-      for (unsigned int l = k + 1; l < current_level->nodes.size(); l++) {
-        QuadTreeNode* node_b = current_level->nodes[l];
-        double dist = sqrt(pow(node_a->corners[0] - node_b->corners[0], 2)
-                           + pow(node_a->corners[1] - node_b->corners[1], 2));
-        // just need to check if the distance of the bl corners
-        // is <=s*sqrt(2)
-        if (dist < node_a->side_length * sqrt(2) + 1e-5) {
-          node_a->neighbors.push_back(node_b);
-          node_b->neighbors.push_back(node_a);
+
+      // Each node is neighbors with all its siblings
+      if (node_a->parent != nullptr) {
+        for (QuadTreeNode* sibling : node_a->parent->children) {
+          if (sibling->id != node_a->id) node_a->neighbors.push_back(sibling);
+        }
+
+        // Now check all parents' neighbors' children
+        for (QuadTreeNode* parents_neighbor : node_a->parent->neighbors) {
+          for (QuadTreeNode* cousin : parents_neighbor->children) {
+            if (cousin == nullptr) continue;
+            if (cousin->level != node_a->level) continue;
+            double dist = sqrt(pow(node_a->corners[0] - cousin->corners[0], 2)
+                               + pow(node_a->corners[1] - cousin->corners[1], 2));
+            // just need to check if the distance of the bl corners
+            // is <=s*sqrt(2)
+            if (dist < node_a->side_length * sqrt(2) + 1e-5) {
+              node_a->neighbors.push_back(cousin);
+            }
+          }
         }
       }
+
       // now if it is a leaf, check against nodes in all subsequent levels
       if (node_a->is_leaf) {
         for (unsigned int n = 0; n < node_a->neighbors.size(); n++) {
@@ -134,6 +128,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
       }
     }
   }
+
   double tree_end_time = omp_get_wtime();
   std::cout << "timing: tree_init " << (tree_end_time - tree_start_time) <<
             std::endl;
@@ -317,8 +312,7 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
   node->children[1] = tl;
   node->children[2] = tr;
   node->children[3] = br;
-  // in the stokes case, the original_box contains pairs of consecutive
-  // indices into the kernel matrix. therefore, its size had better be even
+
   // Now we bring the indices from the parent's box down into its childrens
   // boxes
   for (unsigned int index = 0; index < node->src_dof_lists.original_box.size();
