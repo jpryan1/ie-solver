@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <fstream>
 #include <cassert>
+#include <algorithm>
 #include <cmath>
 #include <unordered_map>
 #include <iostream>
@@ -451,10 +452,6 @@ void QuadTree::consolidate_node(QuadTreeNode* node) {
     }
   }
 
-  if (node->dofs_below != node->src_dof_lists.original_box.size()) {
-    std::cout << "mismatch" << std::endl;
-    exit(0);
-  }
   node->tl = nullptr;
   node->tr = nullptr;
   node->bl = nullptr;
@@ -728,6 +725,10 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
 
   std::cout << "After perturb, " << num_compressed << " of " << num_total <<
             " are compressed." << std::endl;
+  std::cout << "level sizes" << std::endl;
+  for (int l = 0; l < levels.size(); l++) {
+    std::cout << levels[l]->nodes.size() << std::endl;
+  }
 }
 
 
