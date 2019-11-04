@@ -13,15 +13,7 @@
 #include "ie_solver/kernel/kernel.h"
 #include "ie_solver/log.h"
 #include "ie_solver/linear_solve.h"
-#include "ie_solver/boundaries/boundary.h"
-#include "ie_solver/boundaries/circle.h"
-#include "ie_solver/boundaries/rounded_square.h"
-#include "ie_solver/boundaries/rounded_square_with_bump.h"
-#include "ie_solver/boundaries/squiggly.h"
-#include "ie_solver/boundaries/annulus.h"
-#include "ie_solver/boundaries/cubic_spline.h"
 #include "ie_solver/boundaries/ex1boundary.h"
-#include "ie_solver/boundaries/ex3boundary.h"
 
 namespace ie_solver {
 
@@ -29,7 +21,7 @@ ie_solver_config get_experiment_one_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = 30000;
+  config.num_boundary_points = pow(2, 18);
   config.domain_size = 49;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
@@ -73,12 +65,12 @@ void run_experiment1() {
                                           0.5 + 0.3 * sin(ang));
     perturbed_boundary->initialize(config.num_boundary_points,
                                    config.boundary_condition);
-
+    double pstr = omp_get_wtime();
     quadtree.perturb(*perturbed_boundary.get());
-
+    double pend = omp_get_wtime();
+    std::cout << "timing: qtree_perturb " << (pend - pstr) << std::endl;
     ie_Mat solution = boundary_integral_solve(config, &quadtree,
                       domain_points);
-
     io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)
                                + ".txt", solution, domain_points,
                                config.solution_dimension);

@@ -139,6 +139,7 @@ void io::write_ex3_flows_to_file(const std::string& filename,
   }
 }
 
+// TODO(John) this needs to be updated following removal of STOKES
 int io::parse_input_into_config(int argc, char** argv,
                                 ie_solver_config* config) {
   std::string usage = "\n\tusage: ./ie_solver "
@@ -146,7 +147,7 @@ int io::parse_input_into_config(int argc, char** argv,
                       "-boundary {CIRCLE|ROUNDED_SQUARE|"
                       "ROUNDED_SQUARE_WITH_BUMP|SQUIGGLY|CUBIC_SPLINE|ANNULUS "
                       "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
-                      "BUMP_FUNCTION|STOKES} "
+                      "BUMP_FUNCTION} "
                       "-N {number of nodes} "
                       "-D {side length of square domain grid} "
                       "-e {ID error tolerance} "
@@ -229,17 +230,10 @@ int io::parse_input_into_config(int argc, char** argv,
             BoundaryCondition::SINGLE_ELECTRON;
         } else if (!strcmp(argv[i + 1], "ALL_ONES")) {
           config->boundary_condition = BoundaryCondition::ALL_ONES;
-        } else if (!strcmp(argv[i + 1], "BUMP_FUNCTION")) {
-          config->boundary_condition =
-            BoundaryCondition::BUMP_FUNCTION;
-        } else if (!strcmp(argv[i + 1], "STOKES")) {
-          config->boundary_condition =
-            BoundaryCondition::STOKES;
         } else {
           LOG::ERROR("Unrecognized boundary_condition: " +
                      std::string(argv[i + 1]) + "\n Acceptable "
-                     "boundary_conditions: SINGLE_ELECTRON, ALL_ONES,"
-                     "BUMP_FUNCTION, STOKES");
+                     "boundary_conditions: SINGLE_ELECTRON, ALL_ONES");
           return -1;
         }
         boundary_condition_name = argv[i + 1];
@@ -251,13 +245,8 @@ int io::parse_input_into_config(int argc, char** argv,
     }
   }
 
-  if (config->boundary_condition
-      ==  ie_solver::BoundaryCondition::STOKES
-      || config->pde == ie_solver::ie_solver_config::STOKES) {
-    config->boundary_condition =
-      ie_solver::BoundaryCondition::STOKES;
+  if (config->pde == ie_solver::ie_solver_config::STOKES) {
     config->pde = ie_solver::ie_solver_config::STOKES;
-    boundary_condition_name = "STOKES";
     pde_name = "STOKES";
     config->solution_dimension = 2;
   }

@@ -89,9 +89,7 @@ void CubicBoundary::find_real_roots_of_cubic(const std::vector<double>& y_cubic,
 }
 
 
-void CubicBoundary::interpolate(int bc_index, bool is_interior,
-                                int nodes_per_spline,
-                                BoundaryCondition boundary_condition,
+void CubicBoundary::interpolate(bool is_interior, int nodes_per_spline,
                                 const std::vector<std::vector<double>>&
                                 x0_cubics,
                                 const std::vector<std::vector<double>>&
@@ -102,7 +100,7 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
   // Curvatures = (x'y'' - x''y') / (x'^2 + y'^2)^1.5
   // assert positive curvature when testing pl0x
   // Weights = estimate integral with uniform quadrature (quad_size)
-  int start = bc_index;
+  int start = points.size() / 2;
   int num_spline_points = x0_cubics.size();
   int quad_size = 10;
   std::vector<double> quad(2 * quad_size * num_spline_points
@@ -158,66 +156,9 @@ void CubicBoundary::interpolate(int bc_index, bool is_interior,
         normals.push_back(y_prime);
         normals.push_back(-x_prime);
       }
-
-      switch (boundary_condition) {
-        case BoundaryCondition::SINGLE_ELECTRON:
-          boundary_values.set(bc_index, 0, log(sqrt(pow(x + 3, 2) + pow(y + 2,
-                                               2))) / (2 * M_PI));
-          break;
-        case BoundaryCondition::ALL_ONES:
-          boundary_values.set(bc_index, 0, 1.0);
-          break;
-        case BoundaryCondition::ALL_NEG_ONES:
-          boundary_values.set(bc_index, 0, -1.);
-          break;
-        case BoundaryCondition::ALL_ZEROS:
-          boundary_values.set(bc_index, 0, 0.);
-          break;
-        case BoundaryCondition::BUMP_FUNCTION: {
-          double N = boundary_values.height();
-          // This x_val is -1 at i=0 and +1 at i=N-1
-          double x_val = ((2.0 * i + 1.0 - N) / (N - 1.0));
-          boundary_values.set(bc_index, 0, exp(-1.0 / (1.0 - pow(x_val, 2))));
-          break;
-        }
-        case BoundaryCondition::STOKES:
-          boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index + 1]);
-          boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index]);
-          break;
-        case TANGENT_VEC:
-          boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index + 1]);
-          boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index]);
-          break;
-        case REVERSE_TANGENT_VEC:
-          boundary_values.set(2 * bc_index, 0, normals[2 * bc_index + 1]);
-          boundary_values.set(2 * bc_index + 1, 0, -normals[2 * bc_index]);
-          break;
-        case NORMAL_VEC:
-          boundary_values.set(2 * bc_index, 0, normals[2 * bc_index ]);
-          boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index + 1]);
-          break;
-        case REVERSE_NORMAL_VEC:
-          boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index ]);
-          boundary_values.set(2 * bc_index + 1, 0, -normals[2 * bc_index + 1]);
-          break;
-        case LEFT_TO_RIGHT_FLOW:
-          if (x < -0.99 || x > 1.99) {
-            boundary_values.set(2 * bc_index, 0, 1);
-            boundary_values.set(2 * bc_index + 1, 0, 0);
-          } else {
-            boundary_values.set(2 * bc_index, 0, 0);
-            boundary_values.set(2 * bc_index + 1, 0, 0);
-          }
-          break;
-        case NO_SLIP:
-          boundary_values.set(2 * bc_index, 0, 0.);
-          boundary_values.set(2 * bc_index + 1, 0, 0.);
-          break;
-      }
-      bc_index++;
     }
   }
-  int end = bc_index;
+  int end = points.size() / 2;;
 
   std::vector<double> distances(end - start);
   int d_idx = 0;

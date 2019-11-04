@@ -115,13 +115,6 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
     circle2 = holes[3];
   }
 
-  int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE +
-                  2 * STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE
-                  + 2 * NUM_CIRCLE_POINTS;
-  boundary_values = ie_Mat(2 * total_num, 1);
-
-  int bc_index = 0;
-
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
   get_spline_points(&outer_x0_spline_points, &outer_x1_spline_points);
 
@@ -129,9 +122,7 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(outer_x0_spline_points, outer_x1_spline_points,
              &outer_x0_cubics, &outer_x1_cubics);
 
-  interpolate(bc_index, false, OUTER_NODES_PER_SPLINE , TANGENT_VEC,
-              outer_x0_cubics, outer_x1_cubics);
-  bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
+  interpolate(false, OUTER_NODES_PER_SPLINE, outer_x0_cubics, outer_x1_cubics);
   num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
   std::vector<double> star_x0_points, star_x1_points;
   get_star_spline_points(star1.center.a[0], star1.center.a[1], &star_x0_points,
@@ -141,9 +132,7 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(star_x0_points, star_x1_points,
              &star_x0_cubics, &star_x1_cubics);
 
-  interpolate(bc_index, true, STAR_NODES_PER_SPLINE, REVERSE_NORMAL_VEC,
-              star_x0_cubics, star_x1_cubics);
-  bc_index += STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+  interpolate(true, STAR_NODES_PER_SPLINE, star_x0_cubics, star_x1_cubics);
 
   std::vector<double> star2_x0_points, star2_x1_points;
   get_star_spline_points(star2.center.a[0], star2.center.a[1], &star2_x0_points,
@@ -153,9 +142,7 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(star2_x0_points, star2_x1_points,
              &star2_x0_cubics, &star2_x1_cubics);
 
-  interpolate(bc_index, true, STAR_NODES_PER_SPLINE, NORMAL_VEC,
-              star2_x0_cubics, star2_x1_cubics);
-  bc_index += STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+  interpolate(true, STAR_NODES_PER_SPLINE, star2_x0_cubics, star2_x1_cubics);
 
   for (int i = 0; i < NUM_CIRCLE_POINTS; i++) {
     double ang = (2.0 * M_PI * i) / NUM_CIRCLE_POINTS;
@@ -165,9 +152,6 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
     normals.push_back(-sin(ang));
     curvatures.push_back(-1.0 / circle1.radius);
     weights.push_back(2.0 * M_PI * circle1.radius / NUM_CIRCLE_POINTS);
-    boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index ]);
-    boundary_values.set(2 * bc_index + 1, 0, -normals[2 * bc_index + 1]);
-    bc_index++;
   }
 
   for (int i = 0; i < NUM_CIRCLE_POINTS; i++) {
@@ -178,9 +162,24 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
     normals.push_back(-sin(ang));
     curvatures.push_back(-1.0 / circle2.radius);
     weights.push_back(2.0 * M_PI * circle2.radius / NUM_CIRCLE_POINTS);
-    boundary_values.set(2 * bc_index, 0, normals[2 * bc_index ]);
-    boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index + 1]);
-    bc_index++;
+  }
+
+  if (bc == BoundaryCondition::DEFAULT) {
+    boundary_values = ie_Mat(weights.size() * 2, 1);
+    int b1 = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
+    int b2 = b1 + STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+    int b3 = b2 + STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+    int b4 = b3 + NUM_CIRCLE_POINTS;
+    int b5 = b4 + NUM_CIRCLE_POINTS;
+    apply_boundary_condition(0, b1, TANGENT_VEC);
+    apply_boundary_condition(b1, b2, REVERSE_NORMAL_VEC);
+    apply_boundary_condition(b2, b3, NORMAL_VEC);
+    apply_boundary_condition(b3, b4, REVERSE_NORMAL_VEC);
+    apply_boundary_condition(b4, b5, NORMAL_VEC);
+
+  } else {
+    set_boundary_values_size(bc);
+    apply_boundary_condition(0, weights.size(), bc);
   }
 }
 

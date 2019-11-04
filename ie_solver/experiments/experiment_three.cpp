@@ -13,14 +13,6 @@
 #include "ie_solver/kernel/kernel.h"
 #include "ie_solver/log.h"
 #include "ie_solver/linear_solve.h"
-#include "ie_solver/boundaries/boundary.h"
-#include "ie_solver/boundaries/circle.h"
-#include "ie_solver/boundaries/rounded_square.h"
-#include "ie_solver/boundaries/rounded_square_with_bump.h"
-#include "ie_solver/boundaries/squiggly.h"
-#include "ie_solver/boundaries/annulus.h"
-#include "ie_solver/boundaries/cubic_spline.h"
-#include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
 
 namespace ie_solver {

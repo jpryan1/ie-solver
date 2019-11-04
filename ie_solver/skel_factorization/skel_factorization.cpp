@@ -41,10 +41,9 @@ int SkelFactorization::id_compress(const Kernel& kernel,
   assert(node->src_dof_lists.active_box.size() > 0 &&
          "Num of DOFs must be positive in InterpolativeDecomposition.");
   // TODO(John) better variable name
-  ie_Mat pxy;
 
   double make_start = omp_get_wtime();
-  kernel.make_id_mat(&pxy, tree, node, strong_admissibility);
+  ie_Mat pxy = kernel.get_id_mat(tree, node, strong_admissibility);
   double make_end = omp_get_wtime();
   make_mat_time += (make_end - make_start);
   if (pxy.height() == 0) {
@@ -181,12 +180,15 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   double skel_start = omp_get_wtime();
   int node_counter = 0;
-
   unsigned int lvls = tree->levels.size();
   int active_dofs = tree->boundary->points.size() / 2;
   make_mat_time = 0.0;
   id_time = 0.0;
-  for (unsigned int level = lvls - 1; level > 1; level--) {
+  schur_time = 0;
+  ie_Mat::proxy_time = 0.;
+  ie_Mat::kernel_time = 0.;
+
+  for (unsigned int level = lvls - 1; level > 0; level--) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
@@ -215,7 +217,11 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
       if (redundants == 0) {
         continue;
       }
+      double scstart = omp_get_wtime();
       schur_update(kernel, current_node);
+
+      double scend = omp_get_wtime();
+      schur_time += (scend - scstart) ;
       double node_end = omp_get_wtime();
       current_node->compress_time = node_end - node_start;
     }
@@ -232,14 +238,25 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     //
   }
+  double lustrt = omp_get_wtime();
 
   // check_factorization_against_kernel(kernel, tree);
-  double skel_end = omp_get_wtime();
-  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
-  std::cout << "timing: make_mat " << make_mat_time << std::endl;
-  std::cout << "timing: id " << id_time << std::endl;
+  std::cout << "timing: id_time " << id_time << std::endl;
+  std::cout << "timing: make_mat_time " << make_mat_time << std::endl;
+  std::cout << "timing: schur_time " << schur_time << std::endl;
+  std::cout << "pxy krn " << ie_Mat::proxy_time << " " <<
+            ie_Mat::kernel_time << " " << std::endl;
+
   if (U.width() == 0) {
+    double lustrt = omp_get_wtime();
     allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
+
+    double skel_end = omp_get_wtime();
+    std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+
+    double slutime = skel_end - lustrt;
+    std::cout << "timing: slu " << slutime << std::endl;
+
     return;
   }
   /////////////////////////////////////////////////////////////////////
@@ -366,7 +383,11 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   S.set_submatrix(allskel.size(), S.height(), allskel.size(), S.width(),
                   - ident - B_Dinv_C_nonzero);
   S.LU_factorize(&S_LU, &S_piv);
-  // S.left_multiply_inverse(M, &y);
+
+  double skel_end = omp_get_wtime();
+  double slutime = skel_end - lustrt;
+  std::cout << "timing: slu " << slutime << std::endl;
+  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 
 }
 

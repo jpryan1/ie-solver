@@ -19,8 +19,6 @@ enum BoundaryCondition {
   ALL_ONES,
   ALL_NEG_ONES,
   ALL_ZEROS,
-  BUMP_FUNCTION,
-  STOKES,
   TANGENT_VEC,
   REVERSE_TANGENT_VEC,
   NORMAL_VEC,
@@ -49,7 +47,11 @@ class Boundary {
   };
 
   BoundaryShape boundary_shape;
-  BoundaryCondition boundary_condition;
+
+  void set_boundary_values_size(BoundaryCondition bc);
+  void apply_boundary_condition(int start_idx,
+                                int end_idx,
+                                BoundaryCondition bc);
   virtual void initialize(int n, BoundaryCondition bc) = 0;
   virtual bool is_in_domain(const Vec2& a) = 0;
 };
@@ -67,8 +69,7 @@ class CubicBoundary : public Boundary {
                   std::vector<std::vector<double>>* x0_cubics,
                   std::vector<std::vector<double>>* x1_cubics);
 
-  void interpolate(int bc_index, bool is_interior,
-                   int nodes_per_spline, BoundaryCondition boundary_condition,
+  void interpolate(bool is_interior, int nodes_per_spline,
                    const std::vector<std::vector<double>>& x0_cubics,
                    const std::vector<std::vector<double>>& x1_cubics);
 

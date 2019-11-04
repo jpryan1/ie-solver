@@ -19,7 +19,8 @@ namespace ie_solver {
 struct ie_Mat {
   // storage is column major, so by default lda is the height.
   double *mat;
-  static double set_time;
+  static double proxy_time, kernel_time;
+
   unsigned int lda_, height_, width_;
   ie_Mat();
   ~ie_Mat();
