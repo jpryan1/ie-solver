@@ -413,35 +413,35 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
 }
 
 
-void QuadTree::consolidate_node(QuadTreeNode* node){
+void QuadTree::consolidate_node(QuadTreeNode* node) {
 
   // Need to
   //  Move leaf child dofs into my original box
   //  erase all descendents from levels
   //  delete immediate descentdents
-  
+
   node->src_dof_lists.original_box.clear();
 
   // This can be parallelized
   std::vector<QuadTreeNode*> remove_from_lvl;
   std::vector<QuadTreeNode*> queue;
   queue.push_back(node);
-  for(int i=0; i<queue.size(); i++){
+  for (int i = 0; i < queue.size(); i++) {
     QuadTreeNode* current = queue[i];
-    if(current->is_leaf){
+    if (current->is_leaf) {
       node->src_dof_lists.original_box.insert(
         node->src_dof_lists.original_box.end(),
         current->src_dof_lists.original_box.begin(),
         current->src_dof_lists.original_box.end());
-    }else{
-      for(QuadTreeNode* child : current->children){
+    } else {
+      for (QuadTreeNode* child : current->children) {
         queue.push_back(child);
       }
     }
     remove_from_lvl.push_back(current);
   }
 
-  for(QuadTreeNode* erase : remove_from_lvl){
+  for (QuadTreeNode* erase : remove_from_lvl) {
     QuadTreeLevel* erase_level = levels[erase->level];
     for (int i = 0; i < erase_level->nodes.size(); i++) {
       if (erase_level->nodes[i]->id == erase->id) {
@@ -450,9 +450,9 @@ void QuadTree::consolidate_node(QuadTreeNode* node){
       }
     }
   }
-  
-  if(node->dofs_below != node->src_dof_lists.original_box.size()){
-    std::cout<<"mismatch"<<std::endl;
+
+  if (node->dofs_below != node->src_dof_lists.original_box.size()) {
+    std::cout << "mismatch" << std::endl;
     exit(0);
   }
   node->tl = nullptr;
@@ -480,18 +480,18 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   std::vector<double> new_points = perturbed_boundary.points;
   // now create mapping of new_points to their point index in the new vec
   std::unordered_map<pair, int, boost::hash<pair>> point_to_new_index;
-  
+
   double a = omp_get_wtime();
   for (unsigned int i = 0; i < new_points.size(); i += 2) {
     pair new_point(new_points[i], new_points[i + 1]);
     point_to_new_index[new_point] = i / 2;
   }
-  
+
   std::vector<bool> found_in_old(new_points.size() / 2);
   for (unsigned int i = 0; i < found_in_old.size(); i++) {
     found_in_old[i] = false;
   }
-  
+
   // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
   for (unsigned int i = 0; i < old_points.size(); i += 2) {
@@ -512,7 +512,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       additions.push_back(i);
     }
   }
-  
+
   int num_compressed = 0;
   int num_total = 0;
   for (QuadTreeLevel* level : levels) {
@@ -523,9 +523,9 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       }
     }
   }
-  
-    double b = omp_get_wtime();
-  std::cout<<"Phase a "<<(b-a)<<std::endl;
+
+  double b = omp_get_wtime();
+  std::cout << "Phase a " << (b - a) << std::endl;
   std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
             " are compressed." << std::endl;
   // go through all leaf original box vectors and apply mapping.
@@ -534,8 +534,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   //   1) unmarked, in which case the below is a perfectly good mapping
   //   2) marked non-leaf, the below is irrelevant, everything will be dumped
   //   3) marked leaf, only the leaf portion of the below is relevant.
-    for(QuadTreeLevel* level : levels){
-      for (QuadTreeNode* node : level->nodes) {
+  for (QuadTreeLevel* level : levels) {
+    for (QuadTreeNode* node : level->nodes) {
       std::vector<unsigned int> ob, ab, s, r, sn, n;
       if (node->is_leaf) {
         for (unsigned int idx : node->src_dof_lists.original_box) {
@@ -547,7 +547,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
                          + idx % solution_dimension);
           }
         }
-
         node->src_dof_lists.original_box = ob;
       }
       for (unsigned int idx : node->src_dof_lists.active_box) {
@@ -592,9 +591,9 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       node->src_dof_lists.redundant = r;
     }
   }
-  
+
   double c = omp_get_wtime();
-  std::cout<<"Phase b "<<(c-b)<<std::endl;
+  std::cout << "Phase b " << (c - b) << std::endl;
 
   // go through all additions, find their leaves, make addition and call mark
   // function
@@ -603,19 +602,19 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     double newx = new_points[2 * additions[i]];
     double newy = new_points[2 * additions[i] + 1];
     QuadTreeNode* current = root;
-    while(!current->is_leaf){
+    while (!current->is_leaf) {
       double midx = ((current->corners[6] - current->corners[0]) / 2.0)
-                + current->corners[0];
+                    + current->corners[0];
       double midy = ((current->corners[3] - current->corners[1]) / 2.0)
-                + current->corners[1];
+                    + current->corners[1];
       if (newx < midx && newy < midy) {
-         current = current->bl;
+        current = current->bl;
       } else if (newx < midx && newy >= midy) {
-        current=current->tl;
+        current = current->tl;
       } else if (newx >= midx && newy < midy) {
-        current=current->br;
+        current = current->br;
       } else {
-        current=current->tr;
+        current = current->tr;
       }
     }
     for (int j = 0; j < solution_dimension; j++) {
@@ -625,24 +624,23 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     maybe_bursting.push_back(current);
     mark_neighbors_and_parents(current);
   }
-  
+
   double d = omp_get_wtime();
-  std::cout<<"Phase c "<<(d-c)<<std::endl;
+  std::cout << "Phase c " << (d - c) << std::endl;
 
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
-      if(node->is_leaf){
+      if (node->is_leaf) {
         node->dofs_below = node->src_dof_lists.original_box.size();
-      }else{
+      } else {
         node->dofs_below = 0;
       }
     }
   }
-  
-  for (int l = levels.size()-1; l>=1; l--) {
+  for (int l = levels.size() - 1; l >= 1; l--) {
     QuadTreeLevel* level = levels[l];
     for (QuadTreeNode* node : level->nodes) {
-      node->parent->dofs_below+=node->dofs_below;
+      node->parent->dofs_below += node->dofs_below;
     }
   }
 
@@ -656,34 +654,31 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     double oldy = old_points[2 * deletions[i] + 1];
     QuadTreeNode* current = root;
     bool path_marked = false;
-    while(!current->is_leaf){
-     
-      if(current->dofs_below < MAX_LEAF_DOFS && !path_marked){
-        path_marked=true;
+    while (!current->is_leaf) {
+      if (current->dofs_below < MAX_LEAF_DOFS && !path_marked) {
+        path_marked = true;
         sparse[current] = true;
       }
       double midx = ((current->corners[6] - current->corners[0]) / 2.0)
-                + current->corners[0];
+                    + current->corners[0];
       double midy = ((current->corners[3] - current->corners[1]) / 2.0)
-                + current->corners[1];
+                    + current->corners[1];
       if (oldx < midx && oldy < midy) {
-         current = current->bl;
+        current = current->bl;
       } else if (oldx < midx && oldy >= midy) {
-        current=current->tl;
+        current = current->tl;
       } else if (oldx >= midx && oldy < midy) {
-        current=current->br;
+        current = current->br;
       } else {
-        current=current->tr;
+        current = current->tr;
       }
     }
-    
-    if(current->dofs_below < MAX_LEAF_DOFS && !path_marked){
+
+    if (current->dofs_below < MAX_LEAF_DOFS && !path_marked) {
       sparse[current] = true;
     }
     mark_neighbors_and_parents(current);
   }
-  
-
 
   boundary->points = perturbed_boundary.points;
   boundary->normals = perturbed_boundary.normals;
@@ -697,9 +692,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   }
   boundary->holes = perturbed_boundary.holes;
 
-    double e = omp_get_wtime();
-  std::cout<<"Phase d "<<(e-d)<<std::endl;
-
+  double e = omp_get_wtime();
+  std::cout << "Phase d " << (e - d) << std::endl;
 
   // If any nodes are bursting now, subdivide them.
   for (QuadTreeNode* node : maybe_bursting) {
@@ -710,36 +704,30 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
   // If we can consolidate nodes into their parent, do that.
-  
+
   double f = omp_get_wtime();
-  std::cout<<"Phase e "<<(f-e)<<std::endl;
+  std::cout << "Phase e " << (f - e) << std::endl;
 
-
-  for ( auto it = sparse.begin(); it != sparse.end(); ++it ){
+  for (auto it = sparse.begin(); it != sparse.end(); ++it) {
     consolidate_node(it->first);
   }
 
   double g = omp_get_wtime();
-  std::cout<<"Phase f "<<(g-f)<<std::endl;
+  std::cout << "Phase f " << (g - f) << std::endl;
 
   num_compressed = 0;
   num_total = 0;
-  int tmp_dofs=0;
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
       num_total++;
-      if(node->is_leaf){
-        tmp_dofs+=node->src_dof_lists.original_box.size();
-        if(node->src_dof_lists.original_box.size()>MAX_LEAF_DOFS){
-          std::cout<<"FAIL"<<std::endl;
-          exit(0);
-        }
-      }
       if (node->compressed) {
         num_compressed++;
       }
     }
   }
+
+  std::cout << "After perturb, " << num_compressed << " of " << num_total <<
+            " are compressed." << std::endl;
 }
 
 
