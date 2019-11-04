@@ -111,13 +111,6 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
     perturbation_parameters.push_back(0);
   }
 
-  int total_num = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE
-                  + 6 * NUM_CIRCLE_POINTS
-                  + FIN_SPLINE_POINTS * FIN_NODES_PER_SPLINE;
-  boundary_values = ie_Mat(2 * total_num, 1);
-
-  int bc_index = 0;
-
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
   get_spline_points(&outer_x0_spline_points, &outer_x1_spline_points);
 
@@ -125,9 +118,8 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(outer_x0_spline_points, outer_x1_spline_points,
              &outer_x0_cubics, &outer_x1_cubics);
 
-  interpolate(bc_index, false, OUTER_NODES_PER_SPLINE, LEFT_TO_RIGHT_FLOW,
+  interpolate(false, OUTER_NODES_PER_SPLINE,// LEFT_TO_RIGHT_FLOW,
               outer_x0_cubics, outer_x1_cubics);
-  bc_index +=  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
   num_outer_nodes = OUTER_NODES_PER_SPLINE * OUTER_NUM_SPLINE_POINTS;
 
   std::vector<double> fin_x0_spline_points, fin_x1_spline_points;
@@ -137,9 +129,8 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(fin_x0_spline_points, fin_x1_spline_points,
              &fin_x0_cubics, &fin_x1_cubics);
 
-  interpolate(bc_index, true, FIN_NODES_PER_SPLINE, NO_SLIP,
+  interpolate(true, FIN_NODES_PER_SPLINE,// NO_SLIP,
               fin_x0_cubics, fin_x1_cubics);
-  bc_index +=  fin_x0_cubics.size() * FIN_NODES_PER_SPLINE;
 
   for (int i = 0; i < holes.size() - 1; i++) {
     Hole circle = holes[i];
@@ -151,12 +142,15 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
       normals.push_back(-sin(ang));
       curvatures.push_back(-1.0 / circle.radius);
       weights.push_back(2.0 * M_PI * circle.radius / NUM_CIRCLE_POINTS);
-
-      boundary_values.set(2 * bc_index, 0, 0);
-      boundary_values.set(2 * bc_index + 1, 0, 0);
-
-      bc_index++;
     }
+  }
+
+  if (bc == BoundaryCondition::DEFAULT) {
+    boundary_values = ie_Mat(weights.size() * 2, 1);
+    apply_boundary_condition(0, weights.size(), LEFT_TO_RIGHT_FLOW);
+  } else {
+    set_boundary_values_size(bc);
+    apply_boundary_condition(0, weights.size(), bc);
   }
 }
 

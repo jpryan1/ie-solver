@@ -14,15 +14,6 @@
 #include "ie_solver/kernel/kernel.h"
 #include "ie_solver/linear_solve.h"
 #include "ie_solver/log.h"
-#include "ie_solver/boundaries/boundary.h"
-#include "ie_solver/boundaries/circle.h"
-#include "ie_solver/boundaries/rounded_square.h"
-#include "ie_solver/boundaries/rounded_square_with_bump.h"
-#include "ie_solver/boundaries/squiggly.h"
-#include "ie_solver/boundaries/annulus.h"
-#include "ie_solver/boundaries/cubic_spline.h"
-#include "ie_solver/boundaries/ex1boundary.h"
-#include "ie_solver/boundaries/ex3boundary.h"
 
 
 namespace ie_solver {
@@ -210,9 +201,8 @@ void bie_time_trial(const ie_solver_config & config,
                                        config.solution_dimension,
                                        config.domain_dimension);
 
-  Kernel kernel;
-  kernel.load(boundary, std::vector<double>(), config.pde,
-              config.solution_dimension, config.domain_dimension);
+  Kernel kernel(config.solution_dimension, config.domain_dimension,
+                config.pde, boundary, std::vector<double>());
   ie_Mat f = boundary->boundary_values;
   ie_Mat mu(f.height(), 1);
   double skel_time = 0;
@@ -234,7 +224,6 @@ void bie_time_trial(const ie_solver_config & config,
 }
 
 
-
 ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                QuadTree * quadtree,
                                const std::vector<double>& domain_points) {
@@ -245,23 +234,22 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                        config.solution_dimension,
                                        config.domain_dimension);
 
-  Kernel kernel;
-  kernel.load(boundary, domain_points, config.pde,
-              config.solution_dimension, config.domain_dimension);
+  Kernel kernel(config.solution_dimension, config.domain_dimension,
+                config.pde, boundary, domain_points);
 
   // Domain kernel init takes less time than skel, init in background
-  ie_Mat K_domain((domain_points.size() / 2)*
-                  config.solution_dimension,
-                  boundary->weights.size() * config.solution_dimension);
+  // ie_Mat K_domain((domain_points.size() / 2)*
+  //                 config.solution_dimension,
+  //                 boundary->weights.size() * config.solution_dimension);
   // Initialization init;
   // std::thread th(&Task::execute, taskPtr, "Sample Task");
 
   // Initialization::InitializeDomainKernel(&K_domain, domain_points,
   //                             config.domain_size, kernel,
   //                             config.solution_dimension);
-  std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
-                                 &K_domain, domain_points,
-                                 kernel, config.solution_dimension);
+  // std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
+  //                                &K_domain, domain_points,
+  //                                kernel, config.solution_dimension);
 
   // std::vector<unsigned int> all_inds;
   // for (unsigned int i = 0;
@@ -289,7 +277,8 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
       if (!boundary->is_in_domain(point)) {
         for (unsigned int hole_idx = 0; hole_idx < num_holes; hole_idx++) {
           switch (config.pde) {
-            case ie_solver_config::Pde::LAPLACE: {
+            case ie_solver_config::Pde::LAPLACE:
+            {
               U_forward.set(i / 2, hole_idx, 0);
               break;
             }
@@ -302,6 +291,8 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
               U_forward.set(i + 1, 3 * hole_idx + 2, 0);
               break;
             }
+            case ie_solver_config::Pde::LAPLACE_NEUMANN:
+              break;  // just suppressing a compiler warning.
           }
         }
       }
@@ -313,9 +304,9 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   skel_factorization.Psi = Psi;
   skel_factorization.skeletonize(kernel, quadtree);
 
-  init_domain_kernel.join();
-  schur_solve(skel_factorization, *quadtree, U, Psi, f, K_domain, U_forward,
-              &domain_solution);
+  // init_domain_kernel.join();
+  // schur_solve(skel_factorization, *quadtree, U, Psi, f, K_domain, U_forward,
+  // &domain_solution);
 
   return domain_solution;
 }

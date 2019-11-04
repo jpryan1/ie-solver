@@ -430,7 +430,7 @@ void ie_Mat::left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const {
                                    lda_, &(sing[0]), U_.mat,
                                    height(), V.mat, width(),
                                    &(superb[0]));
-
+  assert(info == 0);
 
   ie_Mat UT_K(height(), K.width());
   ie_Mat::gemm(TRANSPOSE, NORMAL, 1., U_, K, 0., &UT_K);
