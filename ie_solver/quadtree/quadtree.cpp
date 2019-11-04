@@ -419,8 +419,8 @@ void QuadTree::consolidate_node(QuadTreeNode* node){
   //  Move leaf child dofs into my original box
   //  erase all descendents from levels
   //  delete immediate descentdents
+  
   node->src_dof_lists.original_box.clear();
-
 
   // This can be parallelized
   std::vector<QuadTreeNode*> remove_from_lvl;
@@ -486,10 +486,12 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     pair new_point(new_points[i], new_points[i + 1]);
     point_to_new_index[new_point] = i / 2;
   }
+  
   std::vector<bool> found_in_old(new_points.size() / 2);
   for (unsigned int i = 0; i < found_in_old.size(); i++) {
     found_in_old[i] = false;
   }
+  
   // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
   for (unsigned int i = 0; i < old_points.size(); i += 2) {
@@ -510,21 +512,20 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       additions.push_back(i);
     }
   }
+  
   int num_compressed = 0;
   int num_total = 0;
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
-      //   if(node->id == 56443 ){
-      //   std::cout<<node->children.size()<<" "<<node->is_leaf<<" is the summary"<<std::endl;
-      // }
       num_total++;
       if (node->compressed) {
         num_compressed++;
       }
     }
   }
+  
     double b = omp_get_wtime();
-std::cout<<"Phase a "<<(b-a)<<std::endl;
+  std::cout<<"Phase a "<<(b-a)<<std::endl;
   std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
             " are compressed." << std::endl;
   // go through all leaf original box vectors and apply mapping.
@@ -591,10 +592,9 @@ std::cout<<"Phase a "<<(b-a)<<std::endl;
       node->src_dof_lists.redundant = r;
     }
   }
-    double c = omp_get_wtime();
-std::cout<<"Phase b "<<(c-b)<<std::endl;
-
-
+  
+  double c = omp_get_wtime();
+  std::cout<<"Phase b "<<(c-b)<<std::endl;
 
   // go through all additions, find their leaves, make addition and call mark
   // function
@@ -626,10 +626,8 @@ std::cout<<"Phase b "<<(c-b)<<std::endl;
     mark_neighbors_and_parents(current);
   }
   
-    double d = omp_get_wtime();
-std::cout<<"Phase c "<<(d-c)<<std::endl;
-
-
+  double d = omp_get_wtime();
+  std::cout<<"Phase c "<<(d-c)<<std::endl;
 
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
@@ -649,20 +647,20 @@ std::cout<<"Phase c "<<(d-c)<<std::endl;
   }
 
 
-// go through all deletions, find their leaves, make deletion and call mark
-// function
+  // go through all deletions, find their leaves, make deletion and call mark
+  // function
   std::unordered_map<QuadTreeNode*, bool> sparse;
 
   for (unsigned int i = 0; i < deletions.size(); i++) {
     double oldx = old_points[2 * deletions[i]];
     double oldy = old_points[2 * deletions[i] + 1];
     QuadTreeNode* current = root;
+    bool path_marked = false;
     while(!current->is_leaf){
      
-      if(current->dofs_below < MAX_LEAF_DOFS){
-        if(sparse.find(current->parent) == sparse.end()){
-          sparse[current] = true;
-        }
+      if(current->dofs_below < MAX_LEAF_DOFS && !path_marked){
+        path_marked=true;
+        sparse[current] = true;
       }
       double midx = ((current->corners[6] - current->corners[0]) / 2.0)
                 + current->corners[0];
@@ -679,10 +677,8 @@ std::cout<<"Phase c "<<(d-c)<<std::endl;
       }
     }
     
-    if(current->dofs_below < MAX_LEAF_DOFS){
-      if(sparse.find(current->parent) == sparse.end()){
-          sparse[current] = true;
-      }
+    if(current->dofs_below < MAX_LEAF_DOFS && !path_marked){
+      sparse[current] = true;
     }
     mark_neighbors_and_parents(current);
   }
@@ -702,17 +698,9 @@ std::cout<<"Phase c "<<(d-c)<<std::endl;
   boundary->holes = perturbed_boundary.holes;
 
     double e = omp_get_wtime();
-std::cout<<"Phase d "<<(e-d)<<std::endl;
+  std::cout<<"Phase d "<<(e-d)<<std::endl;
 
 
-  for (QuadTreeLevel* level : levels) {
-    for (QuadTreeNode* node : level->nodes) {
-      num_total++;
-      if (node->compressed) {
-        num_compressed++;
-      }
-    }
-  }
   // If any nodes are bursting now, subdivide them.
   for (QuadTreeNode* node : maybe_bursting) {
     if (node->is_leaf
@@ -723,27 +711,35 @@ std::cout<<"Phase d "<<(e-d)<<std::endl;
   }
   // If we can consolidate nodes into their parent, do that.
   
-  std::cout<<"sparse size "<<sparse.size()<<std::endl;
+  double f = omp_get_wtime();
+  std::cout<<"Phase e "<<(f-e)<<std::endl;
+
+
   for ( auto it = sparse.begin(); it != sparse.end(); ++it ){
     consolidate_node(it->first);
   }
 
-    double f = omp_get_wtime();
-std::cout<<"Phase e "<<(f-e)<<std::endl;
-
+  double g = omp_get_wtime();
+  std::cout<<"Phase f "<<(g-f)<<std::endl;
 
   num_compressed = 0;
   num_total = 0;
+  int tmp_dofs=0;
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
       num_total++;
+      if(node->is_leaf){
+        tmp_dofs+=node->src_dof_lists.original_box.size();
+        if(node->src_dof_lists.original_box.size()>MAX_LEAF_DOFS){
+          std::cout<<"FAIL"<<std::endl;
+          exit(0);
+        }
+      }
       if (node->compressed) {
         num_compressed++;
       }
     }
   }
-  std::cout << "After perturb, " << num_compressed << " of " << num_total <<
-            " are compressed." << std::endl;
 }
 
 
