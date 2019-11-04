@@ -439,7 +439,9 @@ void QuadTree::consolidate_node(QuadTreeNode* node) {
         queue.push_back(child);
       }
     }
-    remove_from_lvl.push_back(current);
+    if (current != node) {
+      remove_from_lvl.push_back(current);
+    }
   }
 
   for (QuadTreeNode* erase : remove_from_lvl) {
@@ -641,7 +643,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-
   // go through all deletions, find their leaves, make deletion and call mark
   // function
   std::unordered_map<QuadTreeNode*, bool> sparse;
@@ -700,8 +701,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       node_subdivide(node);
     }
   }
-  // If we can consolidate nodes into their parent, do that.
 
+  // If we can consolidate nodes into their parent, do that.
   double f = omp_get_wtime();
   std::cout << "Phase e " << (f - e) << std::endl;
 
@@ -725,10 +726,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
 
   std::cout << "After perturb, " << num_compressed << " of " << num_total <<
             " are compressed." << std::endl;
-  std::cout << "level sizes" << std::endl;
-  for (int l = 0; l < levels.size(); l++) {
-    std::cout << levels[l]->nodes.size() << std::endl;
-  }
 }
 
 
