@@ -440,8 +440,7 @@ void QuadTree::consolidate_node(QuadTreeNode* node){
     }
     remove_from_lvl.push_back(current);
   }
-  std::cout<<"removing "<<remove_from_lvl.size()<<std::endl;
-  
+
   for(QuadTreeNode* erase : remove_from_lvl){
     QuadTreeLevel* erase_level = levels[erase->level];
     for (int i = 0; i < erase_level->nodes.size(); i++) {
