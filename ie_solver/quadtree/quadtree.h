@@ -46,7 +46,7 @@ struct InteractionLists {
 struct QuadTreeNode {
   static unsigned int id_count;
 
-  unsigned int id, level;
+  unsigned int id, level, dofs_below;
   bool is_leaf, is_LU_factored = false, compressed = false;
   double side_length, compression_ratio = 0., compress_time = 0.;
 
@@ -121,6 +121,7 @@ class QuadTree {
 
   void mark_neighbors_and_parents(QuadTreeNode* node);
   void perturb(const Boundary& new_boundary);
+  void consolidate_node(QuadTreeNode* node);
 
   void remove_inactive_dofs_at_level(int level);
   void remove_inactive_dofs_at_all_boxes();

@@ -30,7 +30,7 @@ ie_solver_config get_experiment_three_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = 3000;
+  config.num_boundary_points = pow(2, 13);
   config.domain_size = 150;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
@@ -62,8 +62,8 @@ void run_experiment3() {
 
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
-  for (int frame = 0; frame < 60; frame++) {
-    double ang = (frame / 60.) * 2 * M_PI;
+  for (int frame = 0; frame < 5; frame++) {
+    double ang = (frame / 5.) * 2 * M_PI;
 
     perturbed_boundary->perturbation_parameters[0] = ang;
     perturbed_boundary->initialize(config.num_boundary_points,

@@ -5,6 +5,7 @@ import numpy as np
 from copy import copy
 from os import listdir
 import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
@@ -228,6 +229,6 @@ def animate(i):
     image_plot.set_array(images[idx].T)
     return patches
 ani = animation.FuncAnimation(fig, animate, interval=100, blit=True)
-# ani.save('movie.mp4', writer=writer)
-plt.show()
+ani.save('movie.mp4', writer=writer)
+#plt.show()
 

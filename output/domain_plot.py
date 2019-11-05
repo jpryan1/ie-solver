@@ -4,6 +4,7 @@ import numpy as np
 import sys
 from copy import copy
 import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
@@ -33,9 +34,10 @@ CENTER = WINDOW_SIZE/2.0
 #							READING THE FILES
 #
 ###########################################################
-solution_lines = open("output/data/ie_solver_solution.txt","r").readlines()
-boundary_lines = open("output/data/ie_solver_boundary.txt","r").readlines()
-
+#solution_lines = open("output/data/ie_solver_solution.txt","r").readlines()
+#boundary_lines = open("output/data/ie_solver_boundary.txt","r").readlines()
+solution_lines = open("output/bake/sol/2.txt", "r").readlines()
+boundary_lines = open("output/bake/boundary/2.txt", "r").readlines()
 boundary_points = []
 for line in boundary_lines:
 	linesplit = line.split(',')
@@ -203,5 +205,5 @@ if(is_stokes):
 #   #        event.x, event.y, event.xdata, event.ydata))
 
 # cid = fig.canvas.mpl_connect('button_press_event', onclick)
-plt.savefig("domain_plot.png")
-plt.show()
+plt.savefig("bugfix.png")
+
