@@ -15,9 +15,9 @@
 #include "ie_solver/linear_solve.h"
 #include "ie_solver/boundaries/boundary.h"
 #include "ie_solver/boundaries/circle.h"
-#include "ie_solver/boundaries/rounded_square.h"
-#include "ie_solver/boundaries/rounded_square_with_bump.h"
-#include "ie_solver/boundaries/squiggly.h"
+// #include "ie_solver/boundaries/rounded_square.h"
+// #include "ie_solver/boundaries/rounded_square_with_bump.h"
+// #include "ie_solver/boundaries/squiggly.h"
 #include "ie_solver/boundaries/annulus.h"
 #include "ie_solver/boundaries/cubic_spline.h"
 #include "ie_solver/boundaries/ex1boundary.h"
@@ -32,18 +32,18 @@ void run_animation(const ie_solver_config& config) {
       boundary.reset(new Circle());
       perturbed_boundary.reset(new Circle());
       break;
-    case Boundary::BoundaryShape::ROUNDED_SQUARE:
-      boundary.reset(new RoundedSquare());
-      perturbed_boundary.reset(new RoundedSquare());
-      break;
-    case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
-      boundary.reset(new RoundedSquareWithBump());
-      perturbed_boundary.reset(new RoundedSquareWithBump());
-      break;
-    case Boundary::BoundaryShape::SQUIGGLY:
-      boundary.reset(new Squiggly());
-      perturbed_boundary.reset(new Squiggly());
-      break;
+    // case Boundary::BoundaryShape::ROUNDED_SQUARE:
+    //   boundary.reset(new RoundedSquare());
+    //   perturbed_boundary.reset(new RoundedSquare());
+    //   break;
+    // case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
+    //   boundary.reset(new RoundedSquareWithBump());
+    //   perturbed_boundary.reset(new RoundedSquareWithBump());
+    //   break;
+    // case Boundary::BoundaryShape::SQUIGGLY:
+    //   boundary.reset(new Squiggly());
+    //   perturbed_boundary.reset(new Squiggly());
+    //   break;
     case Boundary::BoundaryShape::ANNULUS:
       boundary.reset(new Annulus());
       perturbed_boundary.reset(new Annulus());
@@ -111,15 +111,15 @@ void run_single_solve(const ie_solver_config & config) {
     case Boundary::BoundaryShape::CIRCLE:
       boundary.reset(new Circle());
       break;
-    case Boundary::BoundaryShape::ROUNDED_SQUARE:
-      boundary.reset(new RoundedSquare());
-      break;
-    case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
-      boundary.reset(new RoundedSquareWithBump());
-      break;
-    case Boundary::BoundaryShape::SQUIGGLY:
-      boundary.reset(new Squiggly());
-      break;
+    // case Boundary::BoundaryShape::ROUNDED_SQUARE:
+    //   boundary.reset(new RoundedSquare());
+    //   break;
+    // case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
+    //   boundary.reset(new RoundedSquareWithBump());
+    //   break;
+    // case Boundary::BoundaryShape::SQUIGGLY:
+    //   boundary.reset(new Squiggly());
+    //   break;
     case Boundary::BoundaryShape::ANNULUS:
       boundary.reset(new Annulus());
       break;

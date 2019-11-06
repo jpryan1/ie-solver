@@ -33,26 +33,29 @@ void CubicSpline::get_spline_points(std::vector<double>* x0_spline_points,
 
 void CubicSpline::initialize(int N, BoundaryCondition bc) {
   boundary_shape = BoundaryShape::CUBIC_SPLINE;
-  boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();
   curvatures.clear();
 
   // Currently, just get a working interpolation going
-  if (bc == BoundaryCondition::STOKES) {
-    boundary_values = ie_Mat(2 * NODES_PER_SPLINE * NUM_SPLINE_POINTS, 1);
-  } else {
-    boundary_values = ie_Mat(NODES_PER_SPLINE * NUM_SPLINE_POINTS, 1);
-  }
+
   std::vector<double> x0_spline_points, x1_spline_points;
   get_spline_points(&x0_spline_points, &x1_spline_points);
   std::vector<std::vector<double>> x0_cubics, x1_cubics;
 
   get_cubics(x0_spline_points, x1_spline_points, &x0_cubics, &x1_cubics);
-  interpolate(0, false,  NODES_PER_SPLINE, boundary_condition, x0_cubics,
+  interpolate(false,  NODES_PER_SPLINE, x0_cubics,
               x1_cubics);
   num_outer_nodes = NODES_PER_SPLINE * NUM_SPLINE_POINTS;
+
+  if (bc == BoundaryCondition::DEFAULT) {
+    boundary_values = ie_Mat(weights.size(), 1);
+    apply_boundary_condition(0, N, SINGLE_ELECTRON);
+  } else {
+    set_boundary_values_size(bc);
+    apply_boundary_condition(0, weights.size(), bc);
+  }
 }
 
 }  // namespace ie_solver

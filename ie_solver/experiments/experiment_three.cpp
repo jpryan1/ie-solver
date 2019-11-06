@@ -13,14 +13,6 @@
 #include "ie_solver/kernel/kernel.h"
 #include "ie_solver/log.h"
 #include "ie_solver/linear_solve.h"
-#include "ie_solver/boundaries/boundary.h"
-#include "ie_solver/boundaries/circle.h"
-#include "ie_solver/boundaries/rounded_square.h"
-#include "ie_solver/boundaries/rounded_square_with_bump.h"
-#include "ie_solver/boundaries/squiggly.h"
-#include "ie_solver/boundaries/annulus.h"
-#include "ie_solver/boundaries/cubic_spline.h"
-#include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
 
 namespace ie_solver {
@@ -49,6 +41,9 @@ void run_experiment3() {
   boundary.reset(new Ex3Boundary());
   boundary->initialize(config.num_boundary_points,
                        BoundaryCondition::DEFAULT);
+  boundary->perturbation_parameters[0] = (1. / 10.) * 2 * M_PI;
+  boundary->initialize(config.num_boundary_points,
+                       BoundaryCondition::DEFAULT);
 
   QuadTree quadtree;
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),
@@ -62,8 +57,10 @@ void run_experiment3() {
 
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
-  for (int frame = 0; frame < 5; frame++) {
-    double ang = (frame / 5.) * 2 * M_PI;
+
+  int FRAME_CAP = 10;
+  for (int frame = 0; frame < FRAME_CAP; frame++) {
+    double ang = (frame / (FRAME_CAP + 0.)) * 2 * M_PI;
 
     perturbed_boundary->perturbation_parameters[0] = ang;
     perturbed_boundary->initialize(config.num_boundary_points,
@@ -78,18 +75,18 @@ void run_experiment3() {
     io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
                                  frame)  + ".txt",
                                perturbed_boundary->points);
-    io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
-                               quadtree);
+    io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
+                                 frame)  + ".txt", quadtree);
   }
 
 
-  ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
+  // ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
 
-  io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
-                             domain_points, config.solution_dimension);
-  io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
-                             boundary->points);
-  io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
+  // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
+  //                            domain_points, config.solution_dimension);
+  // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
+  //                            boundary->points);
+  // io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
 }
 
 

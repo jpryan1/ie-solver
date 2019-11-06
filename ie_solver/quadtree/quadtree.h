@@ -14,8 +14,13 @@
 namespace ie_solver {
 
 struct InteractionLists {
-  std::vector<unsigned int> original_box, active_box, redundant, skel, near,
-      skelnear, permutation;
+  std::vector<unsigned int> original_box,
+      active_box,
+      redundant,
+      skel,
+      near,
+      skelnear,
+      permutation;
 
   void set_rs_ranges(const std::vector<unsigned int>& prm, unsigned int sk,
                      unsigned int rd) {
@@ -47,7 +52,8 @@ struct QuadTreeNode {
   static unsigned int id_count;
 
   unsigned int id, level, dofs_below;
-  bool is_leaf, is_LU_factored = false, compressed = false;
+
+  bool is_leaf, X_rr_is_LU_factored = false, compressed = false;
   double side_length, compression_ratio = 0., compress_time = 0.;
 
   QuadTreeNode *tl, *tr, *bl, *br;
@@ -112,6 +118,7 @@ class QuadTree {
                      unsigned int mat_ind, bool is_boundary);
   void get_descendent_neighbors(QuadTreeNode* big, QuadTreeNode* small);
   void node_subdivide(QuadTreeNode* node);
+  void consolidate_node(QuadTreeNode* node);
   void reset();
   void reset(Boundary* boundary_);
 
