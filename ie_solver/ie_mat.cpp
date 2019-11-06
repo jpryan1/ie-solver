@@ -10,7 +10,8 @@
 
 namespace ie_solver {
 
-double ie_Mat::set_time = 0.;
+double ie_Mat::kernel_time = 0.;
+double ie_Mat::proxy_time = 0.;
 // TODO(John) honestly the lda parameter is completely unused, we should get
 // rid of it
 ie_Mat::ie_Mat() {
@@ -124,10 +125,6 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
                            unsigned int col_s, unsigned int col_e,
                            const ie_Mat& A, bool transpose_A, bool timing) {
-  double start, end;
-  if (timing) {
-    start = omp_get_wtime();
-  }
   if (transpose_A) {
     for (unsigned int i = 0; i < row_e - row_s; i++) {
       for (unsigned int j = 0; j < col_e - col_s; j++) {
@@ -141,10 +138,6 @@ void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
       memcpy(&(mat[row_s + lda_ * (j + col_s)]), &(A.mat[A.lda_ * j]),
              (row_e - row_s)*sizeof(double));
     }
-  }
-  if (timing) {
-    end = omp_get_wtime();
-    set_time += (end - start);
   }
 }
 
@@ -437,7 +430,7 @@ void ie_Mat::left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const {
                                    lda_, &(sing[0]), U_.mat,
                                    height(), V.mat, width(),
                                    &(superb[0]));
-
+  assert(info == 0);
 
   ie_Mat UT_K(height(), K.width());
   ie_Mat::gemm(TRANSPOSE, NORMAL, 1., U_, K, 0., &UT_K);

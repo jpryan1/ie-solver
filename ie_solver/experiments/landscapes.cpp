@@ -13,13 +13,6 @@
 #include "ie_solver/kernel/kernel.h"
 #include "ie_solver/log.h"
 #include "ie_solver/linear_solve.h"
-#include "ie_solver/boundaries/boundary.h"
-#include "ie_solver/boundaries/circle.h"
-#include "ie_solver/boundaries/rounded_square.h"
-#include "ie_solver/boundaries/rounded_square_with_bump.h"
-#include "ie_solver/boundaries/squiggly.h"
-#include "ie_solver/boundaries/annulus.h"
-#include "ie_solver/boundaries/cubic_spline.h"
 #include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/boundaries/ex2boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
@@ -53,24 +46,24 @@ void print_landscapes() {
                     quadtree2.max);
 
 
-  domain_points2.push_back(0.49);
-  domain_points2.push_back(0.49);
+  domain_points2.push_back(0.4999);
+  domain_points2.push_back(0.4999);
 
-  domain_points2.push_back(0.49);
-  domain_points2.push_back(0.51);
+  domain_points2.push_back(0.4999);
+  domain_points2.push_back(0.5001);
 
-  domain_points2.push_back(0.51);
-  domain_points2.push_back(0.49);
+  domain_points2.push_back(0.5001);
+  domain_points2.push_back(0.4999);
 
-  domain_points2.push_back(0.51);
-  domain_points2.push_back(0.51);
+  domain_points2.push_back(0.5001);
+  domain_points2.push_back(0.5001);
 
   std::unique_ptr<Boundary> perturbed_boundary2 =
     std::unique_ptr<Boundary>(new Ex2Boundary());
   perturbed_boundary2->initialize(config.num_boundary_points,
                                   config.boundary_condition);
 
-  int FRAME_CAP = 20;
+  int FRAME_CAP = 50;
   std::vector<double> angs_and_grads;
   for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
     double ang1 = (frame1 / (0.0 + FRAME_CAP)) * 2 * M_PI;
@@ -111,7 +104,7 @@ void print_landscapes() {
       angs_and_grads.push_back(gradient);
     }
   }
-  io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
+  // io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
 
   /////////////////////////////////////////////////////////////////////////
 
@@ -176,7 +169,7 @@ void print_landscapes() {
     ang_and_flow.push_back(flow);
   }
 
-  io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
+  // io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
 }
 
 }  // namespace ie_solver
