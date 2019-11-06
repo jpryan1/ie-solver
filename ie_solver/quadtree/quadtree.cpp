@@ -714,9 +714,55 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   num_total = 0;
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
+      node->neighbors.clear();
       num_total++;
       if (node->compressed) {
         num_compressed++;
+      }
+    }
+  }
+  // For now, just recalculate neighbors the same as above.
+  for (unsigned int level = 0; level < levels.size(); level++) {
+    QuadTreeLevel* current_level = levels[level];
+    for (unsigned int k = 0; k < current_level->nodes.size(); k++) {
+      QuadTreeNode* node_a = current_level->nodes[k];
+
+      // Each node is neighbors with all its siblings
+      if (node_a->parent != nullptr) {
+        for (QuadTreeNode* sibling : node_a->parent->children) {
+          if (sibling->id != node_a->id) node_a->neighbors.push_back(sibling);
+        }
+
+        // Now check all parents' neighbors' children
+        for (QuadTreeNode* parents_neighbor : node_a->parent->neighbors) {
+          for (QuadTreeNode* cousin : parents_neighbor->children) {
+            if (cousin == nullptr) continue;
+            if (cousin->level != node_a->level) continue;
+            double dist = sqrt(pow(node_a->corners[0] - cousin->corners[0], 2)
+                               + pow(node_a->corners[1] - cousin->corners[1], 2));
+            // just need to check if the distance of the bl corners
+            // is <=s*sqrt(2)
+            if (dist < node_a->side_length * sqrt(2) + 1e-5) {
+              node_a->neighbors.push_back(cousin);
+            }
+          }
+        }
+      }
+
+      // now if it is a leaf, check against nodes in all subsequent levels
+      if (node_a->is_leaf) {
+        for (unsigned int n = 0; n < node_a->neighbors.size(); n++) {
+          QuadTreeNode* neighbor =  node_a->neighbors[n];
+          // make sure this isn't a neighbor from a higher level
+          if (neighbor->level != node_a->level) {
+            continue;
+          }
+          for (QuadTreeNode* child : neighbor->children) {
+            if (child != nullptr) {
+              get_descendent_neighbors(node_a, child);
+            }
+          }
+        }
       }
     }
   }
@@ -773,7 +819,7 @@ void QuadTree::remove_inactive_dofs_at_level(int level) {
   }
   // Next, get all active near dofs from neighbors
   for (QuadTreeNode* node_a : current_level->nodes) {
-    if (node_a->compressed) continue;
+    // if (node_a->compressed) continue;
     node_a->src_dof_lists.near.clear();
     for (QuadTreeNode* neighbor : node_a->neighbors) {
       // Some neighbors are smaller boxes from higher levels, we don't

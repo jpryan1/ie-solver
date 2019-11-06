@@ -128,7 +128,6 @@ class QuadTree {
 
   void mark_neighbors_and_parents(QuadTreeNode* node);
   void perturb(const Boundary& new_boundary);
-  void consolidate_node(QuadTreeNode* node);
 
   void remove_inactive_dofs_at_level(int level);
   void remove_inactive_dofs_at_all_boxes();
