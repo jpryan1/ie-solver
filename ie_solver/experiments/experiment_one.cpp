@@ -77,8 +77,8 @@ void run_experiment1() {
     io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
                                  frame)  + ".txt",
                                perturbed_boundary->points);
-    // io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
-    //                            quadtree);
+    io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
+                                 frame)  + ".txt", quadtree);
   }
 }
 

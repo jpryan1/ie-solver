@@ -99,8 +99,8 @@ void run_experiment2() {
       io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
                                    frame1) + ".txt",// * FRAME_CAP + frame2)  + ".txt",
                                  perturbed_boundary->points);
-      // io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
-      //                            quadtree);
+      io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
+                                   frame1)  + ".txt", quadtree);
     }
   }
 
