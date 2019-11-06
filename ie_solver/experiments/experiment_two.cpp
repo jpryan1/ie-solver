@@ -21,8 +21,8 @@ ie_solver_config get_experiment_two_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
-  config.num_boundary_points = 2000;
-  config.domain_size = 100;
+  config.num_boundary_points = pow(2, 14);
+  config.domain_size = 50;
   config.domain_dimension = 2;
   config.solution_dimension = 1;
   config.boundary_condition = BoundaryCondition::DEFAULT;
@@ -64,8 +64,8 @@ void run_experiment2() {
   for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
     double ang1 = (frame1 / (0.0 + FRAME_CAP)) * 4 * M_PI / 5.;
 
-    for (int frame2 = 0; frame2 < FRAME_CAP; frame2++) {
-
+    for (int frame2 = FRAME_CAP / 2; frame2 == FRAME_CAP / 2;
+         frame2++) { //0; frame2 < FRAME_CAP; frame2++) {
 
       double ang2 = ((frame2 / (0.0 + FRAME_CAP)) * 4 * M_PI / 5.) + M_PI;
       perturbed_boundary->perturbation_parameters[0] = ang1;
@@ -93,14 +93,14 @@ void run_experiment2() {
         }
       }
       io::write_solution_to_file("output/bake/sol/" + std::to_string(
-                                   frame1 * FRAME_CAP + frame2)
+                                   frame1) //* FRAME_CAP + frame2)
                                  + ".txt", solution, domain_points,
                                  config.solution_dimension);
       io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
-                                   frame1 * FRAME_CAP + frame2)  + ".txt",
+                                   frame1) + ".txt",// * FRAME_CAP + frame2)  + ".txt",
                                  perturbed_boundary->points);
-      io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
-                                 quadtree);
+      // io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
+      //                            quadtree);
     }
   }
 

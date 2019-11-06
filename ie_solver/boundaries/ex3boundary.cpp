@@ -76,6 +76,12 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   int FIN_NODES_PER_SPLINE = ((N / 4) / 4) / FIN_SPLINE_POINTS;
   if (holes.size() == 0) {
     Hole circle1, circle2, circle3, circle4, circle5, circle6, fin;
+
+    fin.center = Vec2(0.5, 0.5);
+    fin.radius = FIN_RAD;
+    fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
+    holes.push_back(fin);
+
     circle1.center = Vec2(0.2, 0.4);
     circle1.radius = 0.025;
     circle1.num_nodes =  NUM_CIRCLE_POINTS;
@@ -102,10 +108,6 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
     circle6.radius = 0.025;
     circle6.num_nodes =  NUM_CIRCLE_POINTS;
     holes.push_back(circle6);
-    fin.center = Vec2(0.5, 0.5);
-    fin.radius = FIN_RAD;
-    fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
-    holes.push_back(fin);
   }
   if (perturbation_parameters.size() == 0) {
     perturbation_parameters.push_back(0);
@@ -118,7 +120,7 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(outer_x0_spline_points, outer_x1_spline_points,
              &outer_x0_cubics, &outer_x1_cubics);
 
-  interpolate(false, OUTER_NODES_PER_SPLINE,// LEFT_TO_RIGHT_FLOW,
+  interpolate(false, OUTER_NODES_PER_SPLINE,
               outer_x0_cubics, outer_x1_cubics);
   num_outer_nodes = OUTER_NODES_PER_SPLINE * OUTER_NUM_SPLINE_POINTS;
 
@@ -129,10 +131,9 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   get_cubics(fin_x0_spline_points, fin_x1_spline_points,
              &fin_x0_cubics, &fin_x1_cubics);
 
-  interpolate(true, FIN_NODES_PER_SPLINE,// NO_SLIP,
+  interpolate(true, FIN_NODES_PER_SPLINE,
               fin_x0_cubics, fin_x1_cubics);
-
-  for (int i = 0; i < holes.size() - 1; i++) {
+  for (int i = 1; i < holes.size(); i++) {
     Hole circle = holes[i];
     for (int i = 0; i < NUM_CIRCLE_POINTS; i++) {
       double ang = (2.0 * M_PI * i) / NUM_CIRCLE_POINTS;

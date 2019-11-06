@@ -672,9 +672,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       }
     }
 
-    if (current->dofs_below < MAX_LEAF_DOFS && !path_marked) {
-      sparse[current] = true;
-    }
     mark_neighbors_and_parents(current);
   }
 

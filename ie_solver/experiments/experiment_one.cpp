@@ -21,7 +21,7 @@ ie_solver_config get_experiment_one_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = pow(2, 18);
+  config.num_boundary_points = pow(2, 14);
   config.domain_size = 49;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
@@ -55,9 +55,9 @@ void run_experiment1() {
 
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
-  int FRAME_CAP = 2;
+  int FRAME_CAP = 30;
   for (int frame = 0; frame < FRAME_CAP; frame++) {
-    double ang = (frame / (0.0 + FRAME_CAP)) * M_PI;
+    double ang = (frame / (0.0 + FRAME_CAP)) * 2 * M_PI;
 
     perturbed_boundary->holes[0].center = Vec2(0.5 + 0.3 * cos(M_PI + ang),
                                           0.5 + 0.3 * sin(M_PI + ang));
@@ -77,8 +77,8 @@ void run_experiment1() {
     io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
                                  frame)  + ".txt",
                                perturbed_boundary->points);
-    io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
-                               quadtree);
+    // io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt",
+    //                            quadtree);
   }
 }
 
