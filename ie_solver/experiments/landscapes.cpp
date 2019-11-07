@@ -13,7 +13,7 @@
 #include "ie_solver/kernel/kernel.h"
 #include "ie_solver/log.h"
 #include "ie_solver/linear_solve.h"
-#include "ie_solver/boundaries/ex1boundary.h"
+#include "ie_solver/boundaries/boundary.h"
 #include "ie_solver/boundaries/ex2boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
 
@@ -23,7 +23,7 @@ ie_solver_config get_landscape_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
-  config.num_boundary_points = 2000;
+  config.num_boundary_points = pow(2, 13);
   config.domain_size = 100;
   config.domain_dimension = 2;
   config.solution_dimension = 1;
@@ -42,9 +42,6 @@ void print_landscapes() {
   quadtree2.initialize_tree(boundary2.get(), std::vector<double>(),
                             config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points2;
-  get_domain_points(config.domain_size, &domain_points2, quadtree2.min,
-                    quadtree2.max);
-
 
   domain_points2.push_back(0.4999);
   domain_points2.push_back(0.4999);
@@ -104,7 +101,7 @@ void print_landscapes() {
       angs_and_grads.push_back(gradient);
     }
   }
-  // io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
+  io::write_ex2_gradients_to_file("output/ex2grads.txt", angs_and_grads);
 
   /////////////////////////////////////////////////////////////////////////
 
@@ -121,8 +118,8 @@ void print_landscapes() {
   quadtree3.initialize_tree(boundary3.get(), std::vector<double>(),
                             config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points3;
-  get_domain_points(config.domain_size, &domain_points3, quadtree3.min,
-                    quadtree3.max);
+  // get_domain_points(config.domain_size, &domain_points3, quadtree3.min,
+  //                   quadtree3.max);
 
   domain_points3.push_back(0.2);
   domain_points3.push_back(0.675);
@@ -136,10 +133,10 @@ void print_landscapes() {
   domain_points3.push_back(0.6);
   domain_points3.push_back(0.325);
 
-  domain_points3.push_back(0.6);
+  domain_points3.push_back(0.7);
   domain_points3.push_back(0.325);
 
-  domain_points3.push_back(0.6);
+  domain_points3.push_back(0.8);
   domain_points3.push_back(0.325);
 
   std::unique_ptr<Boundary> perturbed_boundary3 =
@@ -169,7 +166,7 @@ void print_landscapes() {
     ang_and_flow.push_back(flow);
   }
 
-  // io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
+  io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
 }
 
 }  // namespace ie_solver

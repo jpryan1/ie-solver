@@ -112,7 +112,7 @@ ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
       return fast_laplace_neumann_get(I_, J_, timing);
       break;
     default:  // to suppress compiler warning
-    // case ie_solver_config::Pde::STOKES:
+      // case ie_solver_config::Pde::STOKES:
       return fast_stokes_get(I_, J_, timing);
       break;
   }
@@ -302,6 +302,55 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
     // Grab all points inside the proxy circle which are outside the box
     std::vector<unsigned int> inner_circle, outside_box;
 
+
+    // So if we're at level 2 or 1, we don't use the proxy trick
+    // If at level 1, just grab active from neighbors
+    if (node->level == 1) {
+      for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
+        if (level_node->id != node->id) {
+          for (unsigned int matrix_index :
+               level_node->src_dof_lists.active_box) {
+            outside_box.push_back(matrix_index);
+          }
+        }
+      }
+      ie_Mat mat(2 * outside_box.size(), active_box.size());
+      mat.set_submatrix(0, outside_box.size(), 0, active_box.size(),
+                        (*this)(outside_box, active_box), false, true);
+      mat.set_submatrix(outside_box.size(), 2 * outside_box.size(),
+                        0, active_box.size(),
+                        (*this)(active_box, outside_box), true, true);
+      return mat;
+    }
+    // If at level 2, grab active from all on level, plus from leaves of level 1
+    if (node->level == 2) {
+      for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
+        if (level_node->id != node->id) {
+          for (unsigned int matrix_index :
+               level_node->src_dof_lists.active_box) {
+            outside_box.push_back(matrix_index);
+          }
+        }
+      }
+      for (QuadTreeNode* level_node : tree->levels[node->level - 1]->nodes) {
+        if (level_node->is_leaf) {
+          for (unsigned int matrix_index :
+               level_node->src_dof_lists.original_box) {
+            outside_box.push_back(matrix_index);
+          }
+        }
+      }
+
+      ie_Mat mat(2 * outside_box.size(), active_box.size());
+      mat.set_submatrix(0, outside_box.size(), 0, active_box.size(),
+                        (*this)(outside_box, active_box), false, true);
+      mat.set_submatrix(outside_box.size(), 2 * outside_box.size(),
+                        0, active_box.size(),
+                        (*this)(active_box, outside_box), true, true);
+      return mat;
+    }
+
+
     for (unsigned int matrix_index : node->src_dof_lists.near) {
       // outside_box.push_back(matrix_index);
       unsigned int point_index = matrix_index / solution_dimension;
@@ -367,7 +416,7 @@ ie_Mat Kernel::get_proxy_mat(double cntr_x, double cntr_y,
                                             proxy_weight, box_inds);
       break;
     default:
-    // case ie_solver_config::Pde::STOKES:
+      // case ie_solver_config::Pde::STOKES:
       return fast_stokes_proxy_get(pxy_p, pxy_n, proxy_curvature , proxy_weight,
                                    box_inds);
   }
@@ -540,7 +589,7 @@ ie_Mat Kernel::fast_laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
       double r0 = tp1 - sp1;
       double r1 = tp2 - sp2;
       ret.mat[(i / 2) + lda * j] = sw + sw * scale *
-          (r0 * tn1 + r1 * tn2) / (r0 * r0 + r1 * r1);
+                                   (r0 * tn1 + r1 * tn2) / (r0 * r0 + r1 * r1);
     }
   }
 
@@ -549,7 +598,7 @@ ie_Mat Kernel::fast_laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
     double sp1 = pxy_p[j];
     double sp2 =  pxy_p[j + 1];
     double sw =  pxy_w;
-    
+
     for (unsigned int i = 0; i < box_inds.size(); i++) {
       unsigned int tgt_ind = box_inds[i];
       unsigned int i_point_index = tgt_ind / 2;
