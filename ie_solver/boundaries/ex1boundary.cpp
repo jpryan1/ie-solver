@@ -86,35 +86,36 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   normals.clear();
   weights.clear();
   curvatures.clear();
+  holes.clear();
+  
+  if(perturbation_parameters.size() == 0){
+    perturbation_parameters.push_back(0);
+  }
+  
   int STAR_NODES_PER_SPLINE = (N / 12) / STAR_NUM_SPLINE_POINTS;
   int NUM_CIRCLE_POINTS = (N / 12);
   int OUTER_NODES_PER_SPLINE = (2 * N / 3) / OUTER_NUM_SPLINE_POINTS;
   Hole star1, star2, circle1, circle2;
-
-  if (holes.size() == 0) {
-    star1.center = Vec2(0.2, 0.5);
-    star1.radius = 0.05;
-    star1.num_nodes =  STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
-    holes.push_back(star1);
-    star2.center = Vec2(0.4, 0.5);
-    star2.radius = 0.05;
-    star2.num_nodes =  STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
-    holes.push_back(star2);
-    circle1.center = Vec2(0.6, 0.5);
-    circle1.radius = 0.05;
-    circle1.num_nodes =  NUM_CIRCLE_POINTS;
-    holes.push_back(circle1);
-    circle2.center = Vec2(0.8, 0.5);
-    circle2.radius = 0.05;
-    circle2.num_nodes =  NUM_CIRCLE_POINTS;
-    holes.push_back(circle2);
-  } else {
-    star1 = holes[0];
-    star2 = holes[1];
-    circle1 = holes[2];
-    circle2 = holes[3];
-  }
-
+  
+  star1.center = Vec2(0.5 + 0.3 * cos(M_PI + perturbation_parameters[0]),
+                      0.5 + 0.3 * sin(M_PI + perturbation_parameters[0]));
+  star1.radius = 0.05;
+  star1.num_nodes =  STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+  holes.push_back(star1);
+  star2.center = Vec2(0.4, 0.5);
+  star2.radius = 0.05;
+  star2.num_nodes =  STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+  holes.push_back(star2);
+  circle1.center = Vec2(0.6, 0.5);
+  circle1.radius = 0.05;
+  circle1.num_nodes =  NUM_CIRCLE_POINTS;
+  holes.push_back(circle1);
+  circle2.center = Vec2(0.5 + 0.3 * cos(perturbation_parameters[0]),
+                        0.5 + 0.3 * sin(perturbation_parameters[0]));
+  circle2.radius = 0.05;
+  circle2.num_nodes =  NUM_CIRCLE_POINTS;
+  holes.push_back(circle2);
+  
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
   get_spline_points(&outer_x0_spline_points, &outer_x1_spline_points);
 

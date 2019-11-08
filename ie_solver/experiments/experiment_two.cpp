@@ -21,7 +21,7 @@ ie_solver_config get_experiment_two_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
-  config.num_boundary_points = pow(2, 14);
+  config.num_boundary_points = pow(2,13);
   config.domain_size = 50;
   config.domain_dimension = 2;
   config.solution_dimension = 1;
@@ -30,30 +30,26 @@ ie_solver_config get_experiment_two_config() {
   return config;
 }
 
+
 void run_experiment2() {
   double start = omp_get_wtime();
   ie_solver_config config = get_experiment_two_config();
-  int domain_dimension = 2;
-  int solution_dimension = 1;
+
   std::unique_ptr<Boundary> boundary =
     std::unique_ptr<Boundary>(new Ex2Boundary());
-
-  double init_start = omp_get_wtime();
   boundary->initialize(config.num_boundary_points,
                        BoundaryCondition::DEFAULT);
 
-  double init_end = omp_get_wtime();
-  std::cout << "timing: boundary_init " << (init_end - init_start) << std::endl;
-
   QuadTree quadtree;
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),
-                           solution_dimension, domain_dimension);
+                           config.solution_dimension, config.domain_dimension);
 
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
 
-
+  // We'll iteratively reinitialized another Boundary and use that
+  // to update the quadtree's Boundary.
   std::unique_ptr<Boundary> perturbed_boundary =
     std::unique_ptr<Boundary>(new Ex2Boundary());
 
@@ -103,18 +99,6 @@ void run_experiment2() {
                                    frame1)  + ".txt", quadtree);
     }
   }
-
-  // ie_Mat solution = boundary_integral_solve(config, &quadtree,
-  //                   domain_points);
-
-  // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
-  //                            domain_points, config.solution_dimension);
-  // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
-  //                            boundary->points);
-  // io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
-
-  // double end = omp_get_wtime();
-  // std::cout << "timing: experiment_two_total " << (end - start) << std::endl;
 }
 
 }  // namespace ie_solver

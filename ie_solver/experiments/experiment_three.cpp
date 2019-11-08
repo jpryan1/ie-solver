@@ -23,7 +23,7 @@ ie_solver_config get_experiment_three_config() {
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
   config.num_boundary_points = pow(2, 13);
-  config.domain_size = 150;
+  config.domain_size = 70;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
   config.boundary_condition = BoundaryCondition::DEFAULT;
@@ -34,27 +34,21 @@ ie_solver_config get_experiment_three_config() {
 
 void run_experiment3() {
   ie_solver_config config = get_experiment_three_config();
-  int domain_dimension = 2;
-  int solution_dimension = 2;
 
   std::unique_ptr<Boundary> boundary;
   boundary.reset(new Ex3Boundary());
   boundary->initialize(config.num_boundary_points,
                        BoundaryCondition::DEFAULT);
-  boundary->perturbation_parameters[0] = (1. / 10.) * 2 * M_PI;
-  boundary->initialize(config.num_boundary_points,
-                       BoundaryCondition::DEFAULT);
 
   QuadTree quadtree;
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),
-                           solution_dimension, domain_dimension);
+                           config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
 
   std::unique_ptr<Boundary> perturbed_boundary =
     std::unique_ptr<Boundary>(new Ex3Boundary());
-
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
 
@@ -78,15 +72,6 @@ void run_experiment3() {
     io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
                                  frame)  + ".txt", quadtree);
   }
-
-
-  // ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);
-
-  // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
-  //                            domain_points, config.solution_dimension);
-  // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
-  //                            boundary->points);
-  // io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
 }
 
 

@@ -118,9 +118,6 @@ void print_landscapes() {
   quadtree3.initialize_tree(boundary3.get(), std::vector<double>(),
                             config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points3;
-  // get_domain_points(config.domain_size, &domain_points3, quadtree3.min,
-  //                   quadtree3.max);
-
   domain_points3.push_back(0.2);
   domain_points3.push_back(0.675);
 

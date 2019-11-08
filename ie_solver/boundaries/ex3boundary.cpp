@@ -69,49 +69,49 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   normals.clear();
   weights.clear();
   curvatures.clear();
-
-  //
-  int OUTER_NODES_PER_SPLINE = (3 * N / 4) / OUTER_NUM_SPLINE_POINTS;
-  int NUM_CIRCLE_POINTS = (N / 4) / 8;
-  int FIN_NODES_PER_SPLINE = ((N / 4) / 4) / FIN_SPLINE_POINTS;
-  if (holes.size() == 0) {
-    Hole circle1, circle2, circle3, circle4, circle5, circle6, fin;
-
-    fin.center = Vec2(0.5, 0.5);
-    fin.radius = FIN_RAD;
-    fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
-    holes.push_back(fin);
-
-    circle1.center = Vec2(0.2, 0.4);
-    circle1.radius = 0.025;
-    circle1.num_nodes =  NUM_CIRCLE_POINTS;
-    holes.push_back(circle1);
-    circle2.center = Vec2(0.3, 0.4);
-    circle2.radius = 0.025;
-    circle2.num_nodes =  NUM_CIRCLE_POINTS;
-    holes.push_back(circle2);
-
-    circle3.center = Vec2(0.4, 0.4);
-    circle3.radius = 0.025;
-    circle3.num_nodes =  NUM_CIRCLE_POINTS;
-    holes.push_back(circle3);
-    circle4.center = Vec2(0.6, 0.6);
-    circle4.radius = 0.025;
-    circle4.num_nodes =  NUM_CIRCLE_POINTS;
-    holes.push_back(circle4);
-
-    circle5.center = Vec2(0.7, 0.6);
-    circle5.radius = 0.025;
-    circle5.num_nodes = NUM_CIRCLE_POINTS;
-    holes.push_back(circle5);
-    circle6.center = Vec2(0.8, 0.6);
-    circle6.radius = 0.025;
-    circle6.num_nodes =  NUM_CIRCLE_POINTS;
-    holes.push_back(circle6);
-  }
+  holes.clear();
+  
   if (perturbation_parameters.size() == 0) {
     perturbation_parameters.push_back(0);
   }
+
+  int OUTER_NODES_PER_SPLINE = (3 * N / 4) / OUTER_NUM_SPLINE_POINTS;
+  int NUM_CIRCLE_POINTS = (N / 4) / 8;
+  int FIN_NODES_PER_SPLINE = ((N / 4) / 4) / FIN_SPLINE_POINTS;
+
+  Hole circle1, circle2, circle3, circle4, circle5, circle6, fin;
+
+  fin.center = Vec2(0.5, 0.5);
+  fin.radius = FIN_RAD;
+  fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
+  holes.push_back(fin);
+
+  circle1.center = Vec2(0.2, 0.4);
+  circle1.radius = 0.025;
+  circle1.num_nodes =  NUM_CIRCLE_POINTS;
+  holes.push_back(circle1);
+  circle2.center = Vec2(0.3, 0.4);
+  circle2.radius = 0.025;
+  circle2.num_nodes =  NUM_CIRCLE_POINTS;
+  holes.push_back(circle2);
+
+  circle3.center = Vec2(0.4, 0.4);
+  circle3.radius = 0.025;
+  circle3.num_nodes =  NUM_CIRCLE_POINTS;
+  holes.push_back(circle3);
+  circle4.center = Vec2(0.6, 0.6);
+  circle4.radius = 0.025;
+  circle4.num_nodes =  NUM_CIRCLE_POINTS;
+  holes.push_back(circle4);
+
+  circle5.center = Vec2(0.7, 0.6);
+  circle5.radius = 0.025;
+  circle5.num_nodes = NUM_CIRCLE_POINTS;
+  holes.push_back(circle5);
+  circle6.center = Vec2(0.8, 0.6);
+  circle6.radius = 0.025;
+  circle6.num_nodes =  NUM_CIRCLE_POINTS;
+  holes.push_back(circle6);
 
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
   get_spline_points(&outer_x0_spline_points, &outer_x1_spline_points);

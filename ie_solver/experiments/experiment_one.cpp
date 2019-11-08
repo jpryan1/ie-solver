@@ -21,8 +21,8 @@ ie_solver_config get_experiment_one_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = pow(2, 14);
-  config.domain_size = 49;
+  config.num_boundary_points = pow(2, 13);
+  config.domain_size = 50;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
   config.boundary_condition = BoundaryCondition::DEFAULT;
@@ -55,20 +55,20 @@ void run_experiment1() {
 
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
+                                 
   int FRAME_CAP = 30;
   for (int frame = 0; frame < FRAME_CAP; frame++) {
     double ang = (frame / (0.0 + FRAME_CAP)) * 2 * M_PI;
 
-    perturbed_boundary->holes[0].center = Vec2(0.5 + 0.3 * cos(M_PI + ang),
-                                          0.5 + 0.3 * sin(M_PI + ang));
-    perturbed_boundary->holes[3].center = Vec2(0.5 + 0.3 * cos(ang),
-                                          0.5 + 0.3 * sin(ang));
+    perturbed_boundary->perturbation_parameters[0] = ang;
     perturbed_boundary->initialize(config.num_boundary_points,
                                    config.boundary_condition);
+                                   
     double pstr = omp_get_wtime();
     quadtree.perturb(*perturbed_boundary.get());
     double pend = omp_get_wtime();
     std::cout << "timing: qtree_perturb " << (pend - pstr) << std::endl;
+    
     ie_Mat solution = boundary_integral_solve(config, &quadtree,
                       domain_points);
     io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)

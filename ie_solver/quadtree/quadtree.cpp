@@ -390,7 +390,9 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
 
 void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   if (node == nullptr) return;
+  //TODO(John) make all this a fn of nodes.
   node->compressed = false;
+  node->X_rr_is_LU_factored = false;
   node->src_dof_lists.active_box.clear();
   node->src_dof_lists.skel.clear();
   node->src_dof_lists.skelnear.clear();
@@ -401,6 +403,7 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   node->L = ie_Mat(0, 0);
   for (QuadTreeNode* neighbor : node->neighbors) {
     neighbor->compressed = false;
+    node->X_rr_is_LU_factored = false;
     neighbor->src_dof_lists.active_box.clear();
     neighbor->src_dof_lists.skel.clear();
     neighbor->src_dof_lists.skelnear.clear();
