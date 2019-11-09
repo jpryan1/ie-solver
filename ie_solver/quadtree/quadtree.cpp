@@ -131,8 +131,8 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   }
 
   double tree_end_time = omp_get_wtime();
-  std::cout << "timing: tree_init " << (tree_end_time - tree_start_time) <<
-            std::endl;
+  // std::cout << "timing: tree_init " << (tree_end_time - tree_start_time) <<
+  //           std::endl;
 }
 
 
@@ -527,9 +527,9 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   }
 
   double b = omp_get_wtime();
-  std::cout << "Phase a " << (b - a) << std::endl;
-  std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
-            " are compressed." << std::endl;
+  // std::cout << "Phase a " << (b - a) << std::endl;
+  // std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
+  //           " are compressed." << std::endl;
   // go through all leaf original box vectors and apply mapping.
   // (if there is a deletion it will be processed later)
   // each node will be one of three things
@@ -595,7 +595,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   }
 
   double c = omp_get_wtime();
-  std::cout << "Phase b " << (c - b) << std::endl;
+  // std::cout << "Phase b " << (c - b) << std::endl;
 
   // go through all additions, find their leaves, make addition and call mark
   // function
@@ -628,7 +628,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   }
 
   double d = omp_get_wtime();
-  std::cout << "Phase c " << (d - c) << std::endl;
+  // std::cout << "Phase c " << (d - c) << std::endl;
 
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
@@ -691,7 +691,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   boundary->holes = perturbed_boundary.holes;
 
   double e = omp_get_wtime();
-  std::cout << "Phase d " << (e - d) << std::endl;
+  // std::cout << "Phase d " << (e - d) << std::endl;
 
   // If any nodes are bursting now, subdivide them.
   for (QuadTreeNode* node : maybe_bursting) {
@@ -704,14 +704,14 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
 
   // If we can consolidate nodes into their parent, do that.
   double f = omp_get_wtime();
-  std::cout << "Phase e " << (f - e) << std::endl;
+  // std::cout << "Phase e " << (f - e) << std::endl;
 
   for (auto it = sparse.begin(); it != sparse.end(); ++it) {
     consolidate_node(it->first);
   }
 
   double g = omp_get_wtime();
-  std::cout << "Phase f " << (g - f) << std::endl;
+  // std::cout << "Phase f " << (g - f) << std::endl;
 
   num_compressed = 0;
   num_total = 0;
@@ -770,8 +770,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-  std::cout << "After perturb, " << num_compressed << " of " << num_total <<
-            " are compressed." << std::endl;
+  // std::cout << "After perturb, " << num_compressed << " of " << num_total <<
+  //           " are compressed." << std::endl;
 }
 
 

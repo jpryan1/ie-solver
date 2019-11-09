@@ -21,16 +21,16 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
                                   kernel);
     domain_init_end = omp_get_wtime();
-    std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
-              << std::endl;
+    // std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
+    //           << std::endl;
     return;
   } else if (kernel.pde == ie_solver_config::Pde::LAPLACE_NEUMANN) {
     LaplaceNeumann_InitializeDomainKernel(K, points, normals, weights,
                                           domain_points,
                                           kernel);
     domain_init_end = omp_get_wtime();
-    std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
-              << std::endl;
+    // std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
+    //           << std::endl;
     return;
   }
 
@@ -58,8 +58,8 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     }
   }
   domain_init_end = omp_get_wtime();
-  std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
-            << std::endl;
+  // std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
+  //           << std::endl;
 }
 
 

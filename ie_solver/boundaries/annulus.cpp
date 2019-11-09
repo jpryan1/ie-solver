@@ -15,10 +15,10 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 
   if (holes.size() == 0) {
     Hole hole;
-    hole.center = Vec2(0.6, 0.5);
-    hole.radius = 0.025;
+    hole.center = Vec2(0.75, 0.5);
+    hole.radius = 0.1;
     holes.push_back(hole);
-    hole.center = Vec2(0.4, 0.5);
+    hole.center = Vec2(0.25, 0.5);
     holes.push_back(hole);
   }
 
@@ -26,14 +26,14 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
   int num_points = N + hole_nodes * holes.size();
   for (int i = 0; i < N; i++) {
     double ang = i * 2.0 * M_PI / N;
-    double x = 0.5 + 0.25 * cos(ang);
-    double y = 0.5 + 0.25 * sin(ang);
+    double x = 0.5 + cos(ang);
+    double y = 0.5 + sin(ang);
     points.push_back(x);
     points.push_back(y);
     normals.push_back(cos(ang));
     normals.push_back(sin(ang));
-    curvatures.push_back(4);
-    weights.push_back(0.5 * M_PI / N);
+    curvatures.push_back(1);
+    weights.push_back(2 * M_PI / N);
   }
 
   for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
@@ -70,7 +70,7 @@ bool Annulus::is_in_domain(const Vec2& a) {
   double eps = 1e-2;
 
   double dist = sqrt(pow(x, 2) + pow(y, 2));
-  if (dist + eps > 0.25) return false;
+  if (dist + eps > 1) return false;
   for (Hole hole : holes) {
     Vec2 r = a - hole.center;
     if (r.norm() - eps < hole.radius) return false;

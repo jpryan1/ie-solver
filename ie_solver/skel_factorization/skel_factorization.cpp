@@ -235,27 +235,27 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     ie_Mat allskel_updates = ie_Mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_updates, allskel, tree->root, false);
     allskel_mat = kernel(allskel, allskel) - allskel_updates;
-    std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
+    // std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     //
   }
   double lustrt = omp_get_wtime();
 
   // check_factorization_against_kernel(kernel, tree);
-  std::cout << "timing: id_time " << id_time << std::endl;
-  std::cout << "timing: make_mat_time " << make_mat_time << std::endl;
-  std::cout << "timing: schur_time " << schur_time << std::endl;
-  std::cout << "pxy krn " << ie_Mat::proxy_time << " " <<
-            ie_Mat::kernel_time << " " << std::endl;
+  // std::cout << "timing: id_time " << id_time << std::endl;
+  // std::cout << "timing: make_mat_time " << make_mat_time << std::endl;
+  // std::cout << "timing: schur_time " << schur_time << std::endl;
+  // std::cout << "pxy krn " << ie_Mat::proxy_time << " " <<
+  //           ie_Mat::kernel_time << " " << std::endl;
 
   if (U.width() == 0) {
     double lustrt = omp_get_wtime();
     allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
 
     double skel_end = omp_get_wtime();
-    std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+    // std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 
     double slutime = skel_end - lustrt;
-    std::cout << "timing: slu " << slutime << std::endl;
+    // std::cout << "timing: slu " << slutime << std::endl;
 
     return;
   }
@@ -386,8 +386,8 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
 
   double skel_end = omp_get_wtime();
   double slutime = skel_end - lustrt;
-  std::cout << "timing: slu " << slutime << std::endl;
-  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+  // std::cout << "timing: slu " << slutime << std::endl;
+  // std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 
 }
 

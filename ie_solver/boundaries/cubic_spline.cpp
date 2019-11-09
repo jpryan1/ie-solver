@@ -7,7 +7,7 @@
 #include "ie_solver/boundaries/cubic_spline.h"
 #include "ie_solver/log.h"
 
-#define NODES_PER_SPLINE 500
+#define NODES_PER_SPLINE 100
 #define NUM_SPLINE_POINTS 10
 
 namespace ie_solver {
