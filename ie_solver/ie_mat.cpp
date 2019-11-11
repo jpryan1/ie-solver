@@ -405,6 +405,12 @@ double ie_Mat::one_norm() const {
 }
 
 
+double ie_Mat::vec_two_norm() const {
+  assert(width()==1);
+  return sqrt(frob_norm());
+}
+
+
 void ie_Mat::rand_vec(unsigned int dofs) {
   // check if we need a resize
   if (width_ != 1 || height_ != dofs || lda_ != dofs) {

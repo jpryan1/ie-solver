@@ -145,7 +145,7 @@ int io::parse_input_into_config(int argc, char** argv,
 
   std::string usage = "\n\tusage: ./ie_solver "
                       "-pde {LAPLACE|LAPLACE_NEUMANN|STOKES} "
-                      "-boundary {CIRCLE|ANNULUS|"
+                      "-boundary {CIRCLE|ANNULUS|ROUNDED_SQUARE|"
                       "CUBIC_SPLINE|EX1|EX2|EX3} "
                       "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
                       "TANGENT_VEC|NORMAL_VEC|NO_SLIP} "
@@ -207,13 +207,15 @@ int io::parse_input_into_config(int argc, char** argv,
           config->boundary_shape = Boundary::BoundaryShape::CIRCLE;
         } else if (!strcmp(argv[i + 1], "ANNULUS")) {
           config->boundary_shape = Boundary::BoundaryShape::ANNULUS;
+        } else if (!strcmp(argv[i + 1], "ROUNDED_SQUARE")) {
+          config->boundary_shape = Boundary::BoundaryShape::ROUNDED_SQUARE;
         } else if (!strcmp(argv[i + 1], "CUBIC_SPLINE")) {
           config->boundary_shape = Boundary::BoundaryShape::CUBIC_SPLINE;
-        }else if (!strcmp(argv[i + 1], "EX1")) {
+        } else if (!strcmp(argv[i + 1], "EX1")) {
           config->boundary_shape = Boundary::BoundaryShape::EX1;
-        }else if (!strcmp(argv[i + 1], "EX2")) {
+        } else if (!strcmp(argv[i + 1], "EX2")) {
           config->boundary_shape = Boundary::BoundaryShape::EX2;
-        }else if (!strcmp(argv[i + 1], "EX3")) {
+        } else if (!strcmp(argv[i + 1], "EX3")) {
           config->boundary_shape = Boundary::BoundaryShape::EX3;
         } else {
           LOG::ERROR("Unrecognized boundary: " + std::string(argv[i + 1])
@@ -254,17 +256,17 @@ int io::parse_input_into_config(int argc, char** argv,
     config->solution_dimension = 2;
   }
 
-  if(config->solution_dimension == 2){
-    if(config->boundary_condition ==
-            BoundaryCondition::SINGLE_ELECTRON ||config->boundary_condition ==
-            BoundaryCondition::ALL_ONES){
+  if (config->solution_dimension == 2) {
+    if (config->boundary_condition ==
+        BoundaryCondition::SINGLE_ELECTRON || config->boundary_condition ==
+        BoundaryCondition::ALL_ONES) {
       LOG::ERROR("Boundary condition dimension does not match PDE solution dimention.");
       return -1;
     }
-  }else if(config->solution_dimension == 1){
-    if(config->boundary_condition !=
-            BoundaryCondition::SINGLE_ELECTRON && config->boundary_condition !=
-            BoundaryCondition::ALL_ONES){
+  } else if (config->solution_dimension == 1) {
+    if (config->boundary_condition !=
+        BoundaryCondition::SINGLE_ELECTRON && config->boundary_condition !=
+        BoundaryCondition::ALL_ONES) {
       LOG::ERROR("Boundary condition dimension does not match PDE solution dimention.");
       return -1;
     }

@@ -10,6 +10,7 @@
 
 #define NUM_PROXY_POINTS 64
 #define RADIUS_RATIO 1.5
+#define IMPROVE_CONDITION 100
 
 namespace ie_solver {
 
@@ -24,8 +25,8 @@ struct Dof {
 
 struct Kernel {
   Kernel(int solution_dimension_, int domain_dimension_,
-          ie_solver_config::Pde pde_, Boundary* boundary_,
-          std::vector<double> domain_points_) :
+         ie_solver_config::Pde pde_, Boundary* boundary_,
+         std::vector<double> domain_points_) :
     solution_dimension(solution_dimension_),
     domain_dimension(domain_dimension_),
     pde(pde_),
@@ -71,15 +72,18 @@ struct Kernel {
   ie_Mat fast_laplace_proxy_get(const std::vector<double> & pxy_p,
                                 const std::vector<double> & pxy_n,
                                 double pxy_c, double pxy_w,
-                                const std::vector<unsigned int> & box_inds) const ;
+                                const std::vector<unsigned int> & box_inds)
+  const;
   ie_Mat fast_laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
                                         const std::vector<double> & pxy_n,
                                         double pxy_c, double pxy_w,
-                                        const std::vector<unsigned int> & box_inds) const ;
+                                        const std::vector<unsigned int> &
+                                        box_inds) const;
   ie_Mat fast_stokes_proxy_get(const std::vector<double> & pxy_p,
                                const std::vector<double> & pxy_n,
                                double pxy_c, double pxy_w,
-                               const std::vector<unsigned int> & box_inds) const ;
+                               const std::vector<unsigned int> & box_inds)
+  const;
 };  // struct
 
 }  // namespace ie_solver

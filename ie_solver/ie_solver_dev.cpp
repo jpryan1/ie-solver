@@ -15,7 +15,7 @@
 #include "ie_solver/linear_solve.h"
 #include "ie_solver/boundaries/boundary.h"
 #include "ie_solver/boundaries/circle.h"
-// #include "ie_solver/boundaries/rounded_square.h"
+#include "ie_solver/boundaries/rounded_square.h"
 // #include "ie_solver/boundaries/rounded_square_with_bump.h"
 // #include "ie_solver/boundaries/squiggly.h"
 #include "ie_solver/boundaries/annulus.h"
@@ -111,9 +111,9 @@ void run_single_solve(const ie_solver_config & config) {
     case Boundary::BoundaryShape::CIRCLE:
       boundary.reset(new Circle());
       break;
-    // case Boundary::BoundaryShape::ROUNDED_SQUARE:
-    //   boundary.reset(new RoundedSquare());
-    //   break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE:
+      boundary.reset(new RoundedSquare());
+      break;
     // case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
     //   boundary.reset(new RoundedSquareWithBump());
     //   break;
@@ -144,19 +144,6 @@ void run_single_solve(const ie_solver_config & config) {
   io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
                              boundary->points);
   io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
-
-  // double error;
-  // switch (config.pde) {
-  //   case ie_solver_config::Pde::LAPLACE:
-  //     error = laplace_error(solution, config.id_tol, domain_points,
-  //                           boundary.get());
-  //     break;
-  //   case ie_solver_config::Pde::STOKES:
-  //     error = stokes_error(solution, config.id_tol, domain_points,
-  //                          boundary.get());
-  //     break;
-  // }
-  // std::cout << "Error: " << error << std::endl;
 }
 
 

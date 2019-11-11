@@ -42,8 +42,8 @@ ie_Mat Kernel::stokes_kernel(const Dof & tgt, const Dof & src) const {
     double t0 = -src.normal.a[1];
     double t1 =  src.normal.a[0];
     double potential = - 0.5 * src.curvature * src.weight * scale;
-    tensor.set(0, 0, -0.5 + potential * t0 * t0);
-    tensor.set(1, 1, -0.5 + potential * t1 * t1);
+    tensor.set(0, 0,  - 0.5 + potential * t0 * t0);
+    tensor.set(1, 1,  - 0.5 + potential * t1 * t1);
     tensor.set(0, 1, potential * t0 * t1);
     tensor.set(1, 0, potential * t1 * t0);
 
@@ -66,7 +66,8 @@ ie_Mat Kernel::laplace_kernel(const Dof & tgt, const Dof & src) const {
   double scale = 1.0 / (2 * M_PI);
   ie_Mat tensor(1, 1);
   if (tgt.point.a[0] == src.point.a[0] && tgt.point.a[1] == src.point.a[1]) {
-    tensor.set(0, 0, 0.5 + 0.5 * src.curvature * src.weight * scale);
+    tensor.set(0, 0, 0.5 + 0.5 * src.curvature * src.weight *
+               scale);
     return tensor;
   }
   Vec2 r = tgt.point - src.point;
@@ -79,7 +80,8 @@ ie_Mat Kernel::laplace_neumann_kernel(const Dof & tgt, const Dof & src) const {
   double scale = 1.0 / (2 * M_PI);
   ie_Mat tensor(1, 1);
   if (tgt.point.a[0] == src.point.a[0] && tgt.point.a[1] == src.point.a[1]) {
-    tensor.set(0, 0, -0.5 + 0.5 * src.curvature * src.weight * scale
+    tensor.set(0, 0, - 0.5 + 0.5 * src.curvature * src.weight *
+               scale
                + src.weight);
     return tensor;
   }
@@ -146,7 +148,7 @@ ie_Mat Kernel::fast_laplace_get(const std::vector<unsigned int>& I_,
       double tp2 = boundary->points[2 * tgt_ind + 1];
 
       if (tp1 == sp1 && sp2 == tp2) {
-        ret.mat[i + olda_ * j] =  0.5 + 0.5 * sc * sw * scale;
+        ret.mat[i + olda_ * j] = IMPROVE_CONDITION +  0.5 + 0.5 * sc * sw * scale;
       } else {
         double r0 = tp1 - sp1;
         double r1 = tp2 - sp2;
@@ -189,7 +191,7 @@ ie_Mat Kernel::fast_laplace_neumann_get(const std::vector<unsigned int>& I_,
       double tn1 = boundary->normals[2 * tgt_ind];
       double tn2 = boundary->normals[2 * tgt_ind + 1];
       if (tp1 == sp1 && sp2 == tp2) {
-        ret.mat[i + olda_ * j] =  sw - 0.5 + 0.5 * sc * sw * scale;
+        ret.mat[i + olda_ * j] =  IMPROVE_CONDITION + sw - 0.5 + 0.5 * sc * sw * scale;
       } else {
         double r0 = tp1 - sp1;
         double r1 = tp2 - sp2;
@@ -244,7 +246,7 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
 
         if (tgt_ind % 2 == 0) {
           if (src_ind % 2 == 0) {
-            ret.mat[i + olda_ * j] = -0.5 + potential * sn2 * sn2 +  sw *
+            ret.mat[i + olda_ * j] = IMPROVE_CONDITION - 0.5 + potential * sn2 * sn2 +  sw *
                                      tn1 * sn1;
           } else {
             ret.mat[i + olda_ * j] = -potential * sn1 * sn2 + sw * tn2 *
@@ -255,7 +257,7 @@ ie_Mat Kernel::fast_stokes_get(const std::vector<unsigned int>& I_,
             ret.mat[i + olda_ * j] =  -potential * sn1 * sn2 + sw * tn2 *
                                       sn1;
           } else {
-            ret.mat[i + olda_ * j] = -0.5 + potential * sn1 * sn1 + sw *
+            ret.mat[i + olda_ * j] = IMPROVE_CONDITION - 0.5 + potential * sn1 * sn1 + sw *
                                      tn2 * sn2;
           }
         }

@@ -186,7 +186,6 @@ if(is_stokes):
 	plt.quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
 		stokes_data[4], cmap = "Purples", #cmap='autumn',
 		norm=quiver_normalizer, scale=quiver_scale)
-print(max(stokes_data[2]))
 ############################################################
 #
 #						INTERACTIVITY

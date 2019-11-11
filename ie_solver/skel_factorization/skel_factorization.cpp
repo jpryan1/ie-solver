@@ -198,10 +198,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
 
     #pragma omp parallel for num_threads(4)
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
-      // node_counter++;
-      // if (node_counter > NODE_CAP) {
-      //   break;
-      // }
+
       double node_start = omp_get_wtime();
       QuadTreeNode* current_node = current_level->nodes[n];
       if (current_node->compressed) {

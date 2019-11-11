@@ -5,7 +5,7 @@ cc_library(
 	hdrs = [
 			"circle.h",
 			"annulus.h",
-#			"rounded_square.h",
+			"rounded_square.h",
 #			"rounded_square_with_bump.h",
 #			"squiggly.h",
 			"cubic_spline.h",
@@ -16,7 +16,7 @@ cc_library(
 	srcs = [
 			"circle.cpp",
 			"annulus.cpp",
-#			"rounded_square.cpp",
+			"rounded_square.cpp",
 #			"rounded_square_with_bump.cpp",
 #			"squiggly.cpp",
 			"cubic_spline.cpp",

@@ -82,6 +82,7 @@ struct ie_Mat {
 
 
   double one_norm() const;
+  double vec_two_norm() const;
   double frob_norm() const;
   void write_singular_values_to_file(const std::string& filename) const;
 
