@@ -30,29 +30,29 @@ void run_animation(const ie_solver_config& config) {
   std::unique_ptr<Boundary> boundary, perturbed_boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
-      boundary.reset(new Circle());
-      perturbed_boundary.reset(new Circle());
+      boundary.reset(new Donut());
       break;
-    // case Boundary::BoundaryShape::ROUNDED_SQUARE:
-    //   boundary.reset(new RoundedSquare());
-    //   perturbed_boundary.reset(new RoundedSquare());
-    //   break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE:
+      boundary.reset(new RoundedSquare());
+      break;
     // case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
     //   boundary.reset(new RoundedSquareWithBump());
-    //   perturbed_boundary.reset(new RoundedSquareWithBump());
     //   break;
     // case Boundary::BoundaryShape::SQUIGGLY:
     //   boundary.reset(new Squiggly());
-    //   perturbed_boundary.reset(new Squiggly());
     //   break;
     case Boundary::BoundaryShape::ANNULUS:
       boundary.reset(new Annulus());
-      perturbed_boundary.reset(new Annulus());
+      break;
+    case Boundary::BoundaryShape::DONUT:
+      boundary.reset(new Donut());
       break;
     case Boundary::BoundaryShape::CUBIC_SPLINE:
       boundary.reset(new CubicSpline());
-      perturbed_boundary.reset(new CubicSpline());
       break;
+    default:
+      LOG::ERROR("Boundary shape not supported by dev yet");
+      exit(0);
   }
 
   // Currently the animation is of moving holes inside an annulus
@@ -124,9 +124,15 @@ void run_single_solve(const ie_solver_config & config) {
     case Boundary::BoundaryShape::ANNULUS:
       boundary.reset(new Annulus());
       break;
+    case Boundary::BoundaryShape::DONUT:
+      boundary.reset(new Donut());
+      break;
     case Boundary::BoundaryShape::CUBIC_SPLINE:
       boundary.reset(new CubicSpline());
       break;
+    default:
+      LOG::ERROR("Boundary shape not supported by dev yet");
+      exit(0);
   }
   boundary->boundary_shape = config.boundary_shape;
   boundary->initialize(config.num_boundary_points, config.boundary_condition);

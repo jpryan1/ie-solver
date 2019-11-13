@@ -11,8 +11,8 @@ namespace ie_solver {
 void Initialization::InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& domain_points,
     const Kernel& kernel, int solution_dimension) {
-  double domain_init_start = omp_get_wtime();
-  double domain_init_end;
+  // double domain_init_start = omp_get_wtime();
+  // double domain_init_end;
   // is stokes TODO
   std::vector<double> points = kernel.boundary->points;
   std::vector<double> normals = kernel.boundary->normals;
@@ -20,7 +20,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
   if (kernel.pde == ie_solver_config::Pde::STOKES) {
     Stokes_InitializeDomainKernel(K, points, normals, weights, domain_points,
                                   kernel);
-    domain_init_end = omp_get_wtime();
+    // domain_init_end = omp_get_wtime();
     // std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
     //           << std::endl;
     return;
@@ -28,7 +28,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
     LaplaceNeumann_InitializeDomainKernel(K, points, normals, weights,
                                           domain_points,
                                           kernel);
-    domain_init_end = omp_get_wtime();
+    // domain_init_end = omp_get_wtime();
     // std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
     //           << std::endl;
     return;
@@ -57,7 +57,7 @@ void Initialization::InitializeDomainKernel(ie_Mat* K,
       K->set(i, j, potential);
     }
   }
-  domain_init_end = omp_get_wtime();
+  // domain_init_end = omp_get_wtime();
   // std::cout << "timing: domain_init " << (domain_init_end - domain_init_start)
   //           << std::endl;
 }

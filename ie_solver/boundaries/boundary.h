@@ -37,8 +37,8 @@ class Boundary {
   enum BoundaryShape {
     CIRCLE,
     ROUNDED_SQUARE,
-    ROUNDED_SQUARE_WITH_BUMP,
-    SQUIGGLY,
+    // ROUNDED_SQUARE_WITH_BUMP,
+    // SQUIGGLY,
     ANNULUS,
     DONUT,
     CUBIC_SPLINE,

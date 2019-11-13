@@ -32,7 +32,7 @@ ie_solver_config get_experiment_two_config() {
 
 
 void run_experiment2() {
-  double start = omp_get_wtime();
+  // double start = omp_get_wtime();
   ie_solver_config config = get_experiment_two_config();
 
   std::unique_ptr<Boundary> boundary =

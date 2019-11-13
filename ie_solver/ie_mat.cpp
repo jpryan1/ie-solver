@@ -655,7 +655,7 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
                                    lda_, &(sing[0]), U.mat,
                                    height(), nullptr, width(),
                                    &(superb[0]));
-
+  assert(info == 0);
   if (output.is_open()) {
     for (unsigned int i = 0; i < sing.size(); i++) {
       output << sing[i] << std::endl;

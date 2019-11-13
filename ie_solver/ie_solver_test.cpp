@@ -436,10 +436,7 @@ TEST(IeSolverTest, LaplaceAnnulusAnalyticAgreementElectron) {
 double laplace_neumann_error(const ie_Mat& domain,
                              const std::vector<double>& domain_points,
                              Boundary * boundary) {
-  double diff_norm = 0;
-  double norm_of_true = 0;
   ie_Mat no_ln = domain;
-  double c;
   for (unsigned int i = 0; i < domain_points.size(); i += 2) {
     double x0 = domain_points[i];
     double x1 = domain_points[i + 1];
