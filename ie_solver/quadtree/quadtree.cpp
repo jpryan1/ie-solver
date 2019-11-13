@@ -35,7 +35,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
                                const std::vector<double>& domain_points_,
                                int solution_dimension_,
                                int domain_dimension_) {
-  double tree_start_time = omp_get_wtime();
+  // double tree_start_time = omp_get_wtime();
   assert(boundary_->points.size() > 0
          && "number of boundary->points to init tree cannot be 0.");
   // todo(john) later we can assert that the boundary->points are a multiple of
@@ -44,7 +44,6 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   this->domain_points = domain_points_;
   this->solution_dimension = solution_dimension_;
   this->domain_dimension = domain_dimension_;
-  QuadTreeNode::id_count = 0;
   min = boundary->points[0];
   max = boundary->points[0];
 
@@ -130,7 +129,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
     }
   }
 
-  double tree_end_time = omp_get_wtime();
+  // double tree_end_time = omp_get_wtime();
   // std::cout << "timing: tree_init " << (tree_end_time - tree_start_time) <<
   //           std::endl;
 }
@@ -483,7 +482,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   // now create mapping of new_points to their point index in the new vec
   std::unordered_map<pair, int, boost::hash<pair>> point_to_new_index;
 
-  double a = omp_get_wtime();
+  // double a = omp_get_wtime();
   for (unsigned int i = 0; i < new_points.size(); i += 2) {
     pair new_point(new_points[i], new_points[i + 1]);
     point_to_new_index[new_point] = i / 2;
@@ -493,7 +492,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   for (unsigned int i = 0; i < found_in_old.size(); i++) {
     found_in_old[i] = false;
   }
-
   // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
   for (unsigned int i = 0; i < old_points.size(); i += 2) {
@@ -526,8 +524,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-  double b = omp_get_wtime();
-  // std::cout << "Phase a " << (b - a) << std::endl;
   // std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
   //           " are compressed." << std::endl;
   // go through all leaf original box vectors and apply mapping.
@@ -594,9 +590,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-  double c = omp_get_wtime();
-  // std::cout << "Phase b " << (c - b) << std::endl;
-
   // go through all additions, find their leaves, make addition and call mark
   // function
   std::vector<QuadTreeNode*> maybe_bursting;
@@ -626,9 +619,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     maybe_bursting.push_back(current);
     mark_neighbors_and_parents(current);
   }
-
-  double d = omp_get_wtime();
-  // std::cout << "Phase c " << (d - c) << std::endl;
 
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
@@ -690,9 +680,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   }
   boundary->holes = perturbed_boundary.holes;
 
-  double e = omp_get_wtime();
-  // std::cout << "Phase d " << (e - d) << std::endl;
-
   // If any nodes are bursting now, subdivide them.
   for (QuadTreeNode* node : maybe_bursting) {
     if (node->is_leaf
@@ -703,15 +690,10 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   }
 
   // If we can consolidate nodes into their parent, do that.
-  double f = omp_get_wtime();
-  // std::cout << "Phase e " << (f - e) << std::endl;
 
   for (auto it = sparse.begin(); it != sparse.end(); ++it) {
     consolidate_node(it->first);
   }
-
-  double g = omp_get_wtime();
-  // std::cout << "Phase f " << (g - f) << std::endl;
 
   num_compressed = 0;
   num_total = 0;
@@ -786,7 +768,6 @@ void QuadTree::reset() {
     }
   }
   levels.clear();
-  QuadTreeNode::id_count = 0;
   initialize_tree(boundary, domain_points, solution_dimension,
                   domain_dimension);
 }
@@ -799,7 +780,6 @@ void QuadTree::reset(Boundary * boundary_) {
     }
   }
   levels.clear();
-  QuadTreeNode::id_count = 0;
   initialize_tree(boundary_, domain_points, solution_dimension,
                   domain_dimension);
 }
@@ -830,8 +810,14 @@ void QuadTree::remove_inactive_dofs_at_level(int level) {
       if (neighbor->level > node_a->level) {
         continue;
       }
-      for (unsigned int idx : neighbor->src_dof_lists.active_box) {
-        node_a->src_dof_lists.near.push_back(idx);
+      if (neighbor->is_leaf) {
+        for (unsigned int idx : neighbor->src_dof_lists.original_box) {
+          node_a->src_dof_lists.near.push_back(idx);
+        }
+      } else {
+        for (unsigned int idx : neighbor->src_dof_lists.active_box) {
+          node_a->src_dof_lists.near.push_back(idx);
+        }
       }
     }
   }

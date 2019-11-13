@@ -389,6 +389,16 @@ double ie_Mat::frob_norm() const {
   return sqrt(sum);
 }
 
+double ie_Mat::max_entry_magnitude() const {
+  double max = 0;
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      max = std::max(max, std::abs(get(i, j)));
+    }
+  }
+  return max;
+}
+
 
 double ie_Mat::one_norm() const {
   double top = 0;
@@ -402,6 +412,12 @@ double ie_Mat::one_norm() const {
     }
   }
   return top;
+}
+
+
+double ie_Mat::vec_two_norm() const {
+  assert(width() == 1);
+  return sqrt(frob_norm());
 }
 
 
@@ -553,7 +569,7 @@ double ie_Mat::condition_number() const {
 // Populates /p/ with permutation, Z with linear transformation.
 int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   ie_Mat cpy = *this;
-  assert(height() * width() > 0);
+  assert(height() != 0 &&  width() != 0);
   std::vector<lapack_int> pvt(width_);
   memset(&pvt[0], 0, width_ * sizeof(lapack_int));
 
@@ -639,8 +655,7 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
                                    lda_, &(sing[0]), U.mat,
                                    height(), nullptr, width(),
                                    &(superb[0]));
-
-
+  assert(info == 0);
   if (output.is_open()) {
     for (unsigned int i = 0; i < sing.size(); i++) {
       output << sing[i] << std::endl;
@@ -654,7 +669,7 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
 
 void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
                   const ie_Mat& x, double beta, ie_Mat* b) {
-  assert(A.height()*A.width()*x.height()*x.width() != 0 &&
+  assert(A.height() != 0 && x.height() != 0 && A.width() != 0  &&
          "gemv needs positive dimensions only.");
   assert(x.width() == 1 && "gemv only works on a column vector.");
   assert(A.mat != nullptr && "gemv fails on null A mat.");
@@ -670,8 +685,8 @@ void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
 void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
                   double alpha, const ie_Mat& A, const ie_Mat& B, double beta,
                   ie_Mat* C) {
-  assert(A.height()*B.height()*A.width()*B.width() != 0 &&
-         "gemm needs positive dimensions only.");
+  assert(A.height() != 0 && B.height() != 0 && A.width() != 0
+         && B.width() != 0 && "gemm needs positive dimensions only.");
   assert(A.mat != nullptr && "gemm fails on null A mat.");
   assert(B.mat != nullptr && "gemm fails on null B mat.");
   assert(C->mat != nullptr && "gemm fails on null C mat.");

@@ -21,7 +21,7 @@ ie_solver_config get_experiment_two_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
-  config.num_boundary_points = pow(2,13);
+  config.num_boundary_points = pow(2, 13);
   config.domain_size = 50;
   config.domain_dimension = 2;
   config.solution_dimension = 1;
@@ -32,7 +32,7 @@ ie_solver_config get_experiment_two_config() {
 
 
 void run_experiment2() {
-  double start = omp_get_wtime();
+  // double start = omp_get_wtime();
   ie_solver_config config = get_experiment_two_config();
 
   std::unique_ptr<Boundary> boundary =
@@ -56,13 +56,11 @@ void run_experiment2() {
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
 
-  int FRAME_CAP = 10;
+  int FRAME_CAP = 5;
   for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
     double ang1 = (frame1 / (0.0 + FRAME_CAP)) * 4 * M_PI / 5.;
-
-    for (int frame2 = FRAME_CAP / 2; frame2 == FRAME_CAP / 2;
-         frame2++) { //0; frame2 < FRAME_CAP; frame2++) {
-
+    for (int frame2 = 0; frame2 < FRAME_CAP; frame2++) {
+      std::cout << frame1 << " " << frame2 << std::endl;
       double ang2 = ((frame2 / (0.0 + FRAME_CAP)) * 4 * M_PI / 5.) + M_PI;
       perturbed_boundary->perturbation_parameters[0] = ang1;
       perturbed_boundary->perturbation_parameters[1] = ang2;

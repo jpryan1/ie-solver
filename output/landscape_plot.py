@@ -1,5 +1,6 @@
 
 import matplotlib
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 font = {'size'   : 18}
@@ -43,7 +44,7 @@ axs[0].set_xlabel(r"$\theta_1$")
 axs[0].set_ylabel(r"$\theta_2$")
 axs[0].set_title("Experiment 2")
 
-
+print("Max from ex2: ",max(vals))
 data = open("output/ex3flows.txt", "r").readlines()
 
 angs = []
@@ -68,4 +69,6 @@ axs[1].set_ylabel("Corridor Flow")
 
 axs[1].set_title("Experiment 3")
 plt.savefig("landscape.png")
+print("Max from ex3: ",max(flows))
+
 plt.show()

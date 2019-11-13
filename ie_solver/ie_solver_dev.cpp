@@ -15,10 +15,11 @@
 #include "ie_solver/linear_solve.h"
 #include "ie_solver/boundaries/boundary.h"
 #include "ie_solver/boundaries/circle.h"
-// #include "ie_solver/boundaries/rounded_square.h"
+#include "ie_solver/boundaries/rounded_square.h"
 // #include "ie_solver/boundaries/rounded_square_with_bump.h"
 // #include "ie_solver/boundaries/squiggly.h"
 #include "ie_solver/boundaries/annulus.h"
+#include "ie_solver/boundaries/donut.h"
 #include "ie_solver/boundaries/cubic_spline.h"
 #include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
@@ -29,29 +30,29 @@ void run_animation(const ie_solver_config& config) {
   std::unique_ptr<Boundary> boundary, perturbed_boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
-      boundary.reset(new Circle());
-      perturbed_boundary.reset(new Circle());
+      boundary.reset(new Donut());
       break;
-    // case Boundary::BoundaryShape::ROUNDED_SQUARE:
-    //   boundary.reset(new RoundedSquare());
-    //   perturbed_boundary.reset(new RoundedSquare());
-    //   break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE:
+      boundary.reset(new RoundedSquare());
+      break;
     // case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
     //   boundary.reset(new RoundedSquareWithBump());
-    //   perturbed_boundary.reset(new RoundedSquareWithBump());
     //   break;
     // case Boundary::BoundaryShape::SQUIGGLY:
     //   boundary.reset(new Squiggly());
-    //   perturbed_boundary.reset(new Squiggly());
     //   break;
     case Boundary::BoundaryShape::ANNULUS:
       boundary.reset(new Annulus());
-      perturbed_boundary.reset(new Annulus());
+      break;
+    case Boundary::BoundaryShape::DONUT:
+      boundary.reset(new Donut());
       break;
     case Boundary::BoundaryShape::CUBIC_SPLINE:
       boundary.reset(new CubicSpline());
-      perturbed_boundary.reset(new CubicSpline());
       break;
+    default:
+      LOG::ERROR("Boundary shape not supported by dev yet");
+      exit(0);
   }
 
   // Currently the animation is of moving holes inside an annulus
@@ -109,11 +110,11 @@ void run_single_solve(const ie_solver_config & config) {
   std::unique_ptr<Boundary> boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
-      boundary.reset(new Circle());
+      boundary.reset(new Donut());
       break;
-    // case Boundary::BoundaryShape::ROUNDED_SQUARE:
-    //   boundary.reset(new RoundedSquare());
-    //   break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE:
+      boundary.reset(new RoundedSquare());
+      break;
     // case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
     //   boundary.reset(new RoundedSquareWithBump());
     //   break;
@@ -123,9 +124,15 @@ void run_single_solve(const ie_solver_config & config) {
     case Boundary::BoundaryShape::ANNULUS:
       boundary.reset(new Annulus());
       break;
+    case Boundary::BoundaryShape::DONUT:
+      boundary.reset(new Donut());
+      break;
     case Boundary::BoundaryShape::CUBIC_SPLINE:
       boundary.reset(new CubicSpline());
       break;
+    default:
+      LOG::ERROR("Boundary shape not supported by dev yet");
+      exit(0);
   }
   boundary->boundary_shape = config.boundary_shape;
   boundary->initialize(config.num_boundary_points, config.boundary_condition);
@@ -144,19 +151,6 @@ void run_single_solve(const ie_solver_config & config) {
   io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
                              boundary->points);
   io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
-
-  // double error;
-  // switch (config.pde) {
-  //   case ie_solver_config::Pde::LAPLACE:
-  //     error = laplace_error(solution, config.id_tol, domain_points,
-  //                           boundary.get());
-  //     break;
-  //   case ie_solver_config::Pde::STOKES:
-  //     error = stokes_error(solution, config.id_tol, domain_points,
-  //                          boundary.get());
-  //     break;
-  // }
-  // std::cout << "Error: " << error << std::endl;
 }
 
 

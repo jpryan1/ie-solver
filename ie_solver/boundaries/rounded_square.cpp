@@ -8,7 +8,7 @@
 namespace ie_solver {
 
 
-void RoundedSquare::draw_line(int bc_index, int num_points,
+void RoundedSquare::draw_line(int num_points,
                               double start_x, double start_y,
                               double end_x, double end_y,
                               bool normal_is_left) {
@@ -37,34 +37,11 @@ void RoundedSquare::draw_line(int bc_index, int num_points,
     if (i != 0) {
       weights.push_back(weight);
     }
-    double potential;
-    switch (boundary_condition) {
-      case BoundaryCondition::SINGLE_ELECTRON:
-        potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
-        boundary_values.set(bc_index++, 0, potential);
-        break;
-      case BoundaryCondition::ALL_ONES:
-        boundary_values.set(bc_index++, 0, 1.0);
-        break;
-      case BoundaryCondition::BUMP_FUNCTION: {
-        double N = boundary_values.height();
-        // This x_val is -1 at i=0 and +1 at i=N-1
-        double x_val = ((2.0 * i + 1.0 - N) / (N - 1.0));
-        potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
-        boundary_values.set(bc_index++, 0, potential);
-        break;
-      }
-      case BoundaryCondition::STOKES:
-        boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index + 1]);
-        boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index]);
-        bc_index++;
-        break;
-    }
   }
 }
 
 
-void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
+void RoundedSquare::draw_quarter_circle(int num_points,
                                         double start_x, double start_y,
                                         double end_x, double end_y,
                                         bool convex) {
@@ -138,36 +115,12 @@ void RoundedSquare::draw_quarter_circle(int bc_index, int num_points,
     if (i != 0) {
       weights.push_back(weight);
     }
-    double potential;
-    switch (boundary_condition) {
-      case BoundaryCondition::SINGLE_ELECTRON:
-        potential = log(sqrt(pow(x + 2, 2) + pow(y + 2, 2))) / (2 * M_PI);
-        boundary_values.set(bc_index++, 0, potential);
-        break;
-      case BoundaryCondition::ALL_ONES:
-        boundary_values.set(bc_index++, 0, 1.0);
-        break;
-      case BoundaryCondition::BUMP_FUNCTION: {
-        double N = boundary_values.height();
-        // This x_val is -1 at i=0 and +1 at i=N-1
-        double x_val = ((2.0 * i + 1.0 - N) / (N - 1.0));
-        potential = exp(-1.0 / (1.0 - pow(x_val, 2)));
-        boundary_values.set(bc_index++, 0, potential);
-        break;
-      }
-      case BoundaryCondition::STOKES:
-        boundary_values.set(2 * bc_index, 0, -normals[2 * bc_index + 1]);
-        boundary_values.set(2 * bc_index + 1, 0, normals[2 * bc_index]);
-        bc_index++;
-        break;
-    }
   }
 }
 
 
 void RoundedSquare::initialize(int N, BoundaryCondition bc) {
   boundary_shape = BoundaryShape::ROUNDED_SQUARE;
-  boundary_condition = bc;
   points.clear();
   normals.clear();
   weights.clear();
@@ -201,43 +154,38 @@ void RoundedSquare::initialize(int N, BoundaryCondition bc) {
   double corner_weight = (2.0 * M_PI * 0.1 / 4.0) / corner_points;
   double middie = (line_weight + corner_weight) / 2.0;
 
-  int bc_index = 0;
-  if (bc == BoundaryCondition::STOKES) {
-    boundary_values = ie_Mat(2 * N, 1);
+
+  weights.push_back(middie);
+  draw_line(6 * line_points, 0.8, 0.1, 0.2, 0.1, true);
+
+  weights.push_back(middie);
+  draw_quarter_circle(corner_points, 0.2, 0.1, 0.1, 0.2, true);
+
+  weights.push_back(middie);
+  draw_line(6 * line_points, 0.1, 0.2, 0.1, 0.8, true);
+
+  weights.push_back(middie);
+  draw_quarter_circle(corner_points, 0.1, 0.8, 0.2, 0.9, true);
+
+  weights.push_back(middie);
+  draw_line(6 * line_points, 0.2, 0.9, 0.8, 0.9, true);
+
+  weights.push_back(middie);
+  draw_quarter_circle(corner_points, 0.8, 0.9, 0.9, 0.8, true);
+
+  weights.push_back(middie);
+  draw_line(6 * line_points, 0.9, 0.8, 0.9, 0.2, true);
+
+  weights.push_back(middie);
+  draw_quarter_circle(corner_points, 0.9, 0.2, 0.8, 0.1, true);
+
+  if (bc == BoundaryCondition::DEFAULT) {
+    boundary_values = ie_Mat(weights.size(), 1);
+    apply_boundary_condition(0, weights.size(), SINGLE_ELECTRON);
   } else {
-    boundary_values = ie_Mat(N, 1);
+    set_boundary_values_size(bc);
+    apply_boundary_condition(0, weights.size(), bc);
   }
-  weights.push_back(middie);
-  draw_line(bc_index, 6 * line_points, 0.8, 0.1, 0.2, 0.1, true);
-  bc_index += 6 * line_points;
-
-  weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.2, 0.1, 0.1, 0.2, true);
-  bc_index += corner_points;
-
-  weights.push_back(middie);
-  draw_line(bc_index, 6 * line_points, 0.1, 0.2, 0.1, 0.8, true);
-  bc_index += 6 * line_points;
-
-  weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.1, 0.8, 0.2, 0.9, true);
-  bc_index += corner_points;
-
-  weights.push_back(middie);
-  draw_line(bc_index, 6 * line_points, 0.2, 0.9, 0.8, 0.9, true);
-  bc_index += 6 * line_points;
-
-  weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.8, 0.9, 0.9, 0.8, true);
-  bc_index += corner_points;
-
-  weights.push_back(middie);
-  draw_line(bc_index, 6 * line_points, 0.9, 0.8, 0.9, 0.2, true);
-  bc_index += 6 * line_points;
-
-  weights.push_back(middie);
-  draw_quarter_circle(bc_index, corner_points, 0.9, 0.2, 0.8, 0.1, true);
-  bc_index += corner_points;
 }
 
 

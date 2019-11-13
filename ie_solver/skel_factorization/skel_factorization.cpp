@@ -178,30 +178,28 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
 
 void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
-  double skel_start = omp_get_wtime();
+  // double skel_start = omp_get_wtime();
   int node_counter = 0;
   unsigned int lvls = tree->levels.size();
-  int active_dofs = tree->boundary->points.size() / 2;
-  make_mat_time = 0.0;
-  id_time = 0.0;
-  schur_time = 0;
+  // int active_dofs = tree->boundary->points.size() / 2;
+  // make_mat_time = 0.0;
+  // id_time = 0.0;
+  // schur_time = 0;
   ie_Mat::proxy_time = 0.;
   ie_Mat::kernel_time = 0.;
-
-  for (unsigned int level = lvls - 1; level > 0; level--) {
+  // int node_cap = 0;
+  for (unsigned int level = lvls - 1; level >  0; level--) {
     if (lvls - level > LEVEL_CAP) {
       break;
     }
 
     tree->remove_inactive_dofs_at_level(level);
     QuadTreeLevel* current_level = tree->levels[level];
+    // if (node_counter > node_cap) break;
 
     #pragma omp parallel for num_threads(4)
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
-      // node_counter++;
-      // if (node_counter > NODE_CAP) {
-      //   break;
-      // }
+      // if (node_counter > node_cap) break;
       double node_start = omp_get_wtime();
       QuadTreeNode* current_node = current_level->nodes[n];
       if (current_node->compressed) {
@@ -217,13 +215,14 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
       if (redundants == 0) {
         continue;
       }
-      double scstart = omp_get_wtime();
+      // double scstart = omp_get_wtime();
       schur_update(kernel, current_node);
 
-      double scend = omp_get_wtime();
-      schur_time += (scend - scstart) ;
+      // double scend = omp_get_wtime();
+      // schur_time += (scend - scstart);
       double node_end = omp_get_wtime();
       current_node->compress_time = node_end - node_start;
+      node_counter++;
     }
   }
   // If the above breaks due to a cap, we need to manually propagate active
@@ -238,7 +237,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     // std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     //
   }
-  double lustrt = omp_get_wtime();
+  // double lustrt = omp_get_wtime();
 
   // check_factorization_against_kernel(kernel, tree);
   // std::cout << "timing: id_time " << id_time << std::endl;
@@ -248,13 +247,13 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   //           ie_Mat::kernel_time << " " << std::endl;
 
   if (U.width() == 0) {
-    double lustrt = omp_get_wtime();
+    // double lustrt = omp_get_wtime();
     allskel_mat.LU_factorize(&allskel_mat_lu, &allskel_mat_piv);
 
-    double skel_end = omp_get_wtime();
+    // double skel_end = omp_get_wtime();
     // std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 
-    double slutime = skel_end - lustrt;
+    // double slutime = skel_end - lustrt;
     // std::cout << "timing: slu " << slutime << std::endl;
 
     return;
@@ -367,7 +366,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
                &B_Dinv_C_nonzero);
   ie_Mat ident(Psi.height(), Psi.height());
   ident.eye(Psi.height());
-
+  // ident.set(0, 0, 0);
   ie_Mat S(allskel.size() + Psi.height(),
            allskel.size() + Psi.height());
 
@@ -384,8 +383,8 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
                   - ident - B_Dinv_C_nonzero);
   S.LU_factorize(&S_LU, &S_piv);
 
-  double skel_end = omp_get_wtime();
-  double slutime = skel_end - lustrt;
+  // double skel_end = omp_get_wtime();
+  // double slutime = skel_end - lustrt;
   // std::cout << "timing: slu " << slutime << std::endl;
   // std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 
@@ -604,9 +603,18 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
   assert(x->height() == b.height());
   int lvls = quadtree.levels.size();
   *x = b;
+  std::vector<QuadTreeNode*> all_nodes;
   for (int level = lvls - 1; level >= 0; level--) {
     QuadTreeLevel* current_level = quadtree.levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
+    for (int n = 0; n < current_level->nodes.size(); n++) {
+      all_nodes.push_back(current_level->nodes[n]);
+    }
+  }
+  for (int level = lvls - 1; level >= 0; level--) {
+    QuadTreeLevel* current_level = quadtree.levels[level];
+    #pragma omp parallel for num_threads(2)
+    for (int n = 0; n < current_level->nodes.size(); n++) {
+      QuadTreeNode* current_node = current_level->nodes[n];
       if (!current_node->compressed) {
         continue;
       }
@@ -628,24 +636,24 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
   }
   // This can go through the tree in any order, is parallelizable
 
-  for (int level = lvls - 1; level >= 0; level--) {
-    QuadTreeLevel* current_level = quadtree.levels[level];
-    for (QuadTreeNode* current_node : current_level->nodes) {
-      if (current_node->src_dof_lists.redundant.size() == 0) continue;
-      if (!current_node->compressed) {
-        continue;
-      }
-      // double cond = current_node->X_rr.condition_number();
-      // if (cond > 1000) {
-      //   std::cout << "Node " << current_node->id << " solve X_rr inv -- ";
-      //   std::cout << "Inverting w/ condition number " << cond << std::endl;
-      // }
-      assert(current_node->X_rr_is_LU_factored);
-
-      apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, x,
-                            current_node->src_dof_lists.redundant);
+  #pragma omp parallel for num_threads(4)
+  for (int n = 0; n < all_nodes.size(); n++) {
+    QuadTreeNode* current_node = all_nodes[n];
+    if (current_node->src_dof_lists.redundant.size() == 0) continue;
+    if (!current_node->compressed) {
+      continue;
     }
+    // double cond = current_node->X_rr.condition_number();
+    // if (cond > 1000) {
+    //   std::cout << "Node " << current_node->id << " solve X_rr inv -- ";
+    //   std::cout << "Inverting w/ condition number " << cond << std::endl;
+    // }
+    assert(current_node->X_rr_is_LU_factored);
+
+    apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, x,
+                          current_node->src_dof_lists.redundant);
   }
+
 
   // We need all of the skeleton indices. This is just the negation of
   // [0,b.size()] and the redundant DoFs
@@ -656,6 +664,7 @@ void SkelFactorization::solve(const QuadTree& quadtree, ie_Mat* x,
   }
   for (int level = 0; level < lvls; level++) {
     QuadTreeLevel* current_level = quadtree.levels[level];
+    #pragma omp parallel for num_threads(2)
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
       // for(unsigned int n = 0; n < current_level->nodes.size(); n++){
 

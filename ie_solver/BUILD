@@ -73,15 +73,13 @@ cc_library(
 cc_test(
     name = "ie_solver_test",
     srcs = ["ie_solver_test.cpp"],
-    deps = [
-    	":ie_solver",
+	deps = [
 			":ie_mat",
-			":initialization",
 			"//ie_solver/skel_factorization",
 			"//ie_solver/quadtree",
 			"//ie_solver/boundaries",
 			":linear_solve",
-      "@gtest//:gtest",
+			"@gtest//:gtest",
       "@gtest//:gtest_main"
     ],
   	linkopts = ["-llapacke",

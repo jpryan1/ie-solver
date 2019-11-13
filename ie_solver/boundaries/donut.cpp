@@ -1,14 +1,13 @@
 // Copyright 2019 John Paul Ryan
 #include <cmath>
 #include <iostream>
-#include "ie_solver/boundaries/annulus.h"
+#include "ie_solver/boundaries/donut.h"
 #include "ie_solver/log.h"
 
 namespace ie_solver {
 
-void Annulus::initialize(int N, BoundaryCondition bc) {
-  boundary_shape = ANNULUS;
-
+void Donut::initialize(int N, BoundaryCondition bc) {
+  boundary_shape = DONUT;
   points.clear();
   normals.clear();
   weights.clear();
@@ -16,10 +15,8 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 
   if (holes.size() == 0) {
     Hole hole;
-    hole.center = Vec2(0.9, 0.5);
-    hole.radius = 0.2;
-    holes.push_back(hole);
-    hole.center = Vec2(0.1, 0.5);
+    hole.center = Vec2(0.5, 0.5);
+    hole.radius = 0.5;
     holes.push_back(hole);
   }
 
@@ -56,9 +53,12 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 
   if (bc == BoundaryCondition::DEFAULT) {
     boundary_values = ie_Mat(num_points, 1);
-    apply_boundary_condition(0, N, ALL_ZEROS);
-    apply_boundary_condition(N, N + hole_nodes, ALL_ONES);
-    apply_boundary_condition(N + hole_nodes, N + 2 * hole_nodes, ALL_NEG_ONES);
+    for (int i = 0; i < N; i++) {
+      boundary_values.set(i, 0, 1);
+    }
+    for (int i = N; i < num_points; i++) {
+      boundary_values.set(i, 0, -1. / holes[0].radius);
+    }
   } else {
     set_boundary_values_size(bc);
     apply_boundary_condition(0, num_points, bc);
@@ -66,7 +66,7 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
 }
 
 
-bool Annulus::is_in_domain(const Vec2& a) {
+bool Donut::is_in_domain(const Vec2& a) {
   double x = a.a[0] - 0.5;
   double y = a.a[1] - 0.5;
   double eps = 1e-2;

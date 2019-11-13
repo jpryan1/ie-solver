@@ -8,7 +8,7 @@
 #include "ie_solver/ie_mat.h"
 #include "ie_solver/quadtree/quadtree.h"
 
-#define DEFAULT_NUM_DISCRETIZATION_POINTS 1000
+#define DEFAULT_NUM_DISCRETIZATION_POINTS pow(2, 9)
 #define DEFAULT_ID_TOL 1e-6
 #define DEFAULT_DOMAIN_SIZE 20
 
@@ -33,8 +33,6 @@ struct ie_solver_config {
     Boundary::BoundaryShape::CIRCLE;
   bool scaling = false;
   bool animation = false;
-  bool testing = false;
-  std::ofstream n_scaling_output, error_scaling_output;
 };
 
 struct io {

@@ -11,9 +11,9 @@ class RoundedSquare : public Boundary {
   void initialize(int N, BoundaryCondition bc);
   bool is_in_domain(const Vec2& a);
 
-  void draw_line(int bc_index, int num_points, double start_x, double start_y,
+  void draw_line(int num_points, double start_x, double start_y,
                  double end_x, double end_y, bool normal_is_left);
-  void draw_quarter_circle(int bc_index, int num_points, double start_x,
+  void draw_quarter_circle( int num_points, double start_x,
                            double start_y, double end_x, double end_y,
                            bool convex);
 };
