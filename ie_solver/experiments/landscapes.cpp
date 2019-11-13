@@ -24,8 +24,6 @@ ie_solver_config get_landscape_config() {
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
   config.num_boundary_points = pow(2, 13);
-  config.domain_size = 100;
-  config.domain_dimension = 2;
   config.solution_dimension = 1;
   config.boundary_condition = BoundaryCondition::DEFAULT;
   config.boundary_shape = Boundary::BoundaryShape::EX2;
@@ -44,13 +42,7 @@ void print_landscapes() {
   std::vector<double> domain_points2;
 
   domain_points2.push_back(0.4999);
-  domain_points2.push_back(0.4999);
-
-  domain_points2.push_back(0.4999);
   domain_points2.push_back(0.5001);
-
-  domain_points2.push_back(0.5001);
-  domain_points2.push_back(0.4999);
 
   domain_points2.push_back(0.5001);
   domain_points2.push_back(0.5001);
@@ -77,25 +69,9 @@ void print_landscapes() {
       ie_Mat solution = boundary_integral_solve(config, &quadtree2,
                         domain_points2);
 
-      // Make solution zero mean.
-      double avg = 0.;
-      int total = 0;
-      for (int i = 0; i < solution.height(); i++) {
-        if (solution.get(i, 0) != 0.0) {
-          avg += solution.get(i, 0);
-          total++;
-        }
-      }
-      avg /= total;
-      for (int i = 0; i < solution.height(); i++) {
-        if (solution.get(i, 0) != 0.0) {
-          solution.set(i, 0, solution.get(i, 0) - avg);
-        }
-      }
-
       int sh = solution.height();
-      double gradient = solution.get(sh - 1, 0) + solution.get(sh - 2,
-                        0) - solution.get(sh - 3, 0) - solution.get(sh - 4, 0);
+      double gradient = (solution.get(sh - 1, 0) - solution.get(sh - 2, 0))
+                        / 0.0002;
       angs_and_grads.push_back(ang1);
       angs_and_grads.push_back(ang2);
       angs_and_grads.push_back(gradient);
@@ -109,7 +85,7 @@ void print_landscapes() {
   config.pde =  ie_solver_config::Pde::STOKES;
   config.solution_dimension = 2;
   config.boundary_shape = Boundary::BoundaryShape::EX3;
-
+  config.num_boundary_points /= 2;
   std::unique_ptr<Boundary> boundary3 =
     std::unique_ptr<Boundary>(new Ex3Boundary());
   boundary3->initialize(config.num_boundary_points,
@@ -118,14 +94,6 @@ void print_landscapes() {
   quadtree3.initialize_tree(boundary3.get(), std::vector<double>(),
                             config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points3;
-  domain_points3.push_back(0.2);
-  domain_points3.push_back(0.675);
-
-  domain_points3.push_back(0.3);
-  domain_points3.push_back(0.675);
-
-  domain_points3.push_back(0.4);
-  domain_points3.push_back(0.675);
 
   domain_points3.push_back(0.6);
   domain_points3.push_back(0.325);
@@ -156,7 +124,7 @@ void print_landscapes() {
     int sh = solution.height();
     double flow = 0.;
 
-    for (int i = sh - 12; i < sh; i += 2) {
+    for (int i = sh - 6; i < sh; i += 2) {
       flow += solution.get(i, 0);
     }
     ang_and_flow.push_back(ang);

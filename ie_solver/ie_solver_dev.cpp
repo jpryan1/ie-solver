@@ -16,6 +16,7 @@
 #include "ie_solver/boundaries/boundary.h"
 #include "ie_solver/boundaries/circle.h"
 #include "ie_solver/boundaries/rounded_square.h"
+#include "ie_solver/boundaries/ex2boundary.h"
 // #include "ie_solver/boundaries/rounded_square_with_bump.h"
 // #include "ie_solver/boundaries/squiggly.h"
 #include "ie_solver/boundaries/annulus.h"
@@ -110,7 +111,7 @@ void run_single_solve(const ie_solver_config & config) {
   std::unique_ptr<Boundary> boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
-      boundary.reset(new Donut());
+      boundary.reset(new Ex2Boundary());
       break;
     case Boundary::BoundaryShape::ROUNDED_SQUARE:
       boundary.reset(new RoundedSquare());
@@ -134,8 +135,8 @@ void run_single_solve(const ie_solver_config & config) {
       LOG::ERROR("Boundary shape not supported by dev yet");
       exit(0);
   }
-  boundary->boundary_shape = config.boundary_shape;
-  boundary->initialize(config.num_boundary_points, config.boundary_condition);
+  boundary->boundary_shape = Boundary::BoundaryShape::EX2;//config.boundary_shape;
+  boundary->initialize(config.num_boundary_points, DEFAULT);
 
   QuadTree quadtree;
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),
