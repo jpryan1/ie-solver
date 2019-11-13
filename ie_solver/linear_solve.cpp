@@ -111,44 +111,6 @@ ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
   return Psi;
 }
 
-void check_factorization_against_kernel(const Kernel & kernel,
-                                        const SkelFactorization &
-                                        skel_factorization, QuadTree * tree) {
-  int check_size = 100;
-  // This ensures that operations know what the remaining skels are.
-
-  tree->remove_inactive_dofs_at_all_boxes();
-
-  int dofs = tree->boundary->points.size() / 2;
-  // Take a random 100x100 submatrix of A-A^hat, estimate 2-norm by power method
-  std::vector<unsigned int> rand_x_indices, rand_y_indices;
-  for (int i = 0; i < check_size; i++) {
-    rand_x_indices.push_back(rand() % dofs);
-    rand_y_indices.push_back(rand() % dofs);
-  }
-
-  ie_Mat A = kernel(rand_x_indices, rand_y_indices);
-  ie_Mat A_hat(check_size, check_size);
-  ie_Mat basis(dofs, 1);
-  ie_Mat b(dofs, 1);
-
-  for (unsigned int y = 0; y < rand_y_indices.size(); y++) {
-    int rand_y_idx = rand_y_indices[y];
-    for (int i = 0; i < dofs; i++) {
-      basis.set(i, 0, 0);
-    }
-    basis.set(rand_y_idx, 0, 1.0);
-    skel_factorization.sparse_matvec(*tree, basis, &b);
-    for (unsigned int x = 0; x < rand_x_indices.size(); x++) {
-      int rand_x_idx = rand_x_indices[x];
-      A_hat.set(x, y, b.get(rand_x_idx, 0));
-    }
-  }
-  double truenorm = A.frob_norm();
-  A -= A_hat;
-  std::cout << "Total error: " << 100.0 * A.frob_norm() / truenorm << "%" <<
-            std::endl;
-}
 
 void linear_solve(const SkelFactorization& skel_factorization,
                   const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
@@ -163,6 +125,14 @@ void linear_solve(const SkelFactorization& skel_factorization,
   }
 }
 
+void linear_solve(const SkelFactorization& skel_factorization,
+                  const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
+                  double* c) {
+  *mu = ie_Mat(quadtree.boundary->weights.size(), 1);
+  ie_Mat C(1, 1);
+  skel_factorization.multiply_connected_solve(quadtree, mu, &C, f);
+  *c = C.get(0, 0);
+}
 
 void schur_solve(const SkelFactorization & skel_factorization,
                  const QuadTree & quadtree, const ie_Mat & U,
@@ -225,7 +195,6 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
                                        config.is_strong_admissibility,
                                        config.solution_dimension,
                                        config.domain_dimension);
-
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, domain_points);
 
@@ -233,10 +202,12 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   ie_Mat K_domain((domain_points.size() / 2)*
                   config.solution_dimension,
                   boundary->weights.size() * config.solution_dimension);
-  std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
-                                 &K_domain, domain_points,
-                                 kernel, config.solution_dimension);
-
+  // std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
+  //                                &K_domain, domain_points,
+  //                                kernel, config.solution_dimension);
+  Initialization::InitializeDomainKernel(
+    &K_domain, domain_points,
+    kernel, config.solution_dimension);
   // std::vector<unsigned int> all_inds;
   // for (unsigned int i = 0;
   //      i < boundary->points.size() / (3 - config.solution_dimension); i++) {
@@ -246,7 +217,6 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   // std::cout << "Condition number: " << all.condition_number() << std::endl;
 
   ie_Mat f = boundary->boundary_values;
-
   int num_holes = boundary->holes.size();
 
   ie_Mat U = initialize_U_mat(config.pde, boundary->holes, boundary->points);
@@ -289,7 +259,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   skel_factorization.Psi = Psi;
   skel_factorization.skeletonize(kernel, quadtree);
 
-  init_domain_kernel.join();
+  // init_domain_kernel.join();
 
   schur_solve(skel_factorization, *quadtree, U, Psi, f, K_domain,
               U_forward, &domain_solution);

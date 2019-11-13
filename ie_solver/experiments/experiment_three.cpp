@@ -47,31 +47,40 @@ void run_experiment3() {
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
 
-  std::unique_ptr<Boundary> perturbed_boundary =
-    std::unique_ptr<Boundary>(new Ex3Boundary());
-  perturbed_boundary->initialize(config.num_boundary_points,
-                                 config.boundary_condition);
+  // std::unique_ptr<Boundary> perturbed_boundary =
+  //   std::unique_ptr<Boundary>(new Ex3Boundary());
+  // perturbed_boundary->initialize(config.num_boundary_points,
+  //                                config.boundary_condition);
 
-  int FRAME_CAP = 10;
-  for (int frame = 0; frame < FRAME_CAP; frame++) {
-    double ang = (frame / (FRAME_CAP + 0.)) * 2 * M_PI;
+  // int FRAME_CAP = 10;
+  // for (int frame = 0; frame < FRAME_CAP; frame++) {
+  //   double ang = (frame / (FRAME_CAP + 0.)) * 2 * M_PI;
 
-    perturbed_boundary->perturbation_parameters[0] = ang;
-    perturbed_boundary->initialize(config.num_boundary_points,
-                                   config.boundary_condition);
+  //   perturbed_boundary->perturbation_parameters[0] = ang;
+  //   perturbed_boundary->initialize(config.num_boundary_points,
+  //                                  config.boundary_condition);
 
-    quadtree.perturb(*perturbed_boundary.get());
-    ie_Mat solution = boundary_integral_solve(config, &quadtree,
-                      domain_points);
-    io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)
-                               + ".txt", solution, domain_points,
-                               config.solution_dimension);
-    io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
-                                 frame)  + ".txt",
-                               perturbed_boundary->points);
-    io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
-                                 frame)  + ".txt", quadtree);
-  }
+  //   quadtree.perturb(*perturbed_boundary.get());
+  //   ie_Mat solution = boundary_integral_solve(config, &quadtree,
+  //                     domain_points);
+  //   io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)
+  //                              + ".txt", solution, domain_points,
+  //                              config.solution_dimension);
+  //   io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
+  //                                frame)  + ".txt",
+  //                              perturbed_boundary->points);
+  //   io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
+  //                                frame)  + ".txt", quadtree);
+  // }
+
+  ie_Mat solution = boundary_integral_solve(config, &quadtree,
+                    domain_points);
+  io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
+                             domain_points,
+                             config.solution_dimension);
+  io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
+                             boundary->points);
+  io::write_quadtree_to_file("output/data/ie_solver_tree.txt", quadtree);
 }
 
 

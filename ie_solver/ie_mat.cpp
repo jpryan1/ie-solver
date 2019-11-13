@@ -389,6 +389,16 @@ double ie_Mat::frob_norm() const {
   return sqrt(sum);
 }
 
+double ie_Mat::max_entry_magnitude() const {
+  double max = 0;
+  for (unsigned int i = 0; i < height_; i++) {
+    for (unsigned int j = 0; j < width_; j++) {
+      max = std::max(max, std::abs(get(i, j)));
+    }
+  }
+  return max;
+}
+
 
 double ie_Mat::one_norm() const {
   double top = 0;
@@ -406,7 +416,7 @@ double ie_Mat::one_norm() const {
 
 
 double ie_Mat::vec_two_norm() const {
-  assert(width()==1);
+  assert(width() == 1);
   return sqrt(frob_norm());
 }
 
@@ -676,7 +686,7 @@ void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
 void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
                   double alpha, const ie_Mat& A, const ie_Mat& B, double beta,
                   ie_Mat* C) {
-  assert(A.height()*B.height()*A.width()*B.width() != 0 &&
+  assert(A.height() != 0 && B.height() != 0 && A.width() != 0 && B.width() != 0 &&
          "gemm needs positive dimensions only.");
   assert(A.mat != nullptr && "gemm fails on null A mat.");
   assert(B.mat != nullptr && "gemm fails on null B mat.");

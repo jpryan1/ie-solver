@@ -5,7 +5,6 @@
 #include "ie_solver/boundaries/rounded_square_with_bump.h"
 #include "ie_solver/log.h"
 
-
 namespace ie_solver {
 
 void RoundedSquareWithBump::draw_line(int bc_index, int num_points,

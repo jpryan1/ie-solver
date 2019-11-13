@@ -7,6 +7,7 @@
 namespace ie_solver {
 
 void Circle::initialize(int N, BoundaryCondition bc) {
+  boundary_shape = CIRCLE;
   points.clear();
   normals.clear();
   weights.clear();

@@ -14,7 +14,7 @@ void Squiggly::draw_squiggle(int bc_index, int num_points, double start_x,
   double x_diff = end_x - start_x;
   double y_diff = end_y - start_y;
   double angle = atan2(y_diff, x_diff);
-  double scale = sqrt(pow(x_diff, 2) + pow(y_diff, 2)) / (3.0 * M_PI);
+  double scale = sqrt(pow(x_diff, 2) + pow(y_diff, 2)) / (3.0*M_PI);
   for (int i = 0; i < num_points; i++) {
     double t = (3 * M_PI * i) / num_points;
     double x = t;
@@ -62,7 +62,6 @@ void Squiggly::draw_squiggle(int bc_index, int num_points, double start_x,
     for (int i = 1; i < side_scale; i++) {
       weights.push_back((E[i + 1] - E[i - 1]) / 2.0);
     }
-
 
     weights.push_back(E[side_scale] - E[side_scale - 1]);
     for (int i = side_scale - 1; i >= 1; i--) {

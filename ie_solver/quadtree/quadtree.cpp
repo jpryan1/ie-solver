@@ -44,7 +44,6 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   this->domain_points = domain_points_;
   this->solution_dimension = solution_dimension_;
   this->domain_dimension = domain_dimension_;
-  QuadTreeNode::id_count = 0;
   min = boundary->points[0];
   max = boundary->points[0];
 
@@ -493,7 +492,6 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   for (unsigned int i = 0; i < found_in_old.size(); i++) {
     found_in_old[i] = false;
   }
-
   // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
   for (unsigned int i = 0; i < old_points.size(); i += 2) {
@@ -786,7 +784,6 @@ void QuadTree::reset() {
     }
   }
   levels.clear();
-  QuadTreeNode::id_count = 0;
   initialize_tree(boundary, domain_points, solution_dimension,
                   domain_dimension);
 }
@@ -799,7 +796,6 @@ void QuadTree::reset(Boundary * boundary_) {
     }
   }
   levels.clear();
-  QuadTreeNode::id_count = 0;
   initialize_tree(boundary_, domain_points, solution_dimension,
                   domain_dimension);
 }
@@ -830,8 +826,14 @@ void QuadTree::remove_inactive_dofs_at_level(int level) {
       if (neighbor->level > node_a->level) {
         continue;
       }
-      for (unsigned int idx : neighbor->src_dof_lists.active_box) {
-        node_a->src_dof_lists.near.push_back(idx);
+      if (neighbor->is_leaf) {
+        for (unsigned int idx : neighbor->src_dof_lists.original_box) {
+          node_a->src_dof_lists.near.push_back(idx);
+        }
+      } else {
+        for (unsigned int idx : neighbor->src_dof_lists.active_box) {
+          node_a->src_dof_lists.near.push_back(idx);
+        }
       }
     }
   }

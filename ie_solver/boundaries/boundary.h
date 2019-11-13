@@ -40,6 +40,7 @@ class Boundary {
     ROUNDED_SQUARE_WITH_BUMP,
     SQUIGGLY,
     ANNULUS,
+    DONUT,
     CUBIC_SPLINE,
     EX1,
     EX2,
