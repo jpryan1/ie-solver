@@ -142,11 +142,10 @@ void io::write_ex3_flows_to_file(const std::string& filename,
 // TODO(John) this needs to be updated following removal of STOKES
 int io::parse_input_into_config(int argc, char** argv,
                                 ie_solver_config* config) {
-
   std::string usage = "\n\tusage: ./ie_solver "
                       "-pde {LAPLACE|LAPLACE_NEUMANN|STOKES} "
                       "-boundary {CIRCLE|ANNULUS|ROUNDED_SQUARE|"
-                      "CUBIC_SPLINE|EX1|EX2|EX3} "
+                      "CUBIC_SPLINE|DONUT|EX1|EX2|EX3} "
                       "-boundary_condition {SINGLE_ELECTRON|ALL_ONES|"
                       "TANGENT_VEC|NORMAL_VEC|NO_SLIP} "
                       "-N {number of nodes} "
@@ -211,6 +210,8 @@ int io::parse_input_into_config(int argc, char** argv,
           config->boundary_shape = Boundary::BoundaryShape::ROUNDED_SQUARE;
         } else if (!strcmp(argv[i + 1], "CUBIC_SPLINE")) {
           config->boundary_shape = Boundary::BoundaryShape::CUBIC_SPLINE;
+        } else if (!strcmp(argv[i + 1], "DONUT")) {
+          config->boundary_shape = Boundary::BoundaryShape::DONUT;
         } else if (!strcmp(argv[i + 1], "EX1")) {
           config->boundary_shape = Boundary::BoundaryShape::EX1;
         } else if (!strcmp(argv[i + 1], "EX2")) {

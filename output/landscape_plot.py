@@ -1,6 +1,6 @@
 
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 font = {'size'   : 18}
@@ -71,4 +71,4 @@ axs[1].set_title("Experiment 3")
 plt.savefig("landscape.png")
 print("Max from ex3: ",max(flows))
 
-#plt.show()
+plt.show()

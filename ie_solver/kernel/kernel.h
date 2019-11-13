@@ -53,13 +53,13 @@ struct Kernel {
 
   // ie_Mat forward_get(const std::vector<unsigned int>& I_,
   //                    const std::vector<unsigned int>& J_) const;
-  ie_Mat fast_laplace_get(const std::vector<unsigned int> & I_,
+  ie_Mat laplace_get(const std::vector<unsigned int> & I_,
                           const std::vector<unsigned int> & J_,
                           double * timing) const;
-  ie_Mat fast_laplace_neumann_get(const std::vector<unsigned int> & I_,
+  ie_Mat laplace_neumann_get(const std::vector<unsigned int> & I_,
                                   const std::vector<unsigned int> & J_,
                                   double * timing) const;
-  ie_Mat fast_stokes_get(const std::vector<unsigned int> & I_,
+  ie_Mat stokes_get(const std::vector<unsigned int> & I_,
                          const std::vector<unsigned int> & J_,
                          double * timing) const;
 
@@ -70,17 +70,17 @@ struct Kernel {
                        double r, const QuadTree * tree,
                        const std::vector<unsigned int> & box_inds) const;
 
-  ie_Mat fast_laplace_proxy_get(const std::vector<double> & pxy_p,
+  ie_Mat laplace_proxy_get(const std::vector<double> & pxy_p,
                                 const std::vector<double> & pxy_n,
                                 double pxy_w,
                                 const std::vector<unsigned int> & box_inds)
   const;
-  ie_Mat fast_laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
+  ie_Mat laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
                                         const std::vector<double> & pxy_n,
                                          double pxy_w,
                                         const std::vector<unsigned int> &
                                         box_inds) const;
-  ie_Mat fast_stokes_proxy_get(const std::vector<double> & pxy_p,
+  ie_Mat stokes_proxy_get(const std::vector<double> & pxy_p,
                                const std::vector<double> & pxy_n,
                               double pxy_w,
                                const std::vector<unsigned int> & box_inds)

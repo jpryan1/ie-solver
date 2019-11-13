@@ -125,14 +125,14 @@ void linear_solve(const SkelFactorization& skel_factorization,
   }
 }
 
-void linear_solve(const SkelFactorization& skel_factorization,
-                  const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
-                  double* c) {
-  *mu = ie_Mat(quadtree.boundary->weights.size(), 1);
-  ie_Mat C(1, 1);
-  skel_factorization.multiply_connected_solve(quadtree, mu, &C, f);
-  *c = C.get(0, 0);
-}
+// void linear_solve(const SkelFactorization& skel_factorization,
+//                   const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
+//                   double* c) {
+//   *mu = ie_Mat(quadtree.boundary->weights.size(), 1);
+//   ie_Mat C(1, 1);
+//   skel_factorization.multiply_connected_solve(quadtree, mu, &C, f);
+//   *c = C.get(0, 0);
+// }
 
 void schur_solve(const SkelFactorization & skel_factorization,
                  const QuadTree & quadtree, const ie_Mat & U,

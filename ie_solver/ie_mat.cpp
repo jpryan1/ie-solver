@@ -569,7 +569,7 @@ double ie_Mat::condition_number() const {
 // Populates /p/ with permutation, Z with linear transformation.
 int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   ie_Mat cpy = *this;
-  assert(height() * width() > 0);
+  assert(height() != 0 &&  width() != 0);
   std::vector<lapack_int> pvt(width_);
   memset(&pvt[0], 0, width_ * sizeof(lapack_int));
 
@@ -656,7 +656,6 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
                                    height(), nullptr, width(),
                                    &(superb[0]));
 
-
   if (output.is_open()) {
     for (unsigned int i = 0; i < sing.size(); i++) {
       output << sing[i] << std::endl;
@@ -670,7 +669,7 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
 
 void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
                   const ie_Mat& x, double beta, ie_Mat* b) {
-  assert(A.height()*A.width()*x.height()*x.width() != 0 &&
+  assert(A.height() != 0 && x.height() != 0 && A.width() != 0  &&
          "gemv needs positive dimensions only.");
   assert(x.width() == 1 && "gemv only works on a column vector.");
   assert(A.mat != nullptr && "gemv fails on null A mat.");
@@ -686,8 +685,8 @@ void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
 void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
                   double alpha, const ie_Mat& A, const ie_Mat& B, double beta,
                   ie_Mat* C) {
-  assert(A.height() != 0 && B.height() != 0 && A.width() != 0 && B.width() != 0 &&
-         "gemm needs positive dimensions only.");
+  assert(A.height() != 0 && B.height() != 0 && A.width() != 0
+         && B.width() != 0 && "gemm needs positive dimensions only.");
   assert(A.mat != nullptr && "gemm fails on null A mat.");
   assert(B.mat != nullptr && "gemm fails on null B mat.");
   assert(C->mat != nullptr && "gemm fails on null C mat.");

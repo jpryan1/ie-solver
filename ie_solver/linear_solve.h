@@ -34,9 +34,9 @@ void linear_solve(const SkelFactorization& skel_factorization,
                   const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
                   ie_Mat* alpha = nullptr);
 
-void linear_solve(const SkelFactorization& skel_factorization,
-                  const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
-                  double* c);
+// void linear_solve(const SkelFactorization& skel_factorization,
+//                   const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
+//                   double* c);
 
 
 void schur_solve(const SkelFactorization & skel_factorization,
