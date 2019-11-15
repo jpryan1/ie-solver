@@ -229,7 +229,7 @@ def animate(i):
     image_plot.set_array(images[idx].T)
     return patches
 
-ani = animation.FuncAnimation(fig, animate, interval=25, blit=True)
+ani = animation.FuncAnimation(fig, animate, interval=150, blit=True)
 # ani.save('testnewpxy.mp4', writer=writer)
 plt.show()
 

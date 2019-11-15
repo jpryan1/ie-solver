@@ -64,11 +64,13 @@ void run_experiment2() {
   double alpha = 0.1;
   double h = 1e-4;
   int FRAME_CAP = 10;
+  // TODO(John) implement linesearch
   for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
     double findiff1[4];
     double samples1[4] = {current_ang1 - 2 * h, current_ang1 - h,
                           current_ang1 + h, current_ang1 + 2 * h
                          };
+    // TODO(John) try copying quadtree and running this in parallel
     for (int i = 0; i < 4; i++) {
       double temp_ang = samples1[i];
       perturbed_boundary->perturbation_parameters[0] = temp_ang;

@@ -23,7 +23,7 @@ ie_solver_config get_experiment_three_config() {
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
   config.num_boundary_points = pow(2, 12);
-  config.domain_size = 70;
+  config.domain_size = 20;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
   config.boundary_condition = BoundaryCondition::DEFAULT;
@@ -33,6 +33,7 @@ ie_solver_config get_experiment_three_config() {
 
 
 void run_experiment3() {
+  // TODO(John) 10 dials moving around randomly please
   ie_solver_config config = get_experiment_three_config();
 
   std::unique_ptr<Boundary> boundary;
@@ -44,7 +45,7 @@ void run_experiment3() {
   quadtree.initialize_tree(boundary.get(), std::vector<double>(),
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
-  get_domain_points(20, &domain_points, quadtree.min,
+  get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
 
 

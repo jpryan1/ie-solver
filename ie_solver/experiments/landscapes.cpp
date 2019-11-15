@@ -82,56 +82,56 @@ void print_landscapes() {
   // /////////////////////////////////////////////////////////////////////////
 
 
-  config.pde =  ie_solver_config::Pde::STOKES;
-  config.solution_dimension = 2;
-  config.boundary_shape = Boundary::BoundaryShape::EX3;
-  config.num_boundary_points /= 2;
-  std::unique_ptr<Boundary> boundary3 =
-    std::unique_ptr<Boundary>(new Ex3Boundary());
-  boundary3->initialize(config.num_boundary_points,
-                        BoundaryCondition::DEFAULT);
-  QuadTree quadtree3;
-  quadtree3.initialize_tree(boundary3.get(), std::vector<double>(),
-                            config.solution_dimension, config.domain_dimension);
-  std::vector<double> domain_points3;
+  // config.pde =  ie_solver_config::Pde::STOKES;
+  // config.solution_dimension = 2;
+  // config.boundary_shape = Boundary::BoundaryShape::EX3;
+  // config.num_boundary_points /= 2;
+  // std::unique_ptr<Boundary> boundary3 =
+  //   std::unique_ptr<Boundary>(new Ex3Boundary());
+  // boundary3->initialize(config.num_boundary_points,
+  //                       BoundaryCondition::DEFAULT);
+  // QuadTree quadtree3;
+  // quadtree3.initialize_tree(boundary3.get(), std::vector<double>(),
+  //                           config.solution_dimension, config.domain_dimension);
+  // std::vector<double> domain_points3;
 
-  domain_points3.push_back(0.6);
-  domain_points3.push_back(0.325);
+  // domain_points3.push_back(0.6);
+  // domain_points3.push_back(0.325);
 
-  domain_points3.push_back(0.7);
-  domain_points3.push_back(0.325);
+  // domain_points3.push_back(0.7);
+  // domain_points3.push_back(0.325);
 
-  domain_points3.push_back(0.8);
-  domain_points3.push_back(0.325);
+  // domain_points3.push_back(0.8);
+  // domain_points3.push_back(0.325);
 
-  std::unique_ptr<Boundary> perturbed_boundary3 =
-    std::unique_ptr<Boundary>(new Ex3Boundary());
-  perturbed_boundary3->initialize(config.num_boundary_points,
-                                  config.boundary_condition);
-  FRAME_CAP = 50;
-  std::vector<double> ang_and_flow;
-  for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
-    double ang = (frame1 / (0.0 + FRAME_CAP)) * M_PI;
+  // std::unique_ptr<Boundary> perturbed_boundary3 =
+  //   std::unique_ptr<Boundary>(new Ex3Boundary());
+  // perturbed_boundary3->initialize(config.num_boundary_points,
+  //                                 config.boundary_condition);
+  // FRAME_CAP = 50;
+  // std::vector<double> ang_and_flow;
+  // for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
+  //   double ang = (frame1 / (0.0 + FRAME_CAP)) * M_PI;
 
-    perturbed_boundary3->perturbation_parameters[0] = ang;
+  //   perturbed_boundary3->perturbation_parameters[0] = ang;
 
-    perturbed_boundary3->initialize(config.num_boundary_points,
-                                    config.boundary_condition);
-    quadtree3.perturb(*perturbed_boundary3.get());
-    ie_Mat solution = boundary_integral_solve(config, &quadtree3,
-                      domain_points3);
+  //   perturbed_boundary3->initialize(config.num_boundary_points,
+  //                                   config.boundary_condition);
+  //   quadtree3.perturb(*perturbed_boundary3.get());
+  //   ie_Mat solution = boundary_integral_solve(config, &quadtree3,
+  //                     domain_points3);
 
-    int sh = solution.height();
-    double flow = 0.;
+  //   int sh = solution.height();
+  //   double flow = 0.;
 
-    for (int i = sh - 6; i < sh; i += 2) {
-      flow += solution.get(i, 0);
-    }
-    ang_and_flow.push_back(ang);
-    ang_and_flow.push_back(flow);
-  }
+  //   for (int i = sh - 6; i < sh; i += 2) {
+  //     flow += solution.get(i, 0);
+  //   }
+  //   ang_and_flow.push_back(ang);
+  //   ang_and_flow.push_back(flow);
+  // }
 
-  io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
+  // io::write_ex3_flows_to_file("output/ex3flows.txt", ang_and_flow);
 }
 
 }  // namespace ie_solver

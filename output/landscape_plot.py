@@ -69,6 +69,6 @@ axs[1].set_ylabel("Corridor Flow")
 
 axs[1].set_title("Experiment 3")
 plt.savefig("landscape.png")
-print("Max from ex3: ",max(flows))
+print("Min from ex3: ", min(flows))
 
 plt.show()
