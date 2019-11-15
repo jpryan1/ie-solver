@@ -524,8 +524,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-  // std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
-  //           " are compressed." << std::endl;
+  std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
+            " are compressed." << std::endl;
   // go through all leaf original box vectors and apply mapping.
   // (if there is a deletion it will be processed later)
   // each node will be one of three things
@@ -752,8 +752,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-  // std::cout << "After perturb, " << num_compressed << " of " << num_total <<
-  //           " are compressed." << std::endl;
+  std::cout << "After perturb, " << num_compressed << " of " << num_total <<
+            " are compressed." << std::endl;
 }
 
 

@@ -178,7 +178,7 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
 
 
 void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
-  // double skel_start = omp_get_wtime();
+  double skel_start = omp_get_wtime();
   int node_counter = 0;
   unsigned int lvls = tree->levels.size();
   // int active_dofs = tree->boundary->points.size() / 2;
@@ -197,7 +197,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     QuadTreeLevel* current_level = tree->levels[level];
     // if (node_counter > node_cap) break;
 
-    #pragma omp parallel for num_threads(4)
+    // #pragma omp parallel for num_threads(4)
     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
       // if (node_counter > node_cap) break;
       double node_start = omp_get_wtime();
@@ -237,7 +237,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     // std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
     //
   }
-  // double lustrt = omp_get_wtime();
+  double lustrt = omp_get_wtime();
 
   // check_factorization_against_kernel(kernel, tree);
   // std::cout << "timing: id_time " << id_time << std::endl;
@@ -383,10 +383,10 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
                   - ident - B_Dinv_C_nonzero);
   S.LU_factorize(&S_LU, &S_piv);
 
-  // double skel_end = omp_get_wtime();
-  // double slutime = skel_end - lustrt;
-  // std::cout << "timing: slu " << slutime << std::endl;
-  // std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+  double skel_end = omp_get_wtime();
+  double slutime = skel_end - lustrt;
+  std::cout << "timing: slu " << slutime << std::endl;
+  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 
 }
 
