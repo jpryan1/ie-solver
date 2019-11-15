@@ -59,12 +59,13 @@ void run_experiment2() {
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
 
-  double current_ang1 = 0.2;
-  double current_ang2 = 2;
-  double alpha = 0.1;
+  double current_ang1 = 1;
+  double current_ang2 = -1;
+  double alpha = 1;
   double h = 1e-4;
   int FRAME_CAP = 10;
   // TODO(John) implement linesearch
+
   for (int frame1 = 0; frame1 < FRAME_CAP; frame1++) {
     double findiff1[4];
     double samples1[4] = {current_ang1 - 2 * h, current_ang1 - h,
@@ -84,7 +85,6 @@ void run_experiment2() {
       double gradient = (solution.get(sh - 1, 0) - solution.get(sh - 2, 0))
                         / 0.0002;
       findiff1[i] = gradient;
-      if (i == 2) std::cout << gradient << std::endl;
     }
     perturbed_boundary->perturbation_parameters[0] = current_ang1;
 
@@ -94,7 +94,7 @@ void run_experiment2() {
                          };
     for (int i = 0; i < 4; i++) {
       double temp_ang = samples2[i];
-      perturbed_boundary->perturbation_parameters[2] = temp_ang;
+      perturbed_boundary->perturbation_parameters[1] = temp_ang;
       perturbed_boundary->initialize(config.num_boundary_points,
                                      config.boundary_condition);
       quadtree.perturb(*perturbed_boundary.get());
@@ -104,6 +104,7 @@ void run_experiment2() {
       int sh = solution.height();
       double gradient = (solution.get(sh - 1, 0) - solution.get(sh - 2, 0))
                         / (0.0002);
+
       findiff2[i] = gradient;
       if (i == 2) {
         io::write_solution_to_file("output/bake/sol/" + std::to_string(
@@ -123,11 +124,38 @@ void run_experiment2() {
 
     current_ang1 += alpha * grad1;
     current_ang2 += alpha * grad2;
-    std::cout << grad1 << " " << grad2 << std::endl;
+
+    while(current_ang1>2*M_PI) current_ang1 -= 2*M_PI;
+    while(current_ang1<0) current_ang1 += 2*M_PI;
+    while(current_ang2>2*M_PI) current_ang2 -= 2*M_PI;
+    while(current_ang2<0) current_ang2 += 2*M_PI;
+
+    double* lowerang;
+    double* upperang;
+
+    if(current_ang1<current_ang2){
+      lowerang = &current_ang1;
+      upperang = &current_ang2;
+    }else{
+      lowerang = &current_ang2;
+      upperang = &current_ang1;
+    }
+
+    double dist = std::min(*upperang-*lowerang, *lowerang+2*M_PI-*upperang);
+
+    if(dist<M_PI/4.){
+      double prob = (M_PI/4.)-dist;
+      if(*upperang-*lowerang < *lowerang+2*M_PI-*upperang){
+        *upperang += prob;
+        *lowerang -= prob;
+      }else{
+        *upperang -= prob;
+        *lowerang += prob;
+      }
+    }
+
     perturbed_boundary->perturbation_parameters[0] = current_ang1;
     perturbed_boundary->perturbation_parameters[1] = current_ang2;
-
-
   }
 }
 
