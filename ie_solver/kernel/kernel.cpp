@@ -81,7 +81,7 @@ ie_Mat Kernel::laplace_neumann_kernel(const Dof & tgt, const Dof & src) const {
   double scale = 1.0 / (2 * M_PI);
   ie_Mat tensor(1, 1);
   if (tgt.point.a[0] == src.point.a[0] && tgt.point.a[1] == src.point.a[1]) {
-    tensor.set(0, 0,  - 0.5 + 0.5 * src.curvature * src.weight * scale);
+    tensor.set(0, 0,  src.weight - 0.5 + 0.5 * src.curvature * src.weight * scale);
     return tensor;
   }
   Vec2 r = tgt.point - src.point;

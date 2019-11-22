@@ -6,8 +6,9 @@ import numpy as np
 font = {'size'   : 18}
 
 matplotlib.rc('font', **font)
-fig, axs = plt.subplots(1,2, figsize=(19,7))
-
+# fig, axs = plt.subplots(1,2, figsize=(19,7))
+fig, ax = plt.subplots(figsize=(10,7))
+axs=[ax]
 data = open("output/ex2grads.txt", "r").readlines()
 
 pointsx = []
@@ -33,7 +34,7 @@ for i in range(len(pointsx)):
 
 sc = axs[0].scatter(pointsx,pointsy,c=vals, cmap=plt.cm.cool, s=300)
 cbar=fig.colorbar(sc, ax=axs[0])
-cbar.set_ticks([-0.03, 0, 0.03])
+cbar.set_ticks([-0.5, 0, 0.5])
 # axs[0].colorbar()
 axs[0].set_xticks([i*(np.pi/2.) for i in range(1,8)])
 axs[0].set_xticklabels([r"$\pi/2$",r"$\pi$",r"$3\pi/2$",r"$2\pi$",r"$5\pi/2$",r"$3\pi$",r"$7\pi/2$"])
@@ -42,33 +43,33 @@ axs[0].set_yticklabels(["0",r"$\pi/2$",r"$\pi$",r"$3\pi/2$",r"$2\pi$"])
 
 axs[0].set_xlabel(r"$\theta_1$")
 axs[0].set_ylabel(r"$\theta_2$")
-axs[0].set_title("Experiment 2")
+axs[0].set_title("Example 3")
 
-print("Max from ex2: ",max(vals))
-data = open("output/ex3flows.txt", "r").readlines()
+print("Max from ex3: ",max(vals))
+# data = open("output/ex3flows.txt", "r").readlines()
 
-angs = []
-flows = []
-for line in data:
-  spl = line.split(" ")
+# angs = []
+# flows = []
+# for line in data:
+#   spl = line.split(" ")
 
-  pre = [float(s) for s in spl]
+#   pre = [float(s) for s in spl]
   
-  tmp = pre[0]
-  while(tmp>2*np.pi):
-    tmp -= 2*np.pi
-  angs.append(tmp)
-  flows.append(pre[1])
+#   tmp = pre[0]
+#   while(tmp>2*np.pi):
+#     tmp -= 2*np.pi
+#   angs.append(tmp)
+#   flows.append(pre[1])
 
-axs[1].set_xticks([i*(np.pi/4.) for i in range(5)])
-axs[1].set_xticklabels(["0", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$",r"$\pi$"])
+# axs[1].set_xticks([i*(np.pi/4.) for i in range(5)])
+# axs[1].set_xticklabels(["0", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$",r"$\pi$"])
 
-axs[1].plot(angs, flows)
-axs[1].set_xlabel("Fin Angle")
-axs[1].set_ylabel("Corridor Flow")
+# axs[1].plot(angs, flows)
+# axs[1].set_xlabel("Fin Angle")
+# axs[1].set_ylabel("Corridor Flow")
 
-axs[1].set_title("Experiment 3")
-plt.savefig("landscape.png")
-print("Min from ex3: ", min(flows))
-
+# axs[1].set_title("Experiment 3")
+# plt.savefig("landscape.png")
+# print("Min from ex3: ", min(flows))
+plt.savefig("landscape.eps", format="eps")
 plt.show()
