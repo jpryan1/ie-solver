@@ -7,127 +7,129 @@
 #include "ie_solver/boundaries/ex2boundary.h"
 #include "ie_solver/log.h"
 
-#define OUTER_NUM_SPLINE_POINTS 20
-#define STAR_NUM_SPLINE_POINTS 8
+#define OUTER_NUM_SPLINE_POINTS 28
+// #define FIN_SPLINE_POINTS 4
+// #define FIN_RAD 0.075
 namespace ie_solver {
 
 
-void Ex2Boundary::get_spline_points(std::vector<double>* x0_spline_points,
-                                    std::vector<double>* x1_spline_points) {
-  for (int i = 0; i < OUTER_NUM_SPLINE_POINTS; i++) {
-    double ang = 2 * M_PI * (i / (OUTER_NUM_SPLINE_POINTS + 0.));
+// USE ROUNDED SQUARE FOR EXTERIOR BOUNDARY
 
-    double x =  0.375 * cos(ang) * (sin(5 * ang) + 4);
-    double y =  0.375 * sin(ang) * (sin(5 * ang) + 4);
+// move boundaries outwards to make laminar flow
+void Ex2Boundary::get_spline_points(std::vector<double>* x0_points,
+                                    std::vector<double>* x1_points) {
+  for (int i = 0; i < 12; i++) {
+    x0_points->push_back(-1 + 3 * (i / 12.0));
+    x1_points->push_back(0.25);
+  }
+  for (int i = 0; i < 2; i++) {
+    x0_points->push_back(2);
+    x1_points->push_back(0.25 + 0.5 * i / 2.0);
+  }
 
-    x0_spline_points->push_back(0.5 + x);
-    x1_spline_points->push_back(0.5 + y);
+  for (int i = 0; i < 12; i++) {
+    x0_points->push_back(2 - 3 * (i / 12.0));
+    x1_points->push_back(0.75);
+  }
+  for (int i = 0; i < 2; i++) {
+    x0_points->push_back(-1);
+    x1_points->push_back(0.75 - 0.5 * i / 2.0);
   }
 }
 
+// void Ex2Boundary::get_fin_spline_points(std::vector<double>* x0_points,
+//                                         std::vector<double>* x1_points) {
+//   x0_points->push_back(0.025);
+//   x1_points->push_back(0.);
 
-void Ex2Boundary::get_star_spline_points(double x, double y,
-    std::vector<double>* x0_points, std::vector<double>* x1_points) {
-  double longer = 0.3;
-  double shorter = 0.12;
+//   x0_points->push_back(0.);
+//   x1_points->push_back(0.075);
 
-  x0_points->push_back(x);
-  x1_points->push_back(y - longer);
+//   x0_points->push_back(-0.025);
+//   x1_points->push_back(0.);
 
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y - shorter);
+//   x0_points->push_back(0.);
+//   x1_points->push_back(-0.075);
 
-  x0_points->push_back(x + longer);
-  x1_points->push_back(y);
+//   // Rotate by perturbation_parameters[0]
 
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x);
-  x1_points->push_back(y + longer);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x - longer);
-  x1_points->push_back(y);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y - shorter);
-}
+//   for (int i = x0_points->size() - 4; i < x0_points->size(); i++) {
+//     double temp = cos(perturbation_parameters[0]) * (*x0_points)[i]
+//                   - sin(perturbation_parameters[0]) * (*x1_points)[i];
+//     (*x1_points)[i] = 0.5 + sin(perturbation_parameters[0]) * (*x0_points)[i]
+//                       + cos(perturbation_parameters[0]) * (*x1_points)[i];
+//     (*x0_points)[i] = 0.5 + temp;
+//   }
+// }
 
 
 void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
-  boundary_shape = EX2;
+  boundary_shape = BoundaryShape::EX2;
   points.clear();
   normals.clear();
   weights.clear();
   curvatures.clear();
   holes.clear();
 
-  int OUTER_NODES_PER_SPLINE = (N / 28);
-  int STAR_NODES_PER_SPLINE = (N / 56);
-
   if (perturbation_parameters.size() == 0) {
-    perturbation_parameters.push_back(0);
-    perturbation_parameters.push_back(M_PI);
+    for (int i = 0; i <= 10; i++) perturbation_parameters.push_back(0.5);
   }
-  Hole star1, star2;
 
-  double ang1 = perturbation_parameters[0];
-  double x1 =  0.2 * cos(ang1) * (sin(5 * ang1) + 4);
-  double y1 =  0.2 * sin(ang1) * (sin(5 * ang1) + 4);
-  star1.center = Vec2(0.5 + x1, 0.5 + y1);
-  star1.radius = 0.3;
-  star1.num_nodes =  STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
-  holes.push_back(star1);
-  double ang2 = perturbation_parameters[1];
-  double x2 =  0.2 * cos(ang2) * (sin(5 * ang2) + 4);
-  double y2 =  0.2 * sin(ang2) * (sin(5 * ang2) + 4);
-  star2.center = Vec2(0.5 + x2, 0.5 + y2);
-  star2.radius = 0.3;
-  star2.num_nodes =  STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
-  holes.push_back(star2);
+  int OUTER_NODES_PER_SPLINE = (3 * N / 4) / OUTER_NUM_SPLINE_POINTS;
+  int NUM_CIRCLE_POINTS = (N / 4) / 8;
+  // int FIN_NODES_PER_SPLINE = ((N / 4) / 4) / FIN_SPLINE_POINTS;
 
-  num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
+  Hole circle;
+  // fin.center = Vec2(0.5, 0.5);
+  // fin.radius = FIN_RAD;
+  // fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
+  // holes.push_back(fin);
+
+  circle.radius = 0.025;
+  circle.num_nodes =  NUM_CIRCLE_POINTS;
+  for (int i = 0; i <= 10; i++) {
+    double x = i / 10.;
+    circle.center = Vec2(x, perturbation_parameters[i]);
+    holes.push_back(circle);
+  }
+
 
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
-  std::vector<std::vector<double>> outer_x0_cubics, outer_x1_cubics;
-
   get_spline_points(&outer_x0_spline_points, &outer_x1_spline_points);
-  get_cubics(outer_x0_spline_points, outer_x1_spline_points, &outer_x0_cubics,
-             &outer_x1_cubics);
 
-  interpolate(false,  OUTER_NODES_PER_SPLINE, outer_x0_cubics, outer_x1_cubics);
+  std::vector<std::vector<double>> outer_x0_cubics, outer_x1_cubics;
+  get_cubics(outer_x0_spline_points, outer_x1_spline_points,
+             &outer_x0_cubics, &outer_x1_cubics);
 
-  std::vector<double> star_x0_points, star_x1_points;
-  get_star_spline_points(star1.center.a[0], star1.center.a[1], &star_x0_points,
-                         &star_x1_points);
+  interpolate(false, OUTER_NODES_PER_SPLINE,
+              outer_x0_cubics, outer_x1_cubics);
+  num_outer_nodes = OUTER_NODES_PER_SPLINE * OUTER_NUM_SPLINE_POINTS;
 
-  std::vector<std::vector<double>> star_x0_cubics, star_x1_cubics;
-  get_cubics(star_x0_points, star_x1_points,
-             &star_x0_cubics, &star_x1_cubics);
+  // std::vector<double> fin_x0_spline_points, fin_x1_spline_points;
+  // get_fin_spline_points(&fin_x0_spline_points, &fin_x1_spline_points);
 
-  interpolate(true, STAR_NODES_PER_SPLINE, star_x0_cubics, star_x1_cubics);
+  // std::vector<std::vector<double>> fin_x0_cubics, fin_x1_cubics;
+  // get_cubics(fin_x0_spline_points, fin_x1_spline_points,
+  //            &fin_x0_cubics, &fin_x1_cubics);
 
-  std::vector<double> star2_x0_points, star2_x1_points;
-  get_star_spline_points(star2.center.a[0], star2.center.a[1], &star2_x0_points,
-                         &star2_x1_points);
-
-  std::vector<std::vector<double>> star2_x0_cubics, star2_x1_cubics;
-  get_cubics(star2_x0_points, star2_x1_points,
-             &star2_x0_cubics, &star2_x1_cubics);
-
-  interpolate(true, STAR_NODES_PER_SPLINE, star2_x0_cubics, star2_x1_cubics);
+  // interpolate(true, FIN_NODES_PER_SPLINE,
+  //             fin_x0_cubics, fin_x1_cubics);
+  for (int i = 0; i < holes.size(); i++) {
+    Hole circle = holes[i];
+    for (int i = 0; i < NUM_CIRCLE_POINTS; i++) {
+      double ang = (2.0 * M_PI * i) / NUM_CIRCLE_POINTS;
+      points.push_back(circle.center.a[0] + circle.radius * cos(ang));
+      points.push_back(circle.center.a[1] + circle.radius * sin(ang));
+      normals.push_back(-cos(ang));
+      normals.push_back(-sin(ang));
+      curvatures.push_back(-1.0 / circle.radius);
+      weights.push_back(2.0 * M_PI * circle.radius / NUM_CIRCLE_POINTS);
+    }
+  }
 
   if (bc == BoundaryCondition::DEFAULT) {
-    boundary_values = ie_Mat(weights.size(), 1);
-    int b1 =  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
-    int b2 = b1 + STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
-    int b3 = b2 + STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
-    apply_boundary_condition(0, b1, BoundaryCondition::ALL_ZEROS);
-    apply_boundary_condition(b1, b2, BoundaryCondition::ALL_ONES);
-    apply_boundary_condition(b2, b3, BoundaryCondition::ALL_NEG_ONES);
+    boundary_values = ie_Mat(weights.size() * 2, 1);
+    apply_boundary_condition(0, weights.size(), LEFT_TO_RIGHT_FLOW);
   } else {
     set_boundary_values_size(bc);
     apply_boundary_condition(0, weights.size(), bc);

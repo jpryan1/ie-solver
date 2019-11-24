@@ -20,15 +20,14 @@ class SkelFactorization {
  public:
   double id_tol, make_mat_time, id_time, schur_time;
   bool strong_admissibility;
-  int solution_dimension, domain_dimension;
-  ie_Mat allskel_mat, allskel_mat_lu, U, Psi, S_LU;
-  std::vector<lapack_int> allskel_mat_piv, S_piv;
-  std::atomic<bool> kill_factorizer;
-  std::atomic<QuadTreeNode*> block_to_factorize;
+  // // int solution_dimension, domain_dimension;
+  // ie_Mat allskel_mat, allskel_mat_lu, U, Psi, S_LU;
+  // std::vector<lapack_int> allskel_mat_piv, S_piv;
+  // std::atomic<bool> kill_factorizer;
+  // std::atomic<QuadTreeNode*> block_to_factorize;
 
   SkelFactorization() {}
-  SkelFactorization(double id_tol, bool strong_admissibility,
-                    int solution_dimension, int domain_dimension);
+  SkelFactorization(double id_tol, bool strong_admissibility);
   ~SkelFactorization() {}
 
   void get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,
@@ -59,7 +58,7 @@ class SkelFactorization {
 
   void skeletonize(const Kernel& K, QuadTree* tree);
 
-  void diag_block_factorizer();
+  // void diag_block_factorizer();
   // void b2dskeletonize(const Kernel& K, QuadTree* tree);
 
   // void b2dsparse_matvec(const Kernel& K, const QuadTree& tree,

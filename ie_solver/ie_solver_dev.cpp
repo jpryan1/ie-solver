@@ -111,17 +111,11 @@ void run_single_solve(const ie_solver_config & config) {
   std::unique_ptr<Boundary> boundary;
   switch (config.boundary_shape) {
     case Boundary::BoundaryShape::CIRCLE:
-      boundary.reset(new Ex2Boundary());
+      boundary.reset(new Circle());
       break;
     case Boundary::BoundaryShape::ROUNDED_SQUARE:
       boundary.reset(new RoundedSquare());
       break;
-    // case Boundary::BoundaryShape::ROUNDED_SQUARE_WITH_BUMP:
-    //   boundary.reset(new RoundedSquareWithBump());
-    //   break;
-    // case Boundary::BoundaryShape::SQUIGGLY:
-    //   boundary.reset(new Squiggly());
-    //   break;
     case Boundary::BoundaryShape::ANNULUS:
       boundary.reset(new Annulus());
       break;

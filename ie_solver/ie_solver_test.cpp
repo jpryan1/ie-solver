@@ -25,15 +25,14 @@
 namespace ie_solver {
 
 
+
 void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
   QuadTree quadtree;
   quadtree.initialize_tree(boundary, std::vector<double>(),
                            config.solution_dimension, config.domain_dimension);
 
   SkelFactorization skel_factorization(config.id_tol,
-                                       config.is_strong_admissibility,
-                                       config.solution_dimension,
-                                       config.domain_dimension);
+                                       config.is_strong_admissibility);
 
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, std::vector<double>());
@@ -44,8 +43,8 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
       && config.pde != ie_solver_config::Pde::LAPLACE_NEUMANN) {
     ie_Mat U = initialize_U_mat(config.pde, boundary->holes, boundary->points);
     ie_Mat Psi = initialize_Psi_mat(config.pde, boundary->holes, boundary);
-    skel_factorization.U = U;
-    skel_factorization.Psi = Psi;
+    quadtree.U = U;
+    quadtree.Psi = Psi;
     skel_factorization.skeletonize(kernel, &quadtree);
 
     ie_Mat mu, alpha;
@@ -615,22 +614,23 @@ TEST(IeSolverTest, Ex1UpdateLosesNoAcc) {
   }
 }
 
+
 ie_solver_config get_experiment_two_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
-  config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
+  config.pde = ie_solver_config::Pde::STOKES;
   config.num_boundary_points = pow(2, 10);
   config.domain_size = 20;
   config.domain_dimension = 2;
-  config.solution_dimension = 1;
+  config.solution_dimension = 2;
   config.boundary_condition = BoundaryCondition::DEFAULT;
   config.boundary_shape = Boundary::BoundaryShape::EX2;
   return config;
 }
 
 
+// Note that increasing N causes this test to fail, likely due to conditioning
 TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
-
   ie_solver_config config = get_experiment_two_config();
   std::unique_ptr<Boundary> boundary =
     std::unique_ptr<Boundary>(new Ex2Boundary());
@@ -646,6 +646,60 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
   // to update the quadtree's Boundary.
   std::unique_ptr<Boundary> perturbed_boundary =
     std::unique_ptr<Boundary>(new Ex2Boundary());
+
+  perturbed_boundary->initialize(config.num_boundary_points,
+                                 BoundaryCondition::DEFAULT);
+  int FRAME_CAP = 10;
+  for (int frame = 0; frame < FRAME_CAP; frame++) {
+    double ang = (frame / (FRAME_CAP + 0.)) * 2 * M_PI;
+
+    perturbed_boundary->perturbation_parameters[0] = ang;
+    perturbed_boundary->initialize(config.num_boundary_points,
+                                   config.boundary_condition);
+
+    quadtree.perturb(*perturbed_boundary.get());
+    ie_Mat solution = boundary_integral_solve(config, &quadtree,
+                      domain_points);
+    QuadTree fresh;
+    fresh.initialize_tree(perturbed_boundary.get(), std::vector<double>(), 2,  2);
+    ie_Mat new_sol = boundary_integral_solve(config, &fresh,
+                     domain_points);
+    ASSERT_LE((new_sol - solution).max_entry_magnitude(), 100 * config.id_tol);
+  }
+}
+
+
+
+ie_solver_config get_experiment_three_config() {
+  ie_solver_config config;
+  config.id_tol = 1e-6;
+  config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
+  config.num_boundary_points = pow(2, 10);
+  config.domain_size = 20;
+  config.domain_dimension = 2;
+  config.solution_dimension = 1;
+  config.boundary_condition = BoundaryCondition::DEFAULT;
+  config.boundary_shape = Boundary::BoundaryShape::EX3;
+  return config;
+}
+
+
+TEST(IeSolverTest, Ex3UpdateLosesNoAcc) {
+  ie_solver_config config = get_experiment_three_config();
+  std::unique_ptr<Boundary> boundary =
+    std::unique_ptr<Boundary>(new Ex3Boundary());
+  boundary->initialize(config.num_boundary_points,
+                       BoundaryCondition::DEFAULT);
+  QuadTree quadtree;
+  quadtree.initialize_tree(boundary.get(), std::vector<double>(),
+                           config.solution_dimension, config.domain_dimension);
+  std::vector<double> domain_points;
+  get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max);
+  // We'll iteratively reinitialized another Boundary and use that
+  // to update the quadtree's Boundary.
+  std::unique_ptr<Boundary> perturbed_boundary =
+    std::unique_ptr<Boundary>(new Ex3Boundary());
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
 
@@ -673,24 +727,10 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
 }
 
 
-ie_solver_config get_experiment_three_config() {
-  ie_solver_config config;
-  config.id_tol = 1e-6;
-  config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = pow(2, 10);
-  config.domain_size = 20;
-  config.domain_dimension = 2;
-  config.solution_dimension = 2;
-  config.boundary_condition = BoundaryCondition::DEFAULT;
-  config.boundary_shape = Boundary::BoundaryShape::EX3;
-  return config;
-}
-
-// Note that increasing N causes this test to fail, likely due to conditioning
-TEST(IeSolverTest, Ex3UpdateLosesNoAcc) {
-  ie_solver_config config = get_experiment_three_config();
+TEST(IeSolverTest, TreeCopyGivesSameAnswer) {
+  ie_solver_config config = get_experiment_two_config();
   std::unique_ptr<Boundary> boundary =
-    std::unique_ptr<Boundary>(new Ex3Boundary());
+    std::unique_ptr<Boundary>(new Ex2Boundary());
   boundary->initialize(config.num_boundary_points,
                        BoundaryCondition::DEFAULT);
   QuadTree quadtree;
@@ -699,32 +739,16 @@ TEST(IeSolverTest, Ex3UpdateLosesNoAcc) {
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
-  // We'll iteratively reinitialized another Boundary and use that
-  // to update the quadtree's Boundary.
-  std::unique_ptr<Boundary> perturbed_boundary =
-    std::unique_ptr<Boundary>(new Ex3Boundary());
+  ie_Mat solution = boundary_integral_solve(config, &quadtree,
+                    domain_points);
 
-  perturbed_boundary->initialize(config.num_boundary_points,
-                                 BoundaryCondition::DEFAULT);
-  int FRAME_CAP = 10;
-  for (int frame = 0; frame < FRAME_CAP; frame++) {
-    double ang = (frame / (FRAME_CAP + 0.)) * 2 * M_PI;
+  QuadTree fresh;
 
-    perturbed_boundary->perturbation_parameters[0] = ang;
-    perturbed_boundary->initialize(config.num_boundary_points,
-                                   config.boundary_condition);
-
-    quadtree.perturb(*perturbed_boundary.get());
-    ie_Mat solution = boundary_integral_solve(config, &quadtree,
-                      domain_points);
-    QuadTree fresh;
-    fresh.initialize_tree(perturbed_boundary.get(), std::vector<double>(), 2,  2);
-    ie_Mat new_sol = boundary_integral_solve(config, &fresh,
-                     domain_points);
-    ASSERT_LE((new_sol - solution).max_entry_magnitude(), 100 * config.id_tol);
-  }
+  quadtree.copy_into(&fresh);
+  ie_Mat new_sol = boundary_integral_solve(config, &fresh,
+                   domain_points);
+  ASSERT_LE((new_sol - solution).max_entry_magnitude(), 1e-15);
 }
-
 
 
 
