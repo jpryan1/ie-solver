@@ -13,7 +13,8 @@ fig = plt.figure(figsize=(14,14))
 WINDOW_SIZE = 140*5
 IMAGE_SIZE = 100*5
 CMAP = copy(matplotlib.cm.hot)
-CMAP.set_bad('lightgray', 1.)
+# CMAP.set_bad('lightgray', 1.)
+CMAP.set_bad('white', 1.)
 MASKED_VALUE = 11111.1
 
 print("args: {ZOOM} {X_SHIFT}")
@@ -180,7 +181,7 @@ else:
 	# draw_boundary(solution_img, boundary_points, val=1.0)
 	draw_solution(solution_img, solution_points)
 solution_img = np.ma.masked_where(solution_img == MASKED_VALUE, solution_img)
-plt.title("Solution")
+# plt.title("Solution")
 plt.imshow(solution_img.T, cmap=CMAP, origin = "lower")
 if(is_stokes):
 	plt.quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
@@ -204,5 +205,6 @@ if(is_stokes):
 #   #        event.x, event.y, event.xdata, event.ydata))
 
 # cid = fig.canvas.mpl_connect('button_press_event', onclick)
-
+plt.axis("off")
+# plt.savefig("ex3.eps", format="eps")
 plt.show()

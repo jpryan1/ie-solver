@@ -30,6 +30,8 @@ enum BoundaryCondition {
 
 class Boundary {
  public:
+  int num_outer_nodes = -1;
+
   std::vector<double> perturbation_parameters;
   std::vector<double> points, normals, curvatures, weights;
   std::vector<Hole> holes;
@@ -49,6 +51,8 @@ class Boundary {
 
   BoundaryShape boundary_shape;
 
+  virtual ~Boundary() {}
+
   void set_boundary_values_size(BoundaryCondition bc);
   void apply_boundary_condition(int start_idx,
                                 int end_idx,
@@ -57,10 +61,10 @@ class Boundary {
   virtual bool is_in_domain(const Vec2& a) = 0;
 };
 
+
 class CubicBoundary : public Boundary {
  public:
   // Note, the outer nodes must appear first in the point data vectors.
-  int num_outer_nodes;
 
   virtual void get_spline_points(std::vector<double>* outer_x0_points,
                                  std::vector<double>* outer_x1_points) = 0;

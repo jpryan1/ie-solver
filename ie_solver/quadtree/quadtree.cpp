@@ -10,6 +10,14 @@
 #include <boost/functional/hash.hpp>
 #include "ie_solver/log.h"
 #include "ie_solver/quadtree/quadtree.h"
+#include "ie_solver/boundaries/circle.h"
+#include "ie_solver/boundaries/annulus.h"
+#include "ie_solver/boundaries/rounded_square.h"
+#include "ie_solver/boundaries/cubic_spline.h"
+#include "ie_solver/boundaries/donut.h"
+#include "ie_solver/boundaries/ex1boundary.h"
+#include "ie_solver/boundaries/ex2boundary.h"
+#include "ie_solver/boundaries/ex3boundary.h"
 
 namespace ie_solver {
 
@@ -524,8 +532,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-  std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
-            " are compressed." << std::endl;
+  // std::cout << "Before perturb, " << num_compressed << " of " << num_total <<
+  //           " are compressed." << std::endl;
   // go through all leaf original box vectors and apply mapping.
   // (if there is a deletion it will be processed later)
   // each node will be one of three things
@@ -668,16 +676,13 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     mark_neighbors_and_parents(current);
   }
 
+  // TODO(John) this should be a boundary copy routine
   boundary->points = perturbed_boundary.points;
   boundary->normals = perturbed_boundary.normals;
   boundary->weights = perturbed_boundary.weights;
   boundary->curvatures = perturbed_boundary.curvatures;
   boundary->boundary_values = perturbed_boundary.boundary_values;
-  boundary->perturbation_parameters.clear();
-  for (int i = 0; i < boundary->perturbation_parameters.size(); i++) {
-    boundary->perturbation_parameters.push_back(
-      perturbed_boundary.perturbation_parameters[0]);
-  }
+  boundary->perturbation_parameters = perturbed_boundary.perturbation_parameters;
   boundary->holes = perturbed_boundary.holes;
 
   // If any nodes are bursting now, subdivide them.
@@ -752,10 +757,170 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
 
-  std::cout << "After perturb, " << num_compressed << " of " << num_total <<
-            " are compressed." << std::endl;
+  // std::cout << "After perturb, " << num_compressed << " of " << num_total <<
+  //           " are compressed." << std::endl;
 }
 
+
+// All that is not copied is id, tltrblbr, parent, children, and neighbors
+// TODO(John) see if copying over id would be fine, I feel like it would be
+void copy_info(QuadTreeNode* old_node, QuadTreeNode* new_node) {
+  new_node->level = old_node->level;
+  new_node->dofs_below = old_node->dofs_below;
+
+  new_node->is_leaf = old_node->is_leaf;
+  // DEBUGGING
+  new_node->id = old_node->id;
+  new_node->X_rr_is_LU_factored = old_node->X_rr_is_LU_factored;
+  new_node->compressed = old_node->compressed;
+
+  new_node->side_length = old_node->side_length;
+  new_node->compression_ratio = old_node->compression_ratio;
+  new_node->compress_time = old_node->compress_time;
+
+  new_node->src_dof_lists = old_node->src_dof_lists;
+  new_node->tgt_dof_lists = old_node->tgt_dof_lists;
+
+  new_node->T = old_node->T;
+  new_node->L = old_node->L;
+  new_node->U = old_node->U;
+  new_node->X_rr = old_node->X_rr;
+  new_node->schur_update = old_node->schur_update;
+  new_node->X_rr_lu = old_node->X_rr_lu;
+  new_node->X_rr_piv = old_node->X_rr_piv;
+
+  new_node->src_T = old_node->src_T;
+  new_node->tgt_T = old_node->tgt_T;
+  new_node->X_rs = old_node->X_rs;
+  new_node->X_sr = old_node->X_sr;
+  for (int i = 0; i < 8; i++) {
+    new_node->corners[i] = old_node->corners[i];
+  }
+}
+
+
+void QuadTree::copy_into(QuadTree* new_tree) {
+  // The strategy here is going to be to create a new node for every old node,
+  // then keep a mapping from new to old. With that, we'll copy all the data
+  // over, including connections, levels, and matrices.
+  *new_tree = QuadTree();
+  std::vector < QuadTreeNode*> new_nodes;
+  std::unordered_map<QuadTreeNode*, QuadTreeNode*> old_to_new;
+  std::unordered_map<QuadTreeNode*, QuadTreeNode*> new_to_old;
+
+  for (int lvl = 0; lvl < levels.size(); lvl++) {
+    QuadTreeLevel* level = levels[lvl];
+    for (int n = 0; n < level->nodes.size(); n++) {
+      QuadTreeNode* old_node = level->nodes[n];
+      QuadTreeNode* new_node = new QuadTreeNode();
+      new_nodes.push_back(new_node);
+      copy_info(old_node, new_node);
+      old_to_new[old_node] = new_node;
+      new_to_old[new_node] = old_node;
+    }
+  }
+
+  for (int n = 0; n < new_nodes.size(); n++) {
+    QuadTreeNode* new_node = new_nodes[n];
+    new_node->parent = old_to_new[new_to_old[new_node]->parent];
+    if (!new_to_old[new_node]->is_leaf) {
+      new_node->tl = old_to_new[new_to_old[new_node]->tl];
+      new_node->tr = old_to_new[new_to_old[new_node]->tr];
+      new_node->bl = old_to_new[new_to_old[new_node]->bl];
+      new_node->br = old_to_new[new_to_old[new_node]->br];
+      for (int c = 0; c < 4; c++) {
+        new_node->children[c] =  old_to_new[new_to_old[new_node]->children[c]];
+      }
+    }
+    for (int nbr = 0; nbr < new_to_old[new_node]->neighbors.size(); nbr++) {
+      QuadTreeNode* neighbor = new_to_old[new_node]->neighbors[nbr];
+      new_node->neighbors.push_back(old_to_new[neighbor]);
+    }
+
+  }
+
+  new_tree->root = old_to_new[root];
+
+  new_tree->solution_dimension = solution_dimension;
+  new_tree->domain_dimension = domain_dimension;
+
+  new_tree->no_proxy_level = no_proxy_level;
+
+  new_tree->min = min;
+  new_tree->max = max;
+
+  new_tree->domain_points = domain_points;
+
+
+  new_tree->allskel_mat = allskel_mat;
+  new_tree->allskel_mat_lu = allskel_mat_lu;
+  new_tree->U = U;
+  new_tree->Psi = Psi;
+  new_tree->S_LU = S_LU;
+  new_tree->allskel_mat_piv = allskel_mat_piv;
+  new_tree->S_piv = S_piv;
+  // ie_Mat allskel_mat, allskel_mat_lu, U, Psi, S_LU;
+  // std::vector<lapack_int> allskel_mat_piv, S_piv;
+
+
+  // Boundary* boundary;
+  // std::vector<QuadTreeLevel*> levels;
+
+// TODO(John) again, should be replaced with good copy routine
+  // For now, a hack - we'll initialize it, then completely redefine it.
+  // smart pointer, make a circle or something (or switch like elsewhere)
+
+  if (new_tree->boundary) {
+    delete new_tree->boundary;
+  }
+
+  switch (boundary->boundary_shape) {
+    case Boundary::BoundaryShape::CIRCLE:
+      new_tree->boundary = new Circle();
+      break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE:
+      new_tree->boundary = new RoundedSquare();
+      break;
+    case Boundary::BoundaryShape::ANNULUS:
+      new_tree->boundary = new Annulus();
+      break;
+    case Boundary::BoundaryShape::DONUT:
+      new_tree->boundary = new Donut();
+      break;
+    case Boundary::BoundaryShape::CUBIC_SPLINE:
+      new_tree->boundary = new CubicSpline();
+      break;
+    case Boundary::BoundaryShape::EX1:
+      new_tree->boundary = new Ex1Boundary();
+      break;
+    case Boundary::BoundaryShape::EX2:
+      new_tree->boundary = new Ex2Boundary();
+      break;
+    case Boundary::BoundaryShape::EX3:
+      new_tree->boundary = new Ex3Boundary();
+      break;
+  }
+
+  new_tree->boundary->points = boundary->points;
+  new_tree->boundary->normals = boundary->normals;
+  new_tree->boundary->weights = boundary->weights;
+  new_tree->boundary->curvatures = boundary->curvatures;
+  new_tree->boundary->boundary_values = boundary->boundary_values;
+  new_tree->boundary->boundary_shape = boundary->boundary_shape;
+  new_tree->boundary->perturbation_parameters =
+    boundary->perturbation_parameters;
+  new_tree->boundary->holes = boundary->holes;
+  new_tree->boundary->num_outer_nodes = boundary->num_outer_nodes;
+
+  for (int lvl = 0; lvl < levels.size(); lvl++) {
+    QuadTreeLevel* old_level = levels[lvl];
+    QuadTreeLevel* new_level = new QuadTreeLevel();
+    for (int n = 0; n < old_level->nodes.size(); n++) {
+      new_level->nodes.push_back(old_to_new[old_level->nodes[n]]);
+    }
+    new_tree->levels.push_back(new_level);
+  }
+}
 
 
 void QuadTree::reset() {
@@ -774,7 +939,10 @@ void QuadTree::reset() {
 
 
 void QuadTree::reset(Boundary * boundary_) {
-  if (root) {delete root; } for (QuadTreeLevel* level : levels) {
+  if (root) {
+    delete root;
+  }
+  for (QuadTreeLevel* level : levels) {
     if (level) {
       delete level;
     }

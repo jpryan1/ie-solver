@@ -50,7 +50,6 @@ struct InteractionLists {
 
 struct QuadTreeNode {
   static unsigned int id_count;
-
   unsigned int id, level, dofs_below;
 
   bool is_leaf, X_rr_is_LU_factored = false, compressed = false;
@@ -68,7 +67,6 @@ struct QuadTreeNode {
   // For forward operator
   ie_Mat src_T, tgt_T, X_rs, X_sr;
 
-
   // format is {BL, TL, TR, BR}
   double corners[8];
 
@@ -81,18 +79,13 @@ struct QuadTreeNode {
     br = NULL;
     for (int i = 0; i < 4; i++) children[i] = NULL;
   }
-  // ~QuadTreeNode() {
-  //   for (QuadTreeNode* child : children) {
-  //     if (child) {
-  //       delete child;
-  //     }
-  //   }
-  // }
 };
+
 
 struct QuadTreeLevel {
   std::vector<QuadTreeNode*> nodes;
 };
+
 
 class QuadTree {
  public:
@@ -102,6 +95,10 @@ class QuadTree {
   Boundary* boundary;
   std::vector<double> domain_points;
   QuadTreeNode* root;
+
+  ie_Mat allskel_mat, allskel_mat_lu, U, Psi, S_LU;
+  std::vector<lapack_int> allskel_mat_piv, S_piv;
+
   std::vector<QuadTreeLevel*> levels;
 
   //////////////////////
@@ -121,6 +118,8 @@ class QuadTree {
   void consolidate_node(QuadTreeNode* node);
   void reset();
   void reset(Boundary* boundary_);
+
+  void copy_into(QuadTree* new_tree);
 
   ////////////////
   // UPDATING

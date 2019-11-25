@@ -116,11 +116,11 @@ void linear_solve(const SkelFactorization& skel_factorization,
                   const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
                   ie_Mat* alpha) {
   *mu = ie_Mat(quadtree.boundary->weights.size() *
-               skel_factorization.solution_dimension, 1);
+               quadtree.solution_dimension, 1);
   if (alpha == nullptr) {
     skel_factorization.solve(quadtree, mu, f);
   } else {
-    *alpha = ie_Mat(skel_factorization.U.width(), 1);
+    *alpha = ie_Mat(quadtree.U.width(), 1);
     skel_factorization.multiply_connected_solve(quadtree, mu, alpha, f);
   }
 }
@@ -159,9 +159,7 @@ void bie_time_trial(const ie_solver_config& config,
   Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
   SkelFactorization skel_factorization(config.id_tol,
-                                       config.is_strong_admissibility,
-                                       config.solution_dimension,
-                                       config.domain_dimension);
+                                       config.is_strong_admissibility);
 
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, std::vector<double>());
@@ -192,9 +190,7 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
   SkelFactorization skel_factorization(config.id_tol,
-                                       config.is_strong_admissibility,
-                                       config.solution_dimension,
-                                       config.domain_dimension);
+                                       config.is_strong_admissibility);
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, domain_points);
 
@@ -255,14 +251,15 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   }
   ie_Mat domain_solution((domain_points.size() / 2)*
                          config.solution_dimension, 1);
-  skel_factorization.U = U;
-  skel_factorization.Psi = Psi;
+  quadtree->U = U;
+  quadtree->Psi = Psi;
   skel_factorization.skeletonize(kernel, quadtree);
 
   // init_domain_kernel.join();
 
   schur_solve(skel_factorization, *quadtree, U, Psi, f, K_domain,
               U_forward, &domain_solution);
+
   return domain_solution;
 }
 

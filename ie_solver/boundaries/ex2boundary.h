@@ -11,14 +11,13 @@ class Ex2Boundary : public CubicBoundary {
  public:
   void initialize(int N, BoundaryCondition bc);
 
-  void get_spline_points(std::vector<double>* x0_spline_points,
-                         std::vector<double>* x1_spline_points);
+  void get_spline_points(std::vector<double>* outer_x0_spline_points,
+                         std::vector<double>* outer_x1_spline_points);
 
-  void get_star_spline_points(double x, double y,
-                              std::vector<double>* x0_points,
-                              std::vector<double>* x1_points);
+  // void get_fin_spline_points(std::vector<double>* x0_points,
+  //                            std::vector<double>* x1_points);
 };
 
 }  // namespace ie_solver
 
-#endif  // IE_SOLVER_BOUNDARIES_EX2BOUNDARY_H_
+#endif  // IE_SOLVER_BOUNDARIES_EX3BOUNDARY_H_

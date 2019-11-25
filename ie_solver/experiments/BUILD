@@ -3,6 +3,7 @@ package(default_visibility = ["//visibility:public"])
 cc_binary(
   name = "experiment_one",
   srcs = ["experiment_one.cpp"],
+  copts= ["-fopenmp"],
   deps = [
       "//ie_solver:ie_mat",
       "//ie_solver:initialization",
@@ -22,6 +23,7 @@ cc_binary(
 cc_binary(
   name = "experiment_two",
   srcs = ["experiment_two.cpp"],
+  copts= ["-fopenmp"],
   deps = [
       "//ie_solver:ie_mat",
       "//ie_solver:initialization",
@@ -41,6 +43,7 @@ cc_binary(
 cc_binary(
   name = "experiment_three",
   srcs = ["experiment_three.cpp"],
+  copts= ["-fopenmp"],
   deps = [
       "//ie_solver:ie_mat",
       "//ie_solver:initialization",
@@ -59,6 +62,7 @@ cc_binary(
 cc_binary(
   name = "landscapes",
   srcs = ["landscapes.cpp"],
+  copts= ["-fopenmp"],
   deps = [
       "//ie_solver:ie_mat",
       "//ie_solver:initialization",
