@@ -651,9 +651,9 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
                                  BoundaryCondition::DEFAULT);
   int FRAME_CAP = 10;
   for (int frame = 0; frame < FRAME_CAP; frame++) {
-    double ang = (frame / (FRAME_CAP + 0.)) * 2 * M_PI;
-
-    perturbed_boundary->perturbation_parameters[0] = ang;
+    int rand_idx = floor(11 * (rand() / (0. + RAND_MAX)));
+    perturbed_boundary->perturbation_parameters[rand_idx] = 0.3
+        + 0.4 * (rand() / (0. + RAND_MAX));
     perturbed_boundary->initialize(config.num_boundary_points,
                                    config.boundary_condition);
 
@@ -664,7 +664,8 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
     fresh.initialize_tree(perturbed_boundary.get(), std::vector<double>(), 2,  2);
     ie_Mat new_sol = boundary_integral_solve(config, &fresh,
                      domain_points);
-    ASSERT_LE((new_sol - solution).max_entry_magnitude(), 100 * config.id_tol);
+    // Allow 10* more error due to conditioning
+    ASSERT_LE((new_sol - solution).max_entry_magnitude(), 1000 * config.id_tol);
   }
 }
 

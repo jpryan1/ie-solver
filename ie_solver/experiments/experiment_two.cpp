@@ -33,11 +33,10 @@ ie_solver_config get_experiment_two_config() {
 
 
 void run_experiment2() {
-  // TODO(John) 10 dials moving around randomly please
   ie_solver_config config = get_experiment_two_config();
 
-  std::unique_ptr<Boundary> boundary;
-  boundary.reset(new Ex2Boundary());
+  std::unique_ptr<Boundary> boundary
+    =  std::unique_ptr<Boundary>(new Ex2Boundary());
   boundary->initialize(config.num_boundary_points,
                        BoundaryCondition::DEFAULT);
 
@@ -48,16 +47,6 @@ void run_experiment2() {
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
                     quadtree.max);
 
-
-  // domain_points.push_back(0.6);
-  // domain_points.push_back(0.325);
-
-  // domain_points.push_back(0.7);
-  // domain_points.push_back(0.325);
-
-  // domain_points.push_back(0.8);
-  // domain_points.push_back(0.325);
-
   std::unique_ptr<Boundary> perturbed_boundary =
     std::unique_ptr<Boundary>(new Ex2Boundary());
   perturbed_boundary->initialize(config.num_boundary_points,
@@ -67,8 +56,8 @@ void run_experiment2() {
   for (int frame = 0; frame < FRAME_CAP; frame++) {
     // Estimate gradient
     int rand_idx = floor(11 * (rand() / (0. + RAND_MAX)));
-    perturbed_boundary->perturbation_parameters[rand_idx] = 0.3 + 0.4 * (rand() /
-        (0. + RAND_MAX));
+    perturbed_boundary->perturbation_parameters[rand_idx] = 0.3
+        + 0.4 * (rand() / (0. + RAND_MAX));
     perturbed_boundary->initialize(config.num_boundary_points,
                                    config.boundary_condition);
     quadtree.perturb(*perturbed_boundary.get());
@@ -82,7 +71,6 @@ void run_experiment2() {
                                  frame) + ".txt", perturbed_boundary->points);
     io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
                                  frame)  + ".txt", quadtree);
-
   }
 
 //   ie_Mat solution = boundary_integral_solve(config, &quadtree,

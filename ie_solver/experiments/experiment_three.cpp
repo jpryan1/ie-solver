@@ -107,6 +107,8 @@ void run_experiment3() {
 
   std::vector<double> domain_points;
 
+  // TODO(John) the fact that round numbers screw things up is a problem -
+  // out of domain should salt these maybe?
   domain_points.push_back(0.4999);
   domain_points.push_back(0.5001);
 
@@ -196,7 +198,8 @@ void run_experiment3() {
                                      step)  + ".txt", solution, domain_points,
                                    config.solution_dimension);
         io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
-                                     step) + ".txt", perturbed_boundary->points);
+                                     step) + ".txt",
+                                   perturbed_boundary->points);
         io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
                                      step)  + ".txt", quadtree);
         break;
@@ -217,7 +220,6 @@ void run_experiment3() {
   //                            config.solution_dimension);
   // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
   //                            boundary->points);
-
 
 }
 
