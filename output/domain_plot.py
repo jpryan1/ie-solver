@@ -26,7 +26,7 @@ if(len(sys.argv) > 2):
   SHIFT = int(sys.argv[2])*ZOOM
 
 quiver_normalizer = matplotlib.colors.Normalize(vmin=0,vmax=1.)
-quiver_scale = 40./ZOOM
+quiver_scale = 30./ZOOM
 
 CENTER = WINDOW_SIZE/2.0
 
@@ -123,8 +123,8 @@ def draw_solution(img, points):
 		if(np.isnan(point[2]) or point[2] == 0):
 			img[pixel[0]][pixel[1]] = MASKED_VALUE
 		else:
-			for i in range(-8,9):
-				for j in range(-8,9):
+			for i in range(-2,3):
+				for j in range(-2,3):
 				  
 				  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT
 				  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
@@ -178,15 +178,15 @@ if(is_stokes):
 	draw_boundary(solution_img, boundary_points, val=1.0)
 	stokes_data = get_quiver_data(solution_points)
 else:
-	# draw_boundary(solution_img, boundary_points, val=1.0)
 	draw_solution(solution_img, solution_points)
+	draw_boundary(solution_img, boundary_points, val=-1.0)
 solution_img = np.ma.masked_where(solution_img == MASKED_VALUE, solution_img)
 # plt.title("Solution")
 plt.imshow(solution_img.T, cmap=CMAP, origin = "lower")
 if(is_stokes):
 	plt.quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
 		stokes_data[4], cmap = "Purples", #cmap='autumn',
-		norm=quiver_normalizer, scale=quiver_scale)
+		norm=quiver_normalizer, scale=quiver_scale, headwidth=5)
 ############################################################
 #
 #						INTERACTIVITY
@@ -206,5 +206,8 @@ if(is_stokes):
 
 # cid = fig.canvas.mpl_connect('button_press_event', onclick)
 plt.axis("off")
-# plt.savefig("ex3.eps", format="eps")
+pt = scaled_point([0.5,0.5])
+# circle = plt.Circle((pt[0], pt[1]), 150, color='g', fill=False, linewidth=2,linestyle="--")
+# plt.gcf().gca().add_artist(circle)
+plt.savefig("ex3.eps", format="eps")
 plt.show()
