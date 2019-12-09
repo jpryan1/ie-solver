@@ -19,6 +19,7 @@ namespace ie_solver {
 class SkelFactorization {
  public:
   double id_tol, make_mat_time, id_time, schur_time;
+  int num_threads;
   bool strong_admissibility;
   // // int solution_dimension, domain_dimension;
   // ie_Mat allskel_mat, allskel_mat_lu, U, Psi, S_LU;
@@ -27,7 +28,7 @@ class SkelFactorization {
   // std::atomic<QuadTreeNode*> block_to_factorize;
 
   SkelFactorization() {}
-  SkelFactorization(double id_tol, bool strong_admissibility);
+  SkelFactorization(double id_tol, bool strong_admissibility, int nt);
   ~SkelFactorization() {}
 
   void get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,

@@ -22,8 +22,8 @@ ie_solver_config get_experiment_two_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::STOKES;
-  config.num_boundary_points = pow(2, 13);
-  config.domain_size = 50;
+  config.num_boundary_points = pow(2, 15);
+  config.domain_size = 1;
   config.domain_dimension = 2;
   config.solution_dimension = 2;
   config.boundary_condition = BoundaryCondition::DEFAULT;
