@@ -119,7 +119,7 @@ class QuadTree {
   void reset();
   void reset(Boundary* boundary_);
 
-  void copy_into(QuadTree* new_tree);
+  void copy_into(QuadTree* new_tree) const;
 
   ////////////////
   // UPDATING

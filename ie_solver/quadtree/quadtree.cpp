@@ -799,7 +799,7 @@ void copy_info(QuadTreeNode* old_node, QuadTreeNode* new_node) {
 }
 
 
-void QuadTree::copy_into(QuadTree* new_tree) {
+void QuadTree::copy_into(QuadTree* new_tree) const {
   // The strategy here is going to be to create a new node for every old node,
   // then keep a mapping from new to old. With that, we'll copy all the data
   // over, including connections, levels, and matrices.

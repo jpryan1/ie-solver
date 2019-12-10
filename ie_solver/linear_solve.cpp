@@ -115,6 +115,7 @@ ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
 void linear_solve(const SkelFactorization& skel_factorization,
                   const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,
                   ie_Mat* alpha) {
+  double start = omp_get_wtime();
   *mu = ie_Mat(quadtree.boundary->weights.size() *
                quadtree.solution_dimension, 1);
   if (alpha == nullptr) {
@@ -123,6 +124,8 @@ void linear_solve(const SkelFactorization& skel_factorization,
     *alpha = ie_Mat(quadtree.U.width(), 1);
     skel_factorization.multiply_connected_solve(quadtree, mu, alpha, f);
   }
+  double end = omp_get_wtime();
+  std::cout << "timing: linear_solve " << (end - start) << std::endl;
 }
 
 // void linear_solve(const SkelFactorization& skel_factorization,
@@ -159,7 +162,8 @@ void bie_time_trial(const ie_solver_config& config,
   Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
   SkelFactorization skel_factorization(config.id_tol,
-                                       config.is_strong_admissibility);
+                                       config.is_strong_admissibility,
+                                       DEFAULT_NUM_THREADS);
 
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, std::vector<double>());
@@ -190,7 +194,8 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   Boundary* boundary = quadtree->boundary;
   // Consider making init instead of constructor for readability
   SkelFactorization skel_factorization(config.id_tol,
-                                       config.is_strong_admissibility);
+                                       config.is_strong_admissibility,
+                                       config.num_threads);
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, domain_points);
 

@@ -21,9 +21,10 @@ ie_solver_config get_experiment_three_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
-  config.num_boundary_points = pow(2, 13);
+  config.num_boundary_points = pow(2, 18);
   config.domain_size = 200;
   config.solution_dimension = 1;
+  config.num_threads = 4;
   config.boundary_condition = BoundaryCondition::DEFAULT;
   config.boundary_shape = Boundary::BoundaryShape::EX3;
   return config;
@@ -33,13 +34,13 @@ ie_solver_config get_experiment_three_config() {
 void get_sample_vals(const ie_solver_config& config, double* samples,
                      Boundary* boundary,
                      int perturbed_param,
-                     QuadTree* quadtree,
+                     const QuadTree& quadtree,
                      const std::vector<double>& domain_points,
                      double* findiff) {
   // TODO(John) try copying quadtree and running this in parallel
   QuadTree trees[4];
   for (int i = 0; i < 4; i++) {
-    quadtree->copy_into(&(trees[i]));
+    quadtree.copy_into(&(trees[i]));
   }
 
   for (int i = 0; i < 4; i++) {
@@ -49,7 +50,7 @@ void get_sample_vals(const ie_solver_config& config, double* samples,
     trees[i].perturb(*boundary);
   }
 
-  #pragma omp parallel for num_threads(4)
+  // #pragma omp parallel for num_threads(2)
   for (int i = 0; i < 4; i++) {
     ie_Mat solution = boundary_integral_solve(config, &trees[i],
                       domain_points);
@@ -136,31 +137,38 @@ void run_experiment3() {
 
   ie_Mat solution = boundary_integral_solve(config, &quadtree,
                     domain_points);
+
   double prev_gradient = (solution.get(1, 0) - solution.get(0, 0))
                          / 0.0002;
   double start_alpha = 1;
   double alpha_decay = 0.8;
   double h = 1e-4;
-  int FRAME_CAP = 20;
+  int FRAME_CAP = 9;
 
-
+  double prev_step_start = omp_get_wtime();
   for (int step = 0; step < FRAME_CAP; step++) {
-    // First, find gradiant.
+
+    double next_step_start = omp_get_wtime();
+    if (step > 0) {
+      std::cout << "Step took " << (next_step_start - prev_step_start) << std::endl;
+    }
+    prev_step_start = next_step_start;
+
+    // First, find gradient.
     double findiff1[4];
     double samples1[4] = {current_ang1 - 2 * h, current_ang1 - h,
                           current_ang1 + h, current_ang1 + 2 * h
                          };
-    // TODO(John) try copying quadtree and running this in parallel
-    get_sample_vals(config, samples1, perturbed_boundary.get(), 0,
-                    &quadtree, domain_points, findiff1);
-    perturbed_boundary->perturbation_parameters[0] = current_ang1;
-
     double findiff2[4];
     double samples2[4] = {current_ang2 - 2 * h, current_ang2 - h,
                           current_ang2 + h, current_ang2 + 2 * h
                          };
+    get_sample_vals(config, samples1, perturbed_boundary.get(), 0,
+                    quadtree, domain_points, findiff1);
+    perturbed_boundary->perturbation_parameters[0] = current_ang1;
+
     get_sample_vals(config, samples2, perturbed_boundary.get(), 1,
-                    &quadtree, domain_points, findiff2);
+                    quadtree, domain_points, findiff2);
 
     double grad1 = (findiff1[0] - 8 * findiff1[1] + 8 * findiff1[2]
                     - findiff1[3]) / (12 * h);
@@ -190,7 +198,8 @@ void run_experiment3() {
         prev_gradient = gradient;
         current_ang1 = trial_ang1;
         current_ang2 = trial_ang2;
-        std::cout << gradient << std::endl;
+        std::cout << "Current obj function val "
+                  << gradient << std::endl;
         perturbed_boundary->perturbation_parameters[0] = current_ang1;
         perturbed_boundary->perturbation_parameters[1] = current_ang2;
 
@@ -228,6 +237,7 @@ void run_experiment3() {
 
 int main(int argc, char** argv) {
   srand(0);  // omp_get_wtime());
+  omp_set_nested(1);
   ie_solver::run_experiment3();
   return 0;
 }

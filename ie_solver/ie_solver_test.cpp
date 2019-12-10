@@ -32,7 +32,8 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
                            config.solution_dimension, config.domain_dimension);
 
   SkelFactorization skel_factorization(config.id_tol,
-                                       config.is_strong_admissibility);
+                                       config.is_strong_admissibility,
+                                        config.num_threads);
 
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, std::vector<double>());

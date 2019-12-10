@@ -11,6 +11,7 @@
 #define DEFAULT_NUM_DISCRETIZATION_POINTS pow(2, 9)
 #define DEFAULT_ID_TOL 1e-6
 #define DEFAULT_DOMAIN_SIZE 20
+#define DEFAULT_NUM_THREADS 4
 
 namespace ie_solver {
 
@@ -33,6 +34,7 @@ struct ie_solver_config {
     Boundary::BoundaryShape::CIRCLE;
   bool scaling = false;
   bool animation = false;
+  int num_threads = DEFAULT_NUM_THREADS;
 };
 
 struct io {
