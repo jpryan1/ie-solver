@@ -90,9 +90,7 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
       all_dofs.push_back(i);
     }
 
-    dense = kernel(all_dofs, all_dofs);
-    ie_Mat f_prime = dense * mu;
-    ie_Mat err = (f_prime - boundary->boundary_values);
+    ie_Mat err = (kernel(all_dofs, all_dofs) * mu) - boundary->boundary_values;
     EXPECT_LE(err.max_entry_magnitude(), 50 * config.id_tol);
   }
 }

@@ -31,12 +31,7 @@ class SkelFactorization {
   SkelFactorization(double id_tol, bool strong_admissibility, int nt);
   ~SkelFactorization() {}
 
-  void get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,
-                      const std::vector<unsigned int>& r,
-                      const std::vector<unsigned int>& s,
-                      const std::vector<unsigned int>& n);
-
-  void schur_update(const Kernel& K, QuadTreeNode* node);
+  void decouple(const Kernel& K, QuadTreeNode* node);
   int id_compress(const Kernel& K, const QuadTree* tree,
                   QuadTreeNode* node);
   // int b2dinterpolative_decomposition(const Kernel& K, const QuadTree* tree,
