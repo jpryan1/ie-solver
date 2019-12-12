@@ -313,6 +313,17 @@ ie_Mat ie_Mat::operator+(const ie_Mat& o) const {
 }
 
 
+ie_Mat ie_Mat::operator*(const ie_Mat& o) const {
+  ie_Mat result(height_, o.width_);
+
+  cblas_dgemm(CblasColMajor, NORMAL, NORMAL, height_, o.width_,
+              width_, 1., mat, height_, o.mat, o.height_, 0.,
+              result.mat, height_);
+  return result;
+
+}
+
+
 ie_Mat ie_Mat::operator*(double o) const {
   ie_Mat result(height_, width_);
   for (unsigned int i = 0; i < height_; i++) {
@@ -435,36 +446,6 @@ void ie_Mat::rand_vec(unsigned int dofs) {
   }
 }
 
-void ie_Mat::left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const {
-  ie_Mat U_(height(), width()), V(height(), width());
-
-  ie_Mat cpy = *this;
-  std::vector<double> superb(height());
-  std::vector<double> sing(height());
-  lapack_int info = LAPACKE_dgesvd(LAPACK_COL_MAJOR, 'A', 'A',
-                                   height(), width(), cpy.mat,
-                                   lda_, &(sing[0]), U_.mat,
-                                   height(), V.mat, width(),
-                                   &(superb[0]));
-  assert(info == 0);
-
-  ie_Mat UT_K(height(), K.width());
-  ie_Mat::gemm(TRANSPOSE, NORMAL, 1., U_, K, 0., &UT_K);
-
-  for (int row = 0; row < UT_K.height(); row++) {
-    double sing_val;
-    if (sing[row] > 1e-8) {
-      sing_val = 1.0 / sing[row];
-    } else {
-      sing_val = 0.0;
-    }
-    for (int col = 0; col < UT_K.width(); col++) {
-      UT_K.set(row, col, sing_val * UT_K.get(row, col));
-    }
-  }
-  ie_Mat::gemm(TRANSPOSE, NORMAL, 1., V, UT_K, 0., U);
-}
-
 
 void ie_Mat::LU_factorize(ie_Mat* K_LU, std::vector<lapack_int>* piv) const {
   *K_LU = *this;
@@ -491,8 +472,7 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K, ie_Mat* U) const {
 
 
 void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
-  ie_Mat K_copy(K.width_, K.height_);
-  K.transpose_into(&K_copy);
+  ie_Mat K_copy = K.transpose();
   std::vector<lapack_int> ipiv;
 
   // KX^-1 = L
@@ -504,7 +484,7 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K, ie_Mat* L) const {
                             K_copy.width_, X_copy.mat, X_copy.lda_, &ipiv[0],
                             K_copy.mat, K_copy.lda_);
   assert(err2 == 0);
-  K_copy.transpose_into(L);
+  *L = K_copy.transpose();
 }
 
 
@@ -527,8 +507,7 @@ void ie_Mat::left_multiply_inverse(const ie_Mat& K,
 void ie_Mat::right_multiply_inverse(const ie_Mat& K,
                                     const std::vector<lapack_int>& piv,
                                     ie_Mat* L) const {
-  ie_Mat K_copy(K.width_, K.height_);
-  K.transpose_into(&K_copy);
+  ie_Mat K_copy = K.transpose();
 
   // KX^-1 = L
   // aka X_T L^T = K^T
@@ -537,7 +516,7 @@ void ie_Mat::right_multiply_inverse(const ie_Mat& K,
                             K_copy.width_, this->mat, this->lda_, &piv[0],
                             K_copy.mat, K_copy.lda_);
   assert(err2 == 0);
-  K_copy.transpose_into(L);
+  *L = K_copy.transpose();
 }
 
 // TODO(John) considering LAPACK has transpose options, should this ever be
@@ -664,37 +643,6 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
   } else {
     printf("Failed to open singular values output file!\n");
   }
-}
-
-
-void ie_Mat::gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
-                  const ie_Mat& x, double beta, ie_Mat* b) {
-  assert(A.height() != 0 && x.height() != 0 && A.width() != 0  &&
-         "gemv needs positive dimensions only.");
-  assert(x.width() == 1 && "gemv only works on a column vector.");
-  assert(A.mat != nullptr && "gemv fails on null A mat.");
-  assert(x.mat != nullptr && "gemv fails on null x mat.");
-  assert(b->mat != nullptr && "gemv fails on null b mat.");
-
-
-  cblas_dgemv(CblasColMajor, trans0, A.height(), A.width(), alpha, A.mat,
-              A.lda_, x.mat, 1, beta, b->mat, 1);
-}
-
-
-void ie_Mat::gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
-                  double alpha, const ie_Mat& A, const ie_Mat& B, double beta,
-                  ie_Mat* C) {
-  assert(A.height() != 0 && B.height() != 0 && A.width() != 0
-         && B.width() != 0 && "gemm needs positive dimensions only.");
-  assert(A.mat != nullptr && "gemm fails on null A mat.");
-  assert(B.mat != nullptr && "gemm fails on null B mat.");
-  assert(C->mat != nullptr && "gemm fails on null C mat.");
-
-  unsigned int k = (trans0 == CblasTrans) ? A.height() : A.width();
-  cblas_dgemm(CblasColMajor, trans0, trans1, C->height(), C->width(),
-              k, alpha, A.mat, A.height(), B.mat, B.height(), beta, C->mat,
-              C->height());
 }
 
 }  // namespace ie_solver
