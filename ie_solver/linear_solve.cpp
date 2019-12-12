@@ -145,11 +145,11 @@ void schur_solve(const SkelFactorization & skel_factorization,
   ie_Mat mu;
   if (U.width() == 0) {
     linear_solve(skel_factorization, quadtree, f, &mu);
-    *solution = K_domain*mu;
+    *solution = K_domain * mu;
   } else {
     ie_Mat alpha;
     linear_solve(skel_factorization, quadtree, f, &mu, &alpha);
-    *solution = (K_domain*mu) + (U_forward*alpha);
+    *solution = (K_domain * mu) + (U_forward * alpha);
   }
 }
 
@@ -270,11 +270,11 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
 
 
 void get_domain_points(unsigned int domain_size, std::vector<double>* points,
-                       double min, double max) {
+                       double x_min, double x_max, double y_min, double y_max) {
   for (unsigned int i = 0; i < domain_size; i++) {
-    double x = min + ((i + 0.0) / (domain_size - 1)) * (max - min);
+    double x = x_min + ((i + 0.0) / (domain_size - 1)) * (x_max - x_min);
     for (int j = 0; j < domain_size; j++) {
-      double y = min + ((j + 0.0) / (domain_size - 1)) * (max - min);
+      double y = y_min + ((j + 0.0) / (domain_size - 1)) * (y_max - y_min);
       points->push_back(x);
       points->push_back(y);
     }

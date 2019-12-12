@@ -72,7 +72,7 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   holes.clear();
 
   if (perturbation_parameters.size() == 0) {
-    for (int i = 0; i <= 10; i++) perturbation_parameters.push_back(0.5);
+    for (int i = 0; i <= 7; i++) perturbation_parameters.push_back(0.5);
   }
 
   int OUTER_NODES_PER_SPLINE = (3 * N / 4) / OUTER_NUM_SPLINE_POINTS;
@@ -85,10 +85,10 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   // fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
   // holes.push_back(fin);
 
-  circle.radius = 0.025;
+  circle.radius = 0.05;
   circle.num_nodes =  NUM_CIRCLE_POINTS;
-  for (int i = 0; i <= 10; i++) {
-    double x = i / 10.;
+  for (int i = 0; i <= 7; i++) {
+    double x = -0.7 + (i / 3.);
     circle.center = Vec2(x, perturbation_parameters[i]);
     holes.push_back(circle);
   }

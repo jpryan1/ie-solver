@@ -66,7 +66,7 @@ void run_animation(const ie_solver_config& config) {
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
-                    quadtree.max);
+                    quadtree.max, quadtree.min, quadtree.max);
   for (int frame = 0; frame < 20; frame++) {
     double ang = (frame / 60.0) * 2 * M_PI;
     perturbed_boundary->holes.clear();
@@ -98,6 +98,7 @@ void run_time_trial(const ie_solver_config & config) {
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max, quadtree.min,
                     quadtree.max);
   double avg_skel_time = 0;
   double avg_solve_time = 0;
@@ -137,6 +138,7 @@ void run_single_solve(const ie_solver_config & config) {
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max, quadtree.min,
                     quadtree.max);
 
   ie_Mat solution = boundary_integral_solve(config, &quadtree, domain_points);

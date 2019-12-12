@@ -103,6 +103,7 @@ ie_Mat get_dom_sol(const ie_solver_config& config,
   quadtree.initialize_tree(boundary, std::vector<double>(),
                            config.solution_dimension, config.domain_dimension);
   get_domain_points(config.domain_size, domain_points, quadtree.min,
+                    quadtree.max, quadtree.min,
                     quadtree.max);
   return boundary_integral_solve(config, &quadtree, *domain_points);
 }
@@ -584,6 +585,7 @@ TEST(IeSolverTest, Ex1UpdateLosesNoAcc) {
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max, quadtree.min,
                     quadtree.max);
   // We'll iteratively reinitialized another Boundary and use that
   // to update the quadtree's Boundary.
@@ -638,6 +640,7 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max, quadtree.min,
                     quadtree.max);
   // We'll iteratively reinitialized another Boundary and use that
   // to update the quadtree's Boundary.
@@ -648,7 +651,7 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
                                  BoundaryCondition::DEFAULT);
   int FRAME_CAP = 10;
   for (int frame = 0; frame < FRAME_CAP; frame++) {
-    int rand_idx = floor(11 * (rand() / (0. + RAND_MAX)));
+    int rand_idx = floor(8 * (rand() / (0. + RAND_MAX)));
     perturbed_boundary->perturbation_parameters[rand_idx] = 0.3
         + 0.4 * (rand() / (0. + RAND_MAX));
     perturbed_boundary->initialize(config.num_boundary_points,
@@ -693,6 +696,7 @@ TEST(IeSolverTest, Ex3UpdateLosesNoAcc) {
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max, quadtree.min,
                     quadtree.max);
   // We'll iteratively reinitialized another Boundary and use that
   // to update the quadtree's Boundary.
@@ -736,6 +740,7 @@ TEST(IeSolverTest, TreeCopyGivesSameAnswer) {
                            config.solution_dimension, config.domain_dimension);
   std::vector<double> domain_points;
   get_domain_points(config.domain_size, &domain_points, quadtree.min,
+                    quadtree.max, quadtree.min,
                     quadtree.max);
   ie_Mat solution = boundary_integral_solve(config, &quadtree,
                     domain_points);

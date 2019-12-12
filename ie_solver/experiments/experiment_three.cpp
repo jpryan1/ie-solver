@@ -21,7 +21,7 @@ ie_solver_config get_experiment_three_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
-  config.num_boundary_points = pow(2, 18);
+  config.num_boundary_points = pow(2, 14);
   config.domain_size = 200;
   config.solution_dimension = 1;
   config.num_threads = 4;
@@ -106,16 +106,6 @@ void run_experiment3() {
   boundary->initialize(config.num_boundary_points,
                        BoundaryCondition::DEFAULT);
 
-  std::vector<double> domain_points;
-
-  // TODO(John) the fact that round numbers screw things up is a problem -
-  // out of domain should salt these maybe?
-  domain_points.push_back(0.4999);
-  domain_points.push_back(0.5001);
-
-  domain_points.push_back(0.5001);
-  domain_points.push_back(0.5001);
-
   // We'll iteratively reinitialized another Boundary and use that
   // to update the quadtree's Boundary.
   std::unique_ptr<Boundary> perturbed_boundary =
@@ -127,13 +117,27 @@ void run_experiment3() {
   double current_ang1 = 1;
   double current_ang2 = -1;
 
-  perturbed_boundary->perturbation_parameters[0] = current_ang1;
-  perturbed_boundary->perturbation_parameters[1] = current_ang2;
+  // perturbed_boundary->perturbation_parameters[0] = current_ang1;
+  // perturbed_boundary->perturbation_parameters[1] = current_ang2;
   perturbed_boundary->initialize(config.num_boundary_points,
                                  config.boundary_condition);
   QuadTree quadtree;
   quadtree.initialize_tree(perturbed_boundary.get(), std::vector<double>(),
                            config.solution_dimension, config.domain_dimension);
+
+  std::vector<double> domain_points;
+
+  // get_domain_points(config.domain_size, &domain_points, quadtree.min,
+  //                   quadtree.max, quadtree.min, quadtree.max);
+  // TODO(John) the fact that round numbers screw things up is a problem -
+  // out of domain should salt these maybe?
+  domain_points.push_back(0.4999);
+  domain_points.push_back(0.5001);
+
+  domain_points.push_back(0.5001);
+  domain_points.push_back(0.5001);
+
+
 
   ie_Mat solution = boundary_integral_solve(config, &quadtree,
                     domain_points);
@@ -222,13 +226,11 @@ void run_experiment3() {
     }
   }
 
-  // ie_Mat solution = boundary_integral_solve(config, &quadtree,
-  //                   domain_points);
   // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
   //                            domain_points,
   //                            config.solution_dimension);
   // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
-  //                            boundary->points);
+  //                            perturbed_boundary->points);
 
 }
 
