@@ -73,37 +73,12 @@ void SkelFactorization::get_x_matrices(ie_Mat* K, const ie_Mat& Z, ie_Mat* Xrr,
                                        const std::vector<unsigned int>& n) {
   assert(r.size()*s.size() > 0 &&
          "For get_x_matrices, there must be redundant and skel dofs.");
+  assert(!strong_admissibility && "Strong admissibility needs reimplementing.");
 
-  unsigned int r_size = r.size();
-  unsigned int s_size = s.size();
-  unsigned int n_size = n.size();
-  ie_Mat  Xrs(r_size, s_size), Xsr(s_size, r_size), Xrn(r_size, n_size),
-          Xnr(n_size, r_size);
-
-  *Xrr = (*K)(r, r);
-  Xrs = (*K)(r, s);
-  Xsr = (*K)(s, r);
-  if (n_size > 0) {
-    Xrn = (*K)(r, n);
-    Xnr = (*K)(n, r);
-  }
-
-  ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z, (*K)(s, r), 1., Xrr);
-  ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z, (*K)(s, s), 1., &Xrs);
-  ie_Mat::gemm(NORMAL,    NORMAL, -1., Xrs,        Z,          1., Xrr);
-  ie_Mat::gemm(NORMAL,    NORMAL, -1., (*K)(s, s), Z,          1., &Xsr);
-  if (n_size > 0) {
-    ie_Mat::gemm(TRANSPOSE, NORMAL, -1., Z, (*K)(s, n), 1., &Xrn);
-    ie_Mat::gemm(NORMAL,    NORMAL, -1., (*K)(n, s), Z,          1., &Xnr);
-  }
-
+  ie_Mat Xrs = (*K)(r, s) - Z.transpose() * (*K)(s, s) ;
+  *Xrr = (*K)(r, r) - Z.transpose() * (*K)(s, r) - Xrs * Z;
   K->set_submatrix(r, s, Xrs);
-  K->set_submatrix(s, r, Xsr);
-  if (n_size > 0) {
-    K->set_submatrix(r, n, Xrn);
-    K->set_submatrix(n, r, Xnr);
-  }
-  // TODO(John) this seems like an awful lot of stores, can we avoid this?
+  K->set_submatrix(s, r, (*K)(s, r) - (*K)(s, s) * Z);
 }
 
 
@@ -169,10 +144,7 @@ void SkelFactorization::schur_update(const Kernel& kernel, QuadTreeNode* node) {
   node->X_rr_lu.right_multiply_inverse(K_BN_sn_r, node->X_rr_piv, &node->L);
   node->X_rr_lu.left_multiply_inverse(K_BN_r_sn, node->X_rr_piv,  &node->U);
 
-  node->schur_update = ie_Mat(sn.size(), sn.size());
-  ie_Mat::gemm(NORMAL, NORMAL, 1.0, node->L, K_BN_r_sn, 0.,
-               &(node->schur_update));
-
+  node->schur_update = node->L * K_BN_r_sn;
   node->compressed = true;
 }
 
@@ -365,14 +337,11 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   }
 
 
-  ie_Mat B_Dinv_C_nonzero(modified_Psi.height(), modified_U.width());
+  ie_Mat B_Dinv_C_nonzero = modified_Psi(0, modified_Psi.height(),
+                                         allredundant) * Dinv_C_nonzero;
 
-  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_Psi(0, modified_Psi.height(),
-               allredundant), Dinv_C_nonzero, 0.,
-               &B_Dinv_C_nonzero);
   ie_Mat ident(tree->Psi.height(), tree->Psi.height());
   ident.eye(tree->Psi.height());
-  // ident.set(0, 0, 0);
   ie_Mat S(allskel.size() + tree->Psi.height(),
            allskel.size() + tree->Psi.height());
 
@@ -483,14 +452,12 @@ void SkelFactorization::apply_sweep_matrix(const ie_Mat& mat, ie_Mat* vec,
   } else {
     assert(mat.width() == a.size());
   }
-  ie_Mat product(b.size(),  vec->width());
+  ie_Mat product;
 
   if (transpose) {
-    ie_Mat::gemm(TRANSPOSE, NORMAL, 1., mat, (*vec)(a, 0, vec->width()), 0.,
-                 &product);
+    product = mat.transpose() * (*vec)(a, 0, vec->width());
   } else {
-    ie_Mat::gemm(NORMAL,  NORMAL, 1., mat, (*vec)(a, 0, vec->width()), 0.,
-                 &product);
+    product = mat * (*vec)(a, 0, vec->width());
   }
   vec->set_submatrix(b, 0, vec->width(), product + (*vec)(b, 0, vec->width()));
 }
@@ -501,9 +468,7 @@ void SkelFactorization::apply_diag_matrix(const ie_Mat& mat, ie_Mat* vec,
     const std::vector<unsigned int>& range)
 const {
   if (range.size() == 0) return;
-  ie_Mat product(range.size(), vec->width());
-  ie_Mat::gemm(NORMAL, NORMAL, 1., mat, (*vec)(range, 0, vec->width()), 0.,
-               &product);
+  ie_Mat product = mat * (*vec)(range, 0, vec->width());
   vec->set_submatrix(range,  0, vec->width(), product);
 }
 
@@ -514,16 +479,6 @@ void SkelFactorization::apply_diag_inv_matrix(const ie_Mat& mat,
   if (range.size() == 0) return;
   ie_Mat product(range.size(),  vec->width());
   mat.left_multiply_inverse((*vec)(range,  0, vec->width()), piv, &product);
-  vec->set_submatrix(range,  0, vec->width(), product);
-}
-
-
-void SkelFactorization::apply_diag_pinv_matrix(const ie_Mat& mat, ie_Mat* vec,
-    const std::vector<unsigned int>& range)
-const {
-  if (range.size() == 0) return;
-  ie_Mat product(range.size(),  vec->width());
-  mat.left_multiply_pseudoinverse((*vec)(range,  0, vec->width()), &product);
   vec->set_submatrix(range,  0, vec->width(), product);
 }
 
@@ -816,10 +771,8 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
 
   // B has modified_Psi as a subblock, but is otherwise a ton of 0s, so
   // we don't actually form B.
-  ie_Mat B_Dinv_w_nonzero(modified_Psi.height(), 1);
-
-  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_Psi(0, modified_Psi.height(),
-               allredundant), Dinv_w, 0., &B_Dinv_w_nonzero);
+  ie_Mat B_Dinv_w_nonzero = modified_Psi(0, modified_Psi.height(),
+                                         allredundant) * Dinv_w;
 
   // B_Dinv_w.set_submatrix(allskel.size(), allskel.size() + Psi.height(), 0, 1,
   //                       B_Dinv_w_nonzero);
@@ -835,13 +788,10 @@ void SkelFactorization::multiply_connected_solve(const QuadTree& quadtree,
 
   *alpha =  y(allskel.size(), y.height(), 0, 1);
 
-  ie_Mat Cy(allredundant.size(), 1);
-  ie_Mat::gemm(NORMAL, NORMAL, 1., modified_U(allredundant, 0,
-               modified_U.width()), *alpha , 0., &Cy);
-
+  ie_Mat Cy = modified_U(allredundant, 0, modified_U.width()) * (*alpha);
   ie_Mat N = w - Cy;
-
   ie_Mat Dinv_N = N;
+
   #pragma omp parallel for num_threads(num_threads)
   for (int n = 0; n < all_nodes.size(); n++) {
     QuadTreeNode* current_node = all_nodes[n];

@@ -103,7 +103,6 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
     const std::vector<double>& domain_points,
     const Kernel& kernel) {
   // columns for phi (aka dofs), rows for spatial domain
-
   assert(points.size() == normals.size() &&
          "Points and normals must have same size in Stokes domain init.");
   assert(points.size() == 2 * weights.size() &&
@@ -113,30 +112,24 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
     Vec2 x(domain_points[2 * i], domain_points[2 * i + 1]);
 
     bool in_domain = kernel.boundary->is_in_domain(x);
-    for (unsigned int j = 0; j < points.size(); j += 2) {
-      if (!in_domain) {
-        K->set(2 * i  , j  , 0);
-        K->set(2 * i + 1, j  , 0);
-        K->set(2 * i  , j + 1, 0);
-        K->set(2 * i + 1, j + 1, 0);
-        continue;
+    if(in_domain){
+      for (unsigned int j = 0; j < points.size(); j += 2) {
+        Vec2 y(points[j], points[j + 1]);
+
+        Dof a, b;
+        a.is_boundary = false;
+        a.point = x;
+        b.is_boundary = true;
+        b.point = y;
+        b.normal = Vec2(normals[j], normals[j + 1]);
+        b.weight = weights[j / 2];
+        ie_Mat tensor = kernel.stokes_kernel(a, b);
+
+        K->set(2 * i  , j  , tensor.get(0, 0));
+        K->set(2 * i + 1, j  , tensor.get(1, 0));
+        K->set(2 * i  , j + 1, tensor.get(0, 1));
+        K->set(2 * i + 1, j + 1, tensor.get(1, 1));
       }
-
-      Vec2 y(points[j], points[j + 1]);
-
-      Dof a, b;
-      a.is_boundary = false;
-      a.point = x;
-      b.is_boundary = true;
-      b.point = y;
-      b.normal = Vec2(normals[j], normals[j + 1]);
-      b.weight = weights[j / 2];
-      ie_Mat tensor = kernel.stokes_kernel(a, b);
-
-      K->set(2 * i  , j  , tensor.get(0, 0));
-      K->set(2 * i + 1, j  , tensor.get(1, 0));
-      K->set(2 * i  , j + 1, tensor.get(0, 1));
-      K->set(2 * i + 1, j + 1, tensor.get(1, 1));
     }
   }
 }

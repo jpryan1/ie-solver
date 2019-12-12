@@ -33,7 +33,7 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
 
   SkelFactorization skel_factorization(config.id_tol,
                                        config.is_strong_admissibility,
-                                        config.num_threads);
+                                       config.num_threads);
 
   Kernel kernel(config.solution_dimension, config.domain_dimension,
                 config.pde, boundary, std::vector<double>());
@@ -73,8 +73,7 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
     dense.set_submatrix(all_dofs.size(), dense.height(),
                         all_dofs.size(), dense.width(), -ident);
 
-    ie_Mat fzero_prime(mu.height() + alpha.height(), 1);
-    ie_Mat::gemm(NORMAL, NORMAL, 1., dense, stacked, 0., &fzero_prime);
+    ie_Mat fzero_prime = dense * stacked;
 
     ie_Mat err1 = (fzero_prime(0, mu.height(), 0, 1)
                    - boundary->boundary_values);
@@ -92,8 +91,7 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
     }
 
     dense = kernel(all_dofs, all_dofs);
-    ie_Mat f_prime(mu.height(), 1);
-    ie_Mat::gemm(NORMAL, NORMAL, 1., dense, mu, 0., &f_prime);
+    ie_Mat f_prime = dense * mu;
     ie_Mat err = (f_prime - boundary->boundary_values);
     EXPECT_LE(err.max_entry_magnitude(), 50 * config.id_tol);
   }

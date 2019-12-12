@@ -145,14 +145,11 @@ void schur_solve(const SkelFactorization & skel_factorization,
   ie_Mat mu;
   if (U.width() == 0) {
     linear_solve(skel_factorization, quadtree, f, &mu);
-    ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
+    *solution = K_domain*mu;
   } else {
     ie_Mat alpha;
     linear_solve(skel_factorization, quadtree, f, &mu, &alpha);
-    ie_Mat::gemv(NORMAL, 1., K_domain, mu, 0., solution);
-    ie_Mat U_forward_alpha(solution->height(), 1);
-    ie_Mat::gemv(NORMAL, 1., U_forward, alpha, 0., &U_forward_alpha);
-    (*solution) += U_forward_alpha;
+    *solution = (K_domain*mu) + (U_forward*alpha);
   }
 }
 
@@ -206,9 +203,12 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   // std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
   //                                &K_domain, domain_points,
   //                                kernel, config.solution_dimension);
+  double init_start = omp_get_wtime();
   Initialization::InitializeDomainKernel(
     &K_domain, domain_points,
     kernel, config.solution_dimension);
+  double init_end = omp_get_wtime();
+  std::cout << "timing: init " << init_end - init_start << std::endl;
   // std::vector<unsigned int> all_inds;
   // for (unsigned int i = 0;
   //      i < boundary->points.size() / (3 - config.solution_dimension); i++) {

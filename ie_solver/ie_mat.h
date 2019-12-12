@@ -68,6 +68,7 @@ struct ie_Mat {
   ie_Mat operator-() const;
   ie_Mat operator-(const ie_Mat& o) const;
   ie_Mat operator+(const ie_Mat& o) const;
+  ie_Mat operator*(const ie_Mat& o) const;
   ie_Mat operator*(double o) const;
   ie_Mat operator/(double o) const;
 
@@ -102,18 +103,11 @@ struct ie_Mat {
   void right_multiply_inverse(const ie_Mat& K,
                               const std::vector<lapack_int>& piv,
                               ie_Mat* L) const;
-  void left_multiply_pseudoinverse(const ie_Mat& K, ie_Mat* U) const;
 
   int id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const;
   std::vector<double> real_eigenvalues();
 
   void print() const;
-
-  static void gemv(CBLAS_TRANSPOSE trans0, double alpha, const ie_Mat& A,
-                   const ie_Mat& x, double beta, ie_Mat* b);
-  static void gemm(CBLAS_TRANSPOSE trans0, CBLAS_TRANSPOSE trans1,
-                   double alpha, const ie_Mat& A, const ie_Mat& B, double beta,
-                   ie_Mat* C);
 };
 
 }  // namespace ie_solver

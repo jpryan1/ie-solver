@@ -89,7 +89,7 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   holes.clear();
   
   if(perturbation_parameters.size() == 0){
-    perturbation_parameters.push_back(0);
+    perturbation_parameters.push_back(M_PI/2);
   }
   
   int STAR_NODES_PER_SPLINE = (N / 12) / STAR_NUM_SPLINE_POINTS;

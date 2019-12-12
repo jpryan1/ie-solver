@@ -91,8 +91,6 @@ class SkelFactorization {
   void apply_diag_inv_matrix(const ie_Mat& mat,
                              const std::vector<lapack_int>& piv, ie_Mat* vec,
                              const std::vector<unsigned int>& range) const;
-  void apply_diag_pinv_matrix(const ie_Mat& mat, ie_Mat* vec,
-                              const std::vector<unsigned int>& range) const;
   void sparse_matvec(const QuadTree& quadtree, const ie_Mat& x,
                      ie_Mat* b) const;
 
