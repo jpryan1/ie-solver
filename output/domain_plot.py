@@ -1,5 +1,3 @@
-#  Reads from output/data - solution, tree, and boundary
-#  saves as domain_plot.png
 import numpy as np
 import sys
 from copy import copy
@@ -8,206 +6,75 @@ import matplotlib
 import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
+print("args: {ZOOM} ")
 fig = plt.figure(figsize=(14,14))
 
-WINDOW_SIZE = 140*5
-IMAGE_SIZE = 100*5
-CMAP = copy(matplotlib.cm.hot)
-# CMAP.set_bad('lightgray', 1.)
+CMAP = copy(matplotlib.cm.viridis)
 CMAP.set_bad('white', 1.)
 MASKED_VALUE = 11111.1
-
-print("args: {ZOOM} {X_SHIFT}")
 ZOOM = 1
 if(len(sys.argv) > 1):
   ZOOM = int(sys.argv[1])
-SHIFT = 0
-if(len(sys.argv) > 2):
-  SHIFT = int(sys.argv[2])*ZOOM
 
-quiver_normalizer = matplotlib.colors.Normalize(vmin=0,vmax=1.)
-quiver_scale = 30./ZOOM
+quiver_scale = 40./ZOOM
 
-CENTER = WINDOW_SIZE/2.0
-
-###########################################################
-#
-#							READING THE FILES
-#
-###########################################################
-#solution_lines = open("output/data/ie_solver_solution.txt","r").readlines()
-#boundary_lines = open("output/data/ie_solver_boundary.txt","r").readlines()
 solution_lines = open("output/data/ie_solver_solution.txt", "r").readlines()
 boundary_lines = open("output/data/ie_solver_boundary.txt", "r").readlines()
-boundary_points = []
-for line in boundary_lines:
-	linesplit = line.split(',')
-	boundary_points.append([float(linesplit[0]), float(linesplit[1])])
-solution_points = []
-is_stokes = False
-if len(solution_lines[0].split(",")) == 4:
-	is_stokes = True
-for line in solution_lines:
-	linesplit = line.split(',')
-	if(is_stokes):
-		solution_points.append([float(linesplit[0]), float(linesplit[1]),
-			float(linesplit[2]), float(linesplit[3])])
-	else:
-		solution_points.append([float(linesplit[0]), float(linesplit[1]),
-			float(linesplit[2])])
 
-
-###########################################################
-#
-#							SCALING THE PLOT
-#
-###########################################################
-# Calculate the min and max point on boundary so we can scale properly
-min_x = boundary_points[0][0]
-max_x = boundary_points[0][0]
-min_y = boundary_points[0][1]
-max_y = boundary_points[0][1]
-for pair in boundary_points:
-	if pair[0] < min_x:
-		min_x = pair[0]
-	if pair[0] > max_x:
-		max_x = pair[0]
-	if pair[1] < min_y:
-		min_y = pair[1]
-	if pair[1] > max_y:
-		max_y = pair[1]
-
-dif_x = max_x-min_x
-dif_y = max_y-min_y
-
-# Translation needed so that the image is centered
-gamma=0
-delta=0
-if(dif_x>dif_y):
-	delta = int((IMAGE_SIZE/2.0)*(1-(dif_y)/float(dif_x)))
-else:
-	gamma = int((IMAGE_SIZE/2.0)*(1-(dif_x)/float(dif_y)))
+is_stokes = (len(solution_lines[0].split(",")) == 4)
 	
-scale_factor = IMAGE_SIZE/max(dif_x,dif_y)
-#	The points will undergoes a dilation and translation so that the
-#	bounding box is [20,120]x[20,120].
-def scaled_point(point):
-	x = int(np.round( (point[0] - min_x)*(scale_factor)))
-	y = int(np.round( (point[1] - min_y)*(scale_factor)))
-	x += gamma + int((WINDOW_SIZE-IMAGE_SIZE)/2.0)
-	y += delta + int((WINDOW_SIZE-IMAGE_SIZE)/2.0)
-	return [x, y]
+solution_dim = int(np.sqrt(len(solution_lines)))
+solution_grid = np.array([[MASKED_VALUE for x in range(solution_dim)] for y in range(solution_dim)])
 
-#
-############################################################
-#
-#						DRAWING THE PLOT
-#
-############################################################
-#
-def draw_boundary(img, points, val):
-	for point in points:
-		pixel = scaled_point(point)
-		for r in range(-1, 2):
-			for c in range(-1,2):
-			  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT
-			  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
-			  x_coord = max(0,min(WINDOW_SIZE-1, x_zoom+r))
-			  y_coord = max(0,min(WINDOW_SIZE-1, y_zoom+c))
-			  img[int(x_coord)][int(y_coord)] = val
+X, Y, U, V = [], [], [], []
+quiver_res = 5
+min_sol_x, min_sol_y, max_sol_x, max_sol_y = 10,10,-10,-10
+for i in range(solution_dim):
+	for j in range(solution_dim):
+		linesplit = [float(n) for n in solution_lines[i+solution_dim*j].split(',')]
+		min_sol_x = min(min_sol_x, (linesplit[0]))
+		max_sol_x = max(max_sol_x, (linesplit[0]))
+		min_sol_y = min(min_sol_y, (linesplit[1]))
+		max_sol_y = max(max_sol_y, (linesplit[1]))
 
+		mag = np.sqrt((linesplit[2])**2 + (linesplit[3])**2) if is_stokes \
+			else linesplit[2] 
+		solution_grid[i][j] = mag if mag!=0 else MASKED_VALUE 
+		if(is_stokes):
+			if(i % quiver_res != 0 or j % quiver_res != 0 \
+				or np.sqrt((linesplit[2])**2 + (linesplit[3])**2)<0.1):
+				continue
+			X.append((linesplit[0]))
+			Y.append((linesplit[1]))
+			U.append((linesplit[2]))
+			V.append((linesplit[3]))
 
-def draw_solution(img, points):
-	for point in points:
-		pixel = scaled_point(point[:2])
-		if(np.isnan(point[2]) or point[2] == 0):
-			img[pixel[0]][pixel[1]] = MASKED_VALUE
-		else:
-			for i in range(-2,3):
-				for j in range(-2,3):
-				  
-				  x_zoom = (pixel[0] - CENTER)*ZOOM + CENTER + SHIFT
-				  y_zoom = (pixel[1] - CENTER)*ZOOM + CENTER
-				  if (x_zoom+i < 0 or x_zoom+i > WINDOW_SIZE-1 or 
-				  		y_zoom+j < 0 or y_zoom+j > WINDOW_SIZE-1):
-				    continue
-				  x_coord = max(0,min(WINDOW_SIZE-1, x_zoom+i))
-				  y_coord = max(0,min(WINDOW_SIZE-1, y_zoom+j))
-				  img[int(x_coord)][int(y_coord)] = point[2]
-				  
-
-
-def get_quiver_data(points):
-	# returns an array containing the four vecs necessary for a quiver plot
-	# This can be replaced with vecs with colon index probably TODO
-	X = []
-	Y = []
-	U = []
-	V = []
-	colors = []
-	for point in points:
-		pixel = scaled_point(point[:2])
-		x_zoom = (pixel[0]  - CENTER)*ZOOM + CENTER+SHIFT
-		y_zoom = (pixel[1]  - CENTER)*ZOOM + CENTER
-		if (x_zoom < 0 or x_zoom > WINDOW_SIZE-1 or 
-				y_zoom < 0 or y_zoom > WINDOW_SIZE-1):
-		  continue
-		x_coord = max(0,min(WINDOW_SIZE-1, x_zoom))
-		y_coord = max(0,min(WINDOW_SIZE-1, y_zoom))
-		
-		X.append(x_coord)
-		Y.append(y_coord)
-		U.append(point[2])
-		V.append(point[3])
-		colors.append(point[2]**2 + point[3]**2)
-	return [X, Y, U, V, colors]
-
-###########################################################
-#
-#
-#					MAIN CODE
-#
-#
-###########################################################
-
-# SOLUTION PLOT
-solution_img = np.array([[MASKED_VALUE for x in range(WINDOW_SIZE)] 
-																			 for y in range(WINDOW_SIZE)])
-stokes_data = []
+solution_grid = np.ma.masked_where(solution_grid == MASKED_VALUE, solution_grid)
+imsh = plt.imshow(solution_grid,
+	extent=[min_sol_x, max_sol_x, min_sol_y, max_sol_y], origin="lower", interpolation="bilinear")
 if(is_stokes):
-	draw_boundary(solution_img, boundary_points, val=1.0)
-	stokes_data = get_quiver_data(solution_points)
-else:
-	draw_solution(solution_img, solution_points)
-	draw_boundary(solution_img, boundary_points, val=-1.0)
-solution_img = np.ma.masked_where(solution_img == MASKED_VALUE, solution_img)
-# plt.title("Solution")
-plt.imshow(solution_img.T, cmap=CMAP, origin = "lower")
-if(is_stokes):
-	plt.quiver(stokes_data[0], stokes_data[1], stokes_data[2], stokes_data[3],
-		stokes_data[4], cmap = "Purples", #cmap='autumn',
-		norm=quiver_normalizer, scale=quiver_scale, headwidth=5)
-############################################################
-#
-#						INTERACTIVITY
-#
-############################################################
-# def onclick(event):
-# 	print("******************************\nCLICKED!")
-# 	x = event.xdata
-# 	y = event.ydata
-# 	for datum in quadtree_data:
-# 		qx, qy = scaled_point(datum[:2])
-# 		if x-qx < scale_factor*datum[2] and x-qx>0 and y-qy>0 and y-qy < scale_factor*datum[2]:
-# 			print(str(qx)+ ","+str(qy)+" SIZE: "+str(datum[2])+" ID: " + str(datum[3]) + " DOFS: "+str(datum[4]))
-#   # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-#   #       ('double' if event.dblclick else 'single', event.button,
-#   #        event.x, event.y, event.xdata, event.ydata))
+	plt.quiver(X,Y,U,V, color="white",scale=quiver_scale, headwidth=3)
 
-# cid = fig.canvas.mpl_connect('button_press_event', onclick)
+# Boundary plot
+bdry_res=5
+for i in range(0,len(boundary_lines)-bdry_res,bdry_res):
+	pixel = boundary_lines[i].split(",")
+	pixel = [float(pixel[0]), float(pixel[1])]
+	next_pixel = boundary_lines[i+bdry_res].split(",")
+	next_pixel = [float(next_pixel[0]), float(next_pixel[1])]
+	if((pixel[0]-next_pixel[0])**2+(pixel[1]-next_pixel[1])**2>0.1**2):
+		continue
+	plt.plot([pixel[0], next_pixel[0]], [pixel[1],next_pixel[1]], \
+		linewidth=8, color="black")
+
 plt.axis("off")
-pt = scaled_point([0.5,0.5])
-# circle = plt.Circle((pt[0], pt[1]), 150, color='g', fill=False, linewidth=2,linestyle="--")
+# circle = plt.Circle(((xr-xl)/2.,(yr-yl)/2.), 0.5, color='g', fill=True, linewidth=2,linestyle="--")
 # plt.gcf().gca().add_artist(circle)
-plt.savefig("ex3.eps", format="eps")
+# plt.savefig("ex3.png") #, format="eps")
+plt.colorbar(imsh)
+xl, xr = plt.xlim()
+yl, yr = plt.ylim()
+plt.xlim((xl - (xr+xl)/2.)/ZOOM + (xr+xl)/2., (xr - (xr+xl)/2.)/ZOOM + (xr+xl)/2.)  
+plt.ylim((yl - (yr+yl)/2.)/ZOOM + (yr+yl)/2., (yr - (yr+yl)/2.)/ZOOM + (yr+yl)/2.)  
+plt.savefig("comparewidth.png")
 plt.show()
