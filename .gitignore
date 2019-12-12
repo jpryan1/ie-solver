@@ -4,3 +4,5 @@ ie_solver/*/._*
 *.png
 *.mp4
 *.txt
+*.eps
+*.sh
