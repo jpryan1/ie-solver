@@ -1,5 +1,4 @@
 // Copyright 2019 John Paul Ryan
-#include <omp.h>
 #include <cmath>
 #include <iostream>
 #include <cassert>

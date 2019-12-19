@@ -1,5 +1,4 @@
 // Copyright 2019 John Paul Ryan
-#include <omp.h>
 #include <cmath>
 #include <iostream>
 #include <cassert>
@@ -7,9 +6,6 @@
 #include "ie_solver/boundaries/ex2boundary.h"
 #include "ie_solver/log.h"
 
-#define OUTER_NUM_SPLINE_POINTS 28
-// #define FIN_SPLINE_POINTS 4
-// #define FIN_RAD 0.075
 namespace ie_solver {
 
 
@@ -75,15 +71,14 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
     for (int i = 0; i <= 7; i++) perturbation_parameters.push_back(0.5);
   }
 
+  int OUTER_NUM_SPLINE_POINTS = 28;
+
   int OUTER_NODES_PER_SPLINE = (3 * N / 4) / OUTER_NUM_SPLINE_POINTS;
   int NUM_CIRCLE_POINTS = (N / 4) / 8;
-  // int FIN_NODES_PER_SPLINE = ((N / 4) / 4) / FIN_SPLINE_POINTS;
+
+  num_outer_nodes = OUTER_NODES_PER_SPLINE * OUTER_NUM_SPLINE_POINTS;
 
   Hole circle;
-  // fin.center = Vec2(0.5, 0.5);
-  // fin.radius = FIN_RAD;
-  // fin.num_nodes = FIN_NODES_PER_SPLINE * FIN_SPLINE_POINTS;
-  // holes.push_back(fin);
 
   circle.radius = 0.05;
   circle.num_nodes =  NUM_CIRCLE_POINTS;
@@ -103,17 +98,7 @@ void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
 
   interpolate(false, OUTER_NODES_PER_SPLINE,
               outer_x0_cubics, outer_x1_cubics);
-  num_outer_nodes = OUTER_NODES_PER_SPLINE * OUTER_NUM_SPLINE_POINTS;
 
-  // std::vector<double> fin_x0_spline_points, fin_x1_spline_points;
-  // get_fin_spline_points(&fin_x0_spline_points, &fin_x1_spline_points);
-
-  // std::vector<std::vector<double>> fin_x0_cubics, fin_x1_cubics;
-  // get_cubics(fin_x0_spline_points, fin_x1_spline_points,
-  //            &fin_x0_cubics, &fin_x1_cubics);
-
-  // interpolate(true, FIN_NODES_PER_SPLINE,
-  //             fin_x0_cubics, fin_x1_cubics);
   for (int i = 0; i < holes.size(); i++) {
     Hole circle = holes[i];
     for (int i = 0; i < NUM_CIRCLE_POINTS; i++) {

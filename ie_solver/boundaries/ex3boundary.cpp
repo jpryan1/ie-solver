@@ -7,15 +7,13 @@
 #include "ie_solver/boundaries/ex3boundary.h"
 #include "ie_solver/log.h"
 
-#define OUTER_NUM_SPLINE_POINTS 20
-#define STAR_NUM_SPLINE_POINTS 8
 namespace ie_solver {
 
 
 void Ex3Boundary::get_spline_points(std::vector<double>* x0_spline_points,
                                     std::vector<double>* x1_spline_points) {
-  for (int i = 0; i < OUTER_NUM_SPLINE_POINTS; i++) {
-    double ang = 2 * M_PI * (i / (OUTER_NUM_SPLINE_POINTS + 0.));
+  for (int i = 0; i < 20; i++) {
+    double ang = 2 * M_PI * (i / (20.));
 
     double x =  0.375 * cos(ang) * (sin(5 * ang) + 4);
     double y =  0.375 * sin(ang) * (sin(5 * ang) + 4);
@@ -65,8 +63,14 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   curvatures.clear();
   holes.clear();
 
-  int OUTER_NODES_PER_SPLINE = (N / 28);
-  int STAR_NODES_PER_SPLINE = (N / 56);
+  int OUTER_NUM_SPLINE_POINTS = 20;
+  int STAR_NUM_SPLINE_POINTS = 8;
+
+  int OUTER_NODES_PER_SPLINE = (2 * N / 3) / OUTER_NUM_SPLINE_POINTS;
+  int STAR_NODES_PER_SPLINE = (N / 6) / STAR_NUM_SPLINE_POINTS;
+
+  num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
+
 
   if (perturbation_parameters.size() == 0) {
     perturbation_parameters.push_back(0);
@@ -89,7 +93,6 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   star2.num_nodes =  STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
   holes.push_back(star2);
 
-  num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
 
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
   std::vector<std::vector<double>> outer_x0_cubics, outer_x1_cubics;

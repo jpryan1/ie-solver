@@ -7,9 +7,6 @@
 #include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/log.h"
 
-#define OUTER_NUM_SPLINE_POINTS 24
-#define STAR_NUM_SPLINE_POINTS 8
-
 namespace ie_solver {
 
 
@@ -87,16 +84,23 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   weights.clear();
   curvatures.clear();
   holes.clear();
-  
-  if(perturbation_parameters.size() == 0){
-    perturbation_parameters.push_back(M_PI/2);
+
+  if (perturbation_parameters.size() == 0) {
+    perturbation_parameters.push_back(M_PI / 2);
   }
-  
-  int STAR_NODES_PER_SPLINE = (N / 12) / STAR_NUM_SPLINE_POINTS;
-  int NUM_CIRCLE_POINTS = (N / 12);
+
+  int OUTER_NUM_SPLINE_POINTS = 24;
+  int STAR_NUM_SPLINE_POINTS = 8;
+
   int OUTER_NODES_PER_SPLINE = (2 * N / 3) / OUTER_NUM_SPLINE_POINTS;
+  int STAR_NODES_PER_SPLINE = (N / 12) / STAR_NUM_SPLINE_POINTS;
+
+  int NUM_CIRCLE_POINTS = (N / 12);
+
+  num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
+
   Hole star1, star2, circle1, circle2;
-  
+
   star1.center = Vec2(0.5 + 0.3 * cos(M_PI + perturbation_parameters[0]),
                       0.5 + 0.3 * sin(M_PI + perturbation_parameters[0]));
   star1.radius = 0.05;
@@ -115,7 +119,7 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   circle2.radius = 0.05;
   circle2.num_nodes =  NUM_CIRCLE_POINTS;
   holes.push_back(circle2);
-  
+
   std::vector<double> outer_x0_spline_points, outer_x1_spline_points;
   get_spline_points(&outer_x0_spline_points, &outer_x1_spline_points);
 
@@ -124,7 +128,6 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
              &outer_x0_cubics, &outer_x1_cubics);
 
   interpolate(false, OUTER_NODES_PER_SPLINE, outer_x0_cubics, outer_x1_cubics);
-  num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
   std::vector<double> star_x0_points, star_x1_points;
   get_star_spline_points(star1.center.a[0], star1.center.a[1], &star_x0_points,
                          &star_x1_points);

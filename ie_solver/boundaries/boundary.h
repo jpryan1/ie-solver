@@ -46,7 +46,8 @@ class Boundary {
     CUBIC_SPLINE,
     EX1,
     EX2,
-    EX3
+    EX3,
+    EX4
   };
 
   BoundaryShape boundary_shape;

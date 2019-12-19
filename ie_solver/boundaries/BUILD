@@ -13,6 +13,7 @@ cc_library(
 			"ex1boundary.h",
 			"ex2boundary.h",
 			"ex3boundary.h",
+			"ex4boundary.h",
 			"boundary.h"],
 	srcs = [
 			"circle.cpp",
@@ -27,6 +28,7 @@ cc_library(
 			"ex1boundary.cpp",
 			"ex2boundary.cpp",
 			"ex3boundary.cpp",
+			"ex4boundary.cpp",
 			],
 	deps = ["//ie_solver:ie_mat",
 			"//ie_solver:vec2"]
