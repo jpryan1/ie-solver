@@ -18,6 +18,7 @@
 #include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/boundaries/ex2boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
+#include "ie_solver/boundaries/ex4boundary.h"
 
 namespace ie_solver {
 
@@ -836,7 +837,6 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
       QuadTreeNode* neighbor = new_to_old[new_node]->neighbors[nbr];
       new_node->neighbors.push_back(old_to_new[neighbor]);
     }
-
   }
 
   new_tree->root = old_to_new[root];
@@ -850,7 +850,6 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
   new_tree->max = max;
 
   new_tree->domain_points = domain_points;
-
 
   new_tree->allskel_mat = allskel_mat;
   new_tree->allskel_mat_lu = allskel_mat_lu;
@@ -899,6 +898,9 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
     case Boundary::BoundaryShape::EX3:
       new_tree->boundary = new Ex3Boundary();
       break;
+    case Boundary::BoundaryShape::EX4:
+      new_tree->boundary = new Ex4Boundary();
+      break;
   }
 
   new_tree->boundary->points = boundary->points;
@@ -920,6 +922,7 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
     }
     new_tree->levels.push_back(new_level);
   }
+
 }
 
 

@@ -40,12 +40,10 @@ void get_sample_vals(const ie_solver_config& config, double* samples,
                      double* findiff) {
   // TODO(John) try copying quadtree and running this in parallel
   QuadTree trees[4];
-  std::cout << "FFFF" << std::endl;
 
   for (int i = 0; i < 4; i++) {
     quadtree.copy_into(&(trees[i]));
   }
-  std::cout << "FFFF" << std::endl;
 
   for (int i = 0; i < 4; i++) {
     boundary->perturbation_parameters[perturbed_param] = samples[i];
@@ -76,7 +74,7 @@ void run_experiment2() {
   boundary->initialize(config.num_boundary_points,
                        config.boundary_condition);
 
-  double current_ang1 = 1;
+  double current_ang1 = 0;
 
   boundary->perturbation_parameters[0] = current_ang1;
 
@@ -118,8 +116,10 @@ void run_experiment2() {
     double samples1[4] = {current_ang1 - 2 * h, current_ang1 - h,
                           current_ang1 + h, current_ang1 + 2 * h
                          };
+
     get_sample_vals(config, samples1, boundary.get(), 0,
                     quadtree, domain_points, findiff1);
+
     boundary->perturbation_parameters[0] = current_ang1;
 
     double grad1 = (findiff1[0] - 8 * findiff1[1] + 8 * findiff1[2]
@@ -131,14 +131,17 @@ void run_experiment2() {
 
       // Calculate new obj val, check wolfe cond satisfaction,
       // else update param, repeat.
-      boundary->perturbation_parameters[0] = trial_ang1;
-      boundary->initialize(config.num_boundary_points,
-                           config.boundary_condition);
-      quadtree.perturb(*boundary);
-      ie_Mat solution = boundary_integral_solve(config, &quadtree,
-                        domain_points);
-      double cur_obj_val = solution.get(0, 0);
 
+      boundary->perturbation_parameters[0] = current_ang1+0.1; //trial_ang1;
+      boundary->initialize(config.num_boundary_points,
+                           config.boundary_condition);    
+      quadtree.perturb(*boundary);    std::cout<<"EX4"<<std::endl;
+
+      ie_Mat solution = boundary_integral_solve(config, &quadtree,
+                        domain_points);    std::cout<<"EX5"<<std::endl;
+
+      double cur_obj_val = solution.get(0, 0);
+      std::cout << "\n\nCompare " << prev_obj_val << " to " << cur_obj_val << std::endl;
       if (prev_obj_val < cur_obj_val) {
         prev_obj_val = cur_obj_val;
         current_ang1 = trial_ang1;
