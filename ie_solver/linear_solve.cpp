@@ -203,12 +203,9 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   // std::thread init_domain_kernel(&Initialization::InitializeDomainKernel,
   //                                &K_domain, domain_points,
   //                                kernel, config.solution_dimension);
-  double init_start = omp_get_wtime();
   Initialization::InitializeDomainKernel(
     &K_domain, domain_points,
     kernel, config.solution_dimension);
-  double init_end = omp_get_wtime();
-  std::cout << "timing: init " << init_end - init_start << std::endl;
   // std::vector<int> all_inds;
   // for (int i = 0;
   //      i < boundary->points.size() / (3 - config.solution_dimension); i++) {

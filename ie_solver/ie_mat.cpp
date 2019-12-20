@@ -320,7 +320,6 @@ ie_Mat ie_Mat::operator*(const ie_Mat& o) const {
               width_, 1., mat, height_, o.mat, o.height_, 0.,
               result.mat, height_);
   return result;
-
 }
 
 

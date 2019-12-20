@@ -22,7 +22,7 @@ ie_solver_config get_experiment_three_config() {
   config.id_tol = 1e-6;
   config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
   config.num_boundary_points = pow(2, 14);
-  config.domain_size = 200;
+  config.domain_size = 10;  // 200;
   config.solution_dimension = 1;
   config.num_threads = 4;
   config.boundary_condition = BoundaryCondition::DEFAULT;
@@ -39,7 +39,6 @@ void get_sample_vals(const ie_solver_config& config, double* samples,
                      double* findiff) {
   // TODO(John) try copying quadtree and running this in parallel
   QuadTree trees[4];
-  double start = omp_get_wtime();
   for (int i = 0; i < 4; i++) {
     quadtree.copy_into(&(trees[i]));
   }
@@ -50,8 +49,6 @@ void get_sample_vals(const ie_solver_config& config, double* samples,
                          config.boundary_condition);
     trees[i].perturb(*boundary);
   }
-  double end = omp_get_wtime();
-  std::cout<<"copy took "<<(end-start)<<std::endl;
 
   // #pragma omp parallel for num_threads(2)
   for (int i = 0; i < 4; i++) {
@@ -112,8 +109,8 @@ void run_experiment3() {
   boundary->initialize(config.num_boundary_points,
                        config.boundary_condition);
 
-  double current_ang1 = 2;
-  double current_ang2 = 0;
+  double current_ang1 = 2.879;
+  double current_ang2 = -0.010;
 
   boundary->perturbation_parameters[0] = current_ang1;
   boundary->perturbation_parameters[1] = current_ang2;
@@ -125,18 +122,6 @@ void run_experiment3() {
 
   std::vector<double> domain_points;
 
-  std::unique_ptr<Boundary> perturbed_boundary =
-    std::unique_ptr<Boundary>(new Ex3Boundary());
-
-  perturbed_boundary->initialize(config.num_boundary_points,
-                                 config.boundary_condition);
-  perturbed_boundary->perturbation_parameters[0] = current_ang1;
-  perturbed_boundary->perturbation_parameters[1] = current_ang2;
-  perturbed_boundary->initialize(config.num_boundary_points,
-                                 config.boundary_condition);
-
-  // get_domain_points(config.domain_size, &domain_points, quadtree.min,
-  //                   quadtree.max, quadtree.min, quadtree.max);
   // TODO(John) the fact that round numbers screw things up is a problem -
   // out of domain should salt these maybe?
   domain_points.push_back(0.4999);
@@ -144,8 +129,6 @@ void run_experiment3() {
 
   domain_points.push_back(0.5001);
   domain_points.push_back(0.5001);
-
-
 
   ie_Mat solution = boundary_integral_solve(config, &quadtree,
                     domain_points);
@@ -155,17 +138,9 @@ void run_experiment3() {
   double start_alpha = 1;
   double alpha_decay = 0.8;
   double h = 1e-4;
-  int FRAME_CAP = 15;
+  int FRAME_CAP = 30;
 
-  double prev_step_start = omp_get_wtime();
   for (int step = 0; step < FRAME_CAP; step++) {
-
-    double next_step_start = omp_get_wtime();
-    if (step > 0) {
-      std::cout << "Step took " << (next_step_start - prev_step_start) << std::endl;
-    }
-    prev_step_start = next_step_start;
-
     // First, find gradient.
     double findiff1[4];
     double samples1[4] = {current_ang1 - 2 * h, current_ang1 - h,
@@ -175,11 +150,11 @@ void run_experiment3() {
     double samples2[4] = {current_ang2 - 2 * h, current_ang2 - h,
                           current_ang2 + h, current_ang2 + 2 * h
                          };
-    get_sample_vals(config, samples1, perturbed_boundary.get(), 0,
+    get_sample_vals(config, samples1, boundary.get(), 0,
                     quadtree, domain_points, findiff1);
-    perturbed_boundary->perturbation_parameters[0] = current_ang1;
+    boundary->perturbation_parameters[0] = current_ang1;
 
-    get_sample_vals(config, samples2, perturbed_boundary.get(), 1,
+    get_sample_vals(config, samples2, boundary.get(), 1,
                     quadtree, domain_points, findiff2);
 
     double grad1 = (findiff1[0] - 8 * findiff1[1] + 8 * findiff1[2]
@@ -196,11 +171,11 @@ void run_experiment3() {
 
       // Calculate new obj val, check wolfe cond satisfaction,
       // else update param, repeat.
-      perturbed_boundary->perturbation_parameters[0] = trial_ang1;
-      perturbed_boundary->perturbation_parameters[1] = trial_ang2;
-      perturbed_boundary->initialize(config.num_boundary_points,
-                           config.boundary_condition);
-      quadtree.perturb(*perturbed_boundary);
+      boundary->perturbation_parameters[0] = trial_ang1;
+      boundary->perturbation_parameters[1] = trial_ang2;
+      boundary->initialize(config.num_boundary_points,
+                                     config.boundary_condition);
+      quadtree.perturb(*boundary);
       ie_Mat solution = boundary_integral_solve(config, &quadtree,
                         domain_points);
       double gradient = (solution.get(1, 0) - solution.get(0, 0))
@@ -212,15 +187,15 @@ void run_experiment3() {
         current_ang2 = trial_ang2;
         std::cout << "Current obj function val "
                   << gradient << std::endl;
-        perturbed_boundary->perturbation_parameters[0] = current_ang1;
-        perturbed_boundary->perturbation_parameters[1] = current_ang2;
+        boundary->perturbation_parameters[0] = current_ang1;
+        boundary->perturbation_parameters[1] = current_ang2;
 
         io::write_solution_to_file("output/bake/sol/" + std::to_string(
                                      step)  + ".txt", solution, domain_points,
                                    config.solution_dimension);
         io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
                                      step) + ".txt",
-                                   perturbed_boundary->points);
+                                   boundary->points);
         io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
                                      step)  + ".txt", quadtree);
         break;
@@ -233,7 +208,6 @@ void run_experiment3() {
       exit(0);
     }
   }
-
   // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
   //                            domain_points,
   //                            config.solution_dimension);

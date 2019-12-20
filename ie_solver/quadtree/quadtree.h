@@ -84,6 +84,11 @@ struct QuadTreeNode {
 
 struct QuadTreeLevel {
   std::vector<QuadTreeNode*> nodes;
+  ~QuadTreeLevel() {
+    for (QuadTreeNode* node : nodes) {
+      delete node;
+    }
+  }
 };
 
 
@@ -92,7 +97,7 @@ class QuadTree {
   int solution_dimension, domain_dimension;
   int no_proxy_level = 0;
   double min, max;
-  Boundary* boundary;
+  Boundary* boundary = nullptr;
   std::vector<double> domain_points;
   QuadTreeNode* root;
 

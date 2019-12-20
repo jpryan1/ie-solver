@@ -8,17 +8,17 @@ import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
 # Ex 1 
-is_channel_plot = False
-ARROW_LENGTH = 0.4 
-BORDER_WIDTH = 8
-HEAD_WIDTH = 3
-QUIVER_RES_X = 10
-QUIVER_RES_Y = 10
-BOUNDARY_RES = 5
-ZOOM = 1
-TICK_LABEL_SIZE = 40
-TICKS = [0.15, 0.65, 1.15]
-OUTPUT_FILE = "ex1.eps"
+# is_channel_plot = False
+# ARROW_LENGTH = 0.4 
+# BORDER_WIDTH = 8
+# HEAD_WIDTH = 3
+# QUIVER_RES_X = 10
+# QUIVER_RES_Y = 10
+# BOUNDARY_RES = 5
+# ZOOM = 1
+# TICK_LABEL_SIZE = 40
+# TICKS = [0.15, 0.65, 1.15]
+# OUTPUT_FILE = "ex1.eps"
 # config.num_boundary_points = pow(2, 14);
 # config.domain_size = 200;
 
@@ -51,6 +51,21 @@ OUTPUT_FILE = "ex1.eps"
 # OUTPUT_FILE = "ex3.eps"
 # config.num_boundary_points = pow(2, 14);
 # config.domain_size = 200;
+# Ex 4
+is_channel_plot = True
+ARROW_LENGTH = 0.4 
+BORDER_WIDTH = 8
+HEAD_WIDTH = 5
+QUIVER_RES_X = 20
+QUIVER_RES_Y = 10
+BOUNDARY_RES = 1
+ZOOM = 1.65
+TICK_LABEL_SIZE = 20
+TICKS = [0.25, 1, 1.75]
+OUTPUT_FILE = "ex4.eps"
+# config.num_boundary_points = pow(2, 12);
+# config.domain_size = 400;
+
 
 print("args: {ZOOM} ")
 fig, ax = plt.subplots(figsize=(14,14))

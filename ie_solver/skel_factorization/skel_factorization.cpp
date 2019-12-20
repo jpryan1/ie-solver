@@ -13,8 +13,8 @@ namespace ie_solver {
 // TODO(John) URGENTLY skelnear needs to be replaced as a variable name
 
 std::vector<int> big_to_small(const std::vector<int>& big,
-                                       const std::unordered_map<int,
-                                       int>& map) {
+                              const std::unordered_map<int,
+                              int>& map) {
   std::vector<int> small;
   for (int idx : big) {
     small.push_back(map.at(idx));
@@ -54,6 +54,7 @@ int SkelFactorization::id_compress(const Kernel& kernel,
   int numskel = pxy.id(&p, &node->T, id_tol);
   double id_end = omp_get_wtime();
   id_time += (id_end - id_start);
+
   if (numskel == 0) {
     node->compression_ratio = 0.;
     return 0;
@@ -122,19 +123,18 @@ void SkelFactorization::decouple(const Kernel& kernel, QuadTreeNode* node) {
 
   node->X_rr_lu.right_multiply_inverse(K_BN_sn_r, node->X_rr_piv, &node->L);
   node->X_rr_lu.left_multiply_inverse(K_BN_r_sn, node->X_rr_piv,  &node->U);
-
   node->schur_update = node->L * K_BN_r_sn;
   node->compressed = true;
 }
 
 
-void report_num_threads(int level) {
-  #pragma omp single
-  {
-    printf("Level %d: number of threads in the team - %d\n",
-    level, omp_get_num_threads());
-  }
-}
+// void report_num_threads(int level) {
+//   #pragma omp single
+//   {
+//     printf("Level %d: number of threads in the team - %d\n",
+//     level, omp_get_num_threads());
+//   }
+// }
 
 
 void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
@@ -167,7 +167,6 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
       node_counter++;
     }
   }
-
   // If the above breaks due to a cap, we need to manually propagate active
   // boxes up the tree.
   tree->remove_inactive_dofs_at_all_boxes();
@@ -177,8 +176,6 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     ie_Mat allskel_updates = ie_Mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_updates, allskel, tree->root, false);
     tree->allskel_mat = kernel(allskel, allskel) - allskel_updates;
-    // std::cout << "num_skel_dofs: " << allskel_mat.height() << std::endl;
-    //
   }
 
   if (tree->U.width() == 0) {
@@ -208,6 +205,10 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     } else {
       allredundant.push_back(i);
     }
+  }
+  if (allredundant.size() == 0) {
+    std::cout << "No compression possible" << std::endl;
+    exit(0);
   }
 
   // In our bordered linear system, the skel and redundant indices are
@@ -276,7 +277,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
       continue;
     }
     std::vector<int> small_redundants = big_to_small(
-          current_node->src_dof_lists.redundant, red_big2small);
+                                          current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->X_rr_is_LU_factored);
     apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
                           &Dinv_C_nonzero,
@@ -548,11 +549,6 @@ void SkelFactorization::solve(const QuadTree & quadtree, ie_Mat * x,
     if (!current_node->compressed) {
       continue;
     }
-    // double cond = current_node->X_rr.condition_number();
-    // if (cond > 1000) {
-    //   std::cout << "Node " << current_node->id << " solve X_rr inv -- ";
-    //   std::cout << "Inverting w/ condition number " << cond << std::endl;
-    // }
     assert(current_node->X_rr_is_LU_factored);
 
     apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv, x,
@@ -705,7 +701,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree & quadtree,
       continue;
     }
     std::vector<int> small_redundants = big_to_small(
-          current_node->src_dof_lists.redundant, red_big2small);
+                                          current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->X_rr_is_LU_factored);
     apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
                           &Dinv_w, small_redundants);
@@ -742,7 +738,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree & quadtree,
       continue;
     }
     std::vector<int> small_redundants = big_to_small(
-          current_node->src_dof_lists.redundant, red_big2small);
+                                          current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->X_rr_is_LU_factored);
 
     apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,

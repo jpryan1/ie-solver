@@ -86,7 +86,7 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   holes.clear();
 
   if (perturbation_parameters.size() == 0) {
-    perturbation_parameters.push_back(M_PI / 2);
+    perturbation_parameters.push_back(0);
   }
 
   int OUTER_NUM_SPLINE_POINTS = 24;

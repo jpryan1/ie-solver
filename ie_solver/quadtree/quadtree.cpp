@@ -26,17 +26,14 @@ typedef std::pair<double, double> pair;
 int QuadTreeNode::id_count = 0;
 
 QuadTree::~QuadTree() {
-  for (QuadTreeLevel* level : levels) {
-    for (QuadTreeNode* node : level->nodes) {
-      delete node;
-    }
-  }
+
   for (QuadTreeLevel* level : levels) {
     if (level) {
       delete level;
     }
   }
   levels.clear();
+  delete boundary;
 }
 
 
@@ -49,7 +46,50 @@ void QuadTree::initialize_tree(Boundary* boundary_,
          && "number of boundary->points to init tree cannot be 0.");
   // todo(john) later we can assert that the boundary->points are a multiple of
   // dimension
-  this->boundary = boundary_;
+  if (boundary) {
+    delete boundary;
+  }
+  switch (boundary_->boundary_shape) {
+    case Boundary::BoundaryShape::CIRCLE:
+      boundary = new Circle();
+      break;
+    case Boundary::BoundaryShape::ROUNDED_SQUARE:
+      boundary = new RoundedSquare();
+      break;
+    case Boundary::BoundaryShape::ANNULUS:
+      boundary = new Annulus();
+      break;
+    case Boundary::BoundaryShape::DONUT:
+      boundary = new Donut();
+      break;
+    case Boundary::BoundaryShape::CUBIC_SPLINE:
+      boundary = new CubicSpline();
+      break;
+    case Boundary::BoundaryShape::EX1:
+      boundary = new Ex1Boundary();
+      break;
+    case Boundary::BoundaryShape::EX2:
+      boundary = new Ex2Boundary();
+      break;
+    case Boundary::BoundaryShape::EX3:
+      boundary = new Ex3Boundary();
+      break;
+    case Boundary::BoundaryShape::EX4:
+      boundary = new Ex4Boundary();
+      break;
+  }
+
+  boundary->points = boundary_->points;
+  boundary->normals = boundary_->normals;
+  boundary->weights = boundary_->weights;
+  boundary->curvatures = boundary_->curvatures;
+  boundary->boundary_values = boundary_->boundary_values;
+  boundary->boundary_shape = boundary_->boundary_shape;
+  boundary->perturbation_parameters =
+    boundary_->perturbation_parameters;
+  boundary->holes = boundary_->holes;
+  boundary->num_outer_nodes = boundary_->num_outer_nodes;
+
   this->domain_points = domain_points_;
   this->solution_dimension = solution_dimension_;
   this->domain_dimension = domain_dimension_;
@@ -459,7 +499,9 @@ void QuadTree::consolidate_node(QuadTreeNode* node) {
     QuadTreeLevel* erase_level = levels[erase->level];
     for (int i = 0; i < erase_level->nodes.size(); i++) {
       if (erase_level->nodes[i]->id == erase->id) {
+        QuadTreeNode* del = erase_level->nodes[i];
         erase_level->nodes.erase(erase_level->nodes.begin() + i);
+        delete del;
         break;
       }
     }
@@ -927,14 +969,12 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
 
 
 void QuadTree::reset() {
-  if (root) {
-    delete root;
-  }
   for (QuadTreeLevel* level : levels) {
     if (level) {
       delete level;
     }
   }
+
   levels.clear();
   initialize_tree(boundary, domain_points, solution_dimension,
                   domain_dimension);
@@ -942,9 +982,6 @@ void QuadTree::reset() {
 
 
 void QuadTree::reset(Boundary * boundary_) {
-  if (root) {
-    delete root;
-  }
   for (QuadTreeLevel* level : levels) {
     if (level) {
       delete level;
