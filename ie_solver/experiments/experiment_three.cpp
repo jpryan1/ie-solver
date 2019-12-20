@@ -34,11 +34,12 @@ ie_solver_config get_experiment_three_config() {
 void get_sample_vals(const ie_solver_config& config, double* samples,
                      Boundary* boundary,
                      int perturbed_param,
-                      QuadTree& quadtree,
+                     const QuadTree& quadtree,
                      const std::vector<double>& domain_points,
                      double* findiff) {
   // TODO(John) try copying quadtree and running this in parallel
   QuadTree trees[4];
+  double start = omp_get_wtime();
   for (int i = 0; i < 4; i++) {
     quadtree.copy_into(&(trees[i]));
   }
@@ -49,6 +50,8 @@ void get_sample_vals(const ie_solver_config& config, double* samples,
                          config.boundary_condition);
     trees[i].perturb(*boundary);
   }
+  double end = omp_get_wtime();
+  std::cout<<"copy took "<<(end-start)<<std::endl;
 
   // #pragma omp parallel for num_threads(2)
   for (int i = 0; i < 4; i++) {
@@ -109,8 +112,8 @@ void run_experiment3() {
   boundary->initialize(config.num_boundary_points,
                        config.boundary_condition);
 
-  double current_ang1 = 1;
-  double current_ang2 = -1;
+  double current_ang1 = 2;
+  double current_ang2 = 0;
 
   boundary->perturbation_parameters[0] = current_ang1;
   boundary->perturbation_parameters[1] = current_ang2;
@@ -152,7 +155,7 @@ void run_experiment3() {
   double start_alpha = 1;
   double alpha_decay = 0.8;
   double h = 1e-4;
-  int FRAME_CAP = 9;
+  int FRAME_CAP = 15;
 
   double prev_step_start = omp_get_wtime();
   for (int step = 0; step < FRAME_CAP; step++) {
