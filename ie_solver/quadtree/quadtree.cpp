@@ -18,6 +18,7 @@
 #include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/boundaries/ex2boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
+#include "ie_solver/boundaries/ex4boundary.h"
 
 namespace ie_solver {
 
@@ -862,7 +863,6 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
   // ie_Mat allskel_mat, allskel_mat_lu, U, Psi, S_LU;
   // std::vector<lapack_int> allskel_mat_piv, S_piv;
 
-
   // Boundary* boundary;
   // std::vector<QuadTreeLevel*> levels;
 
@@ -898,6 +898,9 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
       break;
     case Boundary::BoundaryShape::EX3:
       new_tree->boundary = new Ex3Boundary();
+      break;
+    case Boundary::BoundaryShape::EX4:
+      new_tree->boundary = new Ex4Boundary();
       break;
   }
 

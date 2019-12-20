@@ -75,7 +75,7 @@ void run_experiment4() {
   boundary->initialize(config.num_boundary_points,
                        config.boundary_condition);
 
-  double current_ang1 = 2;
+  double current_ang1 = 0.5;
 
   boundary->perturbation_parameters[0] = current_ang1;
   boundary->initialize(config.num_boundary_points,
@@ -99,8 +99,8 @@ void run_experiment4() {
   //                   quadtree.max, quadtree.min, quadtree.max);
   // TODO(John) the fact that round numbers screw things up is a problem -
   // out of domain should salt these maybe?
-  domain_points.push_back(0.4999);
-  domain_points.push_back(0.68);
+  domain_points.push_back(0.7);
+  domain_points.push_back(0.5001);
 
   ie_Mat solution = boundary_integral_solve(config, &quadtree,
                     domain_points);
@@ -119,7 +119,6 @@ void run_experiment4() {
       std::cout << "Step took " << (next_step_start - prev_step_start) << std::endl;
     }
     prev_step_start = next_step_start;
-
     // First, find gradient.
     double findiff1[4];
     double samples1[4] = {current_ang1 - 2 * h, current_ang1 - h,
@@ -135,7 +134,7 @@ void run_experiment4() {
     // Now, perform line search
     double alpha = start_alpha;
     while (alpha > 0.01) {
-      double trial_ang1 = current_ang1 + alpha * grad1;
+      double trial_ang1 = current_ang1 - alpha * grad1;
 
       // Calculate new obj val, check wolfe cond satisfaction,
       // else update param, repeat.
@@ -146,8 +145,10 @@ void run_experiment4() {
       ie_Mat solution = boundary_integral_solve(config, &quadtree,
                         domain_points);
       double cur_obj_fun = solution.get(0, 0);
-
-      if (prev_obj_fun < cur_obj_fun) {
+std::cout << "line srch obj function val "
+                  << cur_obj_fun <<" vs " <<prev_obj_fun<<std::endl;
+      
+      if (prev_obj_fun > cur_obj_fun) {
         prev_obj_fun = cur_obj_fun;
         current_ang1 = trial_ang1;
         std::cout << "Current obj function val "
@@ -173,11 +174,11 @@ void run_experiment4() {
     }
   }
 
-  // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
-  //                            domain_points,
-  //                            config.solution_dimension);
-  // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
-  //                            boundary->points);
+  io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
+                             domain_points,
+                             config.solution_dimension);
+  io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
+                             boundary->points);
 
 }
 
