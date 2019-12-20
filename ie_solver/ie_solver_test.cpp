@@ -55,7 +55,7 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
     stacked.set_submatrix(0, mu.height(), 0, 1, mu);
     stacked.set_submatrix(mu.height(), stacked.height(), 0, 1, alpha);
 
-    std::vector<unsigned int> all_dofs;
+    std::vector<int> all_dofs;
     for (int i = 0; i < config.solution_dimension * boundary->weights.size();
          i++) {
       all_dofs.push_back(i);
@@ -84,7 +84,7 @@ void check_solve_err(const ie_solver_config& config, Boundary* boundary) {
     skel_factorization.skeletonize(kernel, &quadtree);
     ie_Mat mu;
     linear_solve(skel_factorization, quadtree, boundary->boundary_values, &mu);
-    std::vector<unsigned int> all_dofs;
+    std::vector<int> all_dofs;
     for (int i = 0; i < config.solution_dimension * boundary->weights.size();
          i++) {
       all_dofs.push_back(i);
@@ -380,7 +380,7 @@ double laplace_error(const ie_Mat& domain,
                      Boundary * boundary) {
   double diff_norm = 0;
   double norm_of_true = 0;
-  for (unsigned int i = 0; i < domain_points.size(); i += 2) {
+  for (int i = 0; i < domain_points.size(); i += 2) {
     double x0 = domain_points[i];
     double x1 = domain_points[i + 1];
     Vec2 x(x0, x1);
@@ -434,7 +434,7 @@ double laplace_neumann_error(const ie_Mat& domain,
                              const std::vector<double>& domain_points,
                              Boundary * boundary) {
   ie_Mat no_ln = domain;
-  for (unsigned int i = 0; i < domain_points.size(); i += 2) {
+  for (int i = 0; i < domain_points.size(); i += 2) {
     double x0 = domain_points[i];
     double x1 = domain_points[i + 1];
     Vec2 x(x0, x1);
@@ -475,7 +475,7 @@ double stokes_error(const ie_Mat& domain,
                     const std::vector<double>& domain_points,
                     Boundary * boundary) {
   double max_err = 0;
-  for (unsigned int i = 0; i < domain_points.size(); i += 2) {
+  for (int i = 0; i < domain_points.size(); i += 2) {
     double x0 = domain_points[i];
     double x1 = domain_points[i + 1];
     Vec2 x(x0, x1);

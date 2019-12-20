@@ -38,8 +38,8 @@ struct Kernel {
   ie_solver_config::Pde pde;
   Boundary * boundary;
   std::vector<double> domain_points;
-  // double get(unsigned int i, unsigned int j) const;
-  // double forward_get(unsigned int i, unsigned int j) const;
+  // double get(int i, int j) const;
+  // double forward_get(int i, int j) const;
   ie_Mat get(const Dof & a, const Dof & b) const;
 
   ie_Mat stokes_kernel(const Dof & a, const Dof & b) const;
@@ -47,20 +47,20 @@ struct Kernel {
   ie_Mat laplace_neumann_kernel(const Dof & a, const Dof & b) const;
   ie_Mat laplace_neumann_kernel_forward(const Dof & a, const Dof & b) const;
 
-  ie_Mat operator()(const std::vector<unsigned int> & I_,
-                    const std::vector<unsigned int> & J_,
+  ie_Mat operator()(const std::vector<int> & I_,
+                    const std::vector<int> & J_,
                     double * timing = nullptr) const;
 
-  // ie_Mat forward_get(const std::vector<unsigned int>& I_,
-  //                    const std::vector<unsigned int>& J_) const;
-  ie_Mat laplace_get(const std::vector<unsigned int> & I_,
-                          const std::vector<unsigned int> & J_,
+  // ie_Mat forward_get(const std::vector<int>& I_,
+  //                    const std::vector<int>& J_) const;
+  ie_Mat laplace_get(const std::vector<int> & I_,
+                          const std::vector<int> & J_,
                           double * timing) const;
-  ie_Mat laplace_neumann_get(const std::vector<unsigned int> & I_,
-                                  const std::vector<unsigned int> & J_,
+  ie_Mat laplace_neumann_get(const std::vector<int> & I_,
+                                  const std::vector<int> & J_,
                                   double * timing) const;
-  ie_Mat stokes_get(const std::vector<unsigned int> & I_,
-                         const std::vector<unsigned int> & J_,
+  ie_Mat stokes_get(const std::vector<int> & I_,
+                         const std::vector<int> & J_,
                          double * timing) const;
 
   ie_Mat get_id_mat(const QuadTree * tree,
@@ -68,22 +68,22 @@ struct Kernel {
                     bool strong_admissibility) const;
   ie_Mat get_proxy_mat(double cntr_x, double cntr_y,
                        double r, const QuadTree * tree,
-                       const std::vector<unsigned int> & box_inds) const;
+                       const std::vector<int> & box_inds) const;
 
   ie_Mat laplace_proxy_get(const std::vector<double> & pxy_p,
                                 const std::vector<double> & pxy_n,
                                 double pxy_w,
-                                const std::vector<unsigned int> & box_inds)
+                                const std::vector<int> & box_inds)
   const;
   ie_Mat laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
                                         const std::vector<double> & pxy_n,
                                          double pxy_w,
-                                        const std::vector<unsigned int> &
+                                        const std::vector<int> &
                                         box_inds) const;
   ie_Mat stokes_proxy_get(const std::vector<double> & pxy_p,
                                const std::vector<double> & pxy_n,
                               double pxy_w,
-                               const std::vector<unsigned int> & box_inds)
+                               const std::vector<int> & box_inds)
   const;
 };  // struct
 

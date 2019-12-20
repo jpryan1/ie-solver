@@ -34,7 +34,7 @@ ie_solver_config get_experiment_three_config() {
 void get_sample_vals(const ie_solver_config& config, double* samples,
                      Boundary* boundary,
                      int perturbed_param,
-                     const QuadTree& quadtree,
+                      QuadTree& quadtree,
                      const std::vector<double>& domain_points,
                      double* findiff) {
   // TODO(John) try copying quadtree and running this in parallel
@@ -122,6 +122,16 @@ void run_experiment3() {
 
   std::vector<double> domain_points;
 
+  std::unique_ptr<Boundary> perturbed_boundary =
+    std::unique_ptr<Boundary>(new Ex3Boundary());
+
+  perturbed_boundary->initialize(config.num_boundary_points,
+                                 config.boundary_condition);
+  perturbed_boundary->perturbation_parameters[0] = current_ang1;
+  perturbed_boundary->perturbation_parameters[1] = current_ang2;
+  perturbed_boundary->initialize(config.num_boundary_points,
+                                 config.boundary_condition);
+
   // get_domain_points(config.domain_size, &domain_points, quadtree.min,
   //                   quadtree.max, quadtree.min, quadtree.max);
   // TODO(John) the fact that round numbers screw things up is a problem -
@@ -162,11 +172,11 @@ void run_experiment3() {
     double samples2[4] = {current_ang2 - 2 * h, current_ang2 - h,
                           current_ang2 + h, current_ang2 + 2 * h
                          };
-    get_sample_vals(config, samples1, boundary.get(), 0,
+    get_sample_vals(config, samples1, perturbed_boundary.get(), 0,
                     quadtree, domain_points, findiff1);
-    boundary->perturbation_parameters[0] = current_ang1;
+    perturbed_boundary->perturbation_parameters[0] = current_ang1;
 
-    get_sample_vals(config, samples2, boundary.get(), 1,
+    get_sample_vals(config, samples2, perturbed_boundary.get(), 1,
                     quadtree, domain_points, findiff2);
 
     double grad1 = (findiff1[0] - 8 * findiff1[1] + 8 * findiff1[2]
@@ -183,11 +193,11 @@ void run_experiment3() {
 
       // Calculate new obj val, check wolfe cond satisfaction,
       // else update param, repeat.
-      boundary->perturbation_parameters[0] = trial_ang1;
-      boundary->perturbation_parameters[1] = trial_ang2;
-      boundary->initialize(config.num_boundary_points,
+      perturbed_boundary->perturbation_parameters[0] = trial_ang1;
+      perturbed_boundary->perturbation_parameters[1] = trial_ang2;
+      perturbed_boundary->initialize(config.num_boundary_points,
                            config.boundary_condition);
-      quadtree.perturb(*boundary);
+      quadtree.perturb(*perturbed_boundary);
       ie_Mat solution = boundary_integral_solve(config, &quadtree,
                         domain_points);
       double gradient = (solution.get(1, 0) - solution.get(0, 0))
@@ -199,15 +209,15 @@ void run_experiment3() {
         current_ang2 = trial_ang2;
         std::cout << "Current obj function val "
                   << gradient << std::endl;
-        boundary->perturbation_parameters[0] = current_ang1;
-        boundary->perturbation_parameters[1] = current_ang2;
+        perturbed_boundary->perturbation_parameters[0] = current_ang1;
+        perturbed_boundary->perturbation_parameters[1] = current_ang2;
 
         io::write_solution_to_file("output/bake/sol/" + std::to_string(
                                      step)  + ".txt", solution, domain_points,
                                    config.solution_dimension);
         io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
                                      step) + ".txt",
-                                   boundary->points);
+                                   perturbed_boundary->points);
         io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
                                      step)  + ".txt", quadtree);
         break;

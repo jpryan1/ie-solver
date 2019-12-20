@@ -8,14 +8,14 @@
 
 
 // void IeSolverTools::b2d_apply_diag_matrix(const ie_Mat& mat,
-//     const std::vector<unsigned int>& tgt,
-//     const std::vector<unsigned int>& src,
+//     const std::vector<int>& tgt,
+//     const std::vector<int>& src,
 //     const ie_Mat& vec_in, ie_Mat* vec_out) {
 
 //   if (tgt.size() * src.size() == 0) {
 //     return;
 //   }
-//   std::vector<unsigned int> ZERO_VECTOR;
+//   std::vector<int> ZERO_VECTOR;
 //   ZERO_VECTOR.push_back(0);
 
 //   ie_Mat product(tgt.size(), 1);
@@ -132,10 +132,10 @@
 //     }
 //   }
 
-//   std::vector<unsigned int> src_allskel =
+//   std::vector<int> src_allskel =
 //     tree.root->src_dof_lists.active_box;
 
-//   std::vector<unsigned int> tgt_allskel =
+//   std::vector<int> tgt_allskel =
 //     tree.root->tgt_dof_lists.active_box;
 
 //   if (src_allskel.size()*tgt_allskel.size() > 0) {
@@ -169,7 +169,7 @@
 
 //   (*b) += final_add;
 
-//   for (unsigned int i = 0; i < tree.domain_points.size(); i += 2) {
+//   for (int i = 0; i < tree.domain_points.size(); i += 2) {
 //     if (!tree.boundary->is_in_domain(
 //           Vec2(tree.domain_points[i], tree.domain_points[i + 1]))) {
 //       for (int j = 0; j < solution_dimension; j++) {
@@ -181,8 +181,8 @@
 
 
 // void IeSolverTools::b2dskeletonize(const Kernel& kernel, QuadTree* tree) {
-//   unsigned int lvls = tree->levels.size();
-//   for (unsigned int level = lvls - 1; level > 4; level--) {
+//   int lvls = tree->levels.size();
+//   for (int level = lvls - 1; level > 4; level--) {
 //     QuadTreeLevel* current_level = tree->levels[level];
 //     // First, get all active dofs from children
 //     for (QuadTreeNode * node : current_level->nodes) {
@@ -200,15 +200,15 @@
 //         if (neighbor->level > node_a->level) {
 //           continue;
 //         }
-//         for (unsigned int idx : neighbor->src_dof_lists.active_box) {
+//         for (int idx : neighbor->src_dof_lists.active_box) {
 //           node_a->src_dof_lists.near.push_back(idx);
 //         }
-//         for (unsigned int idx : neighbor->tgt_dof_lists.active_box) {
+//         for (int idx : neighbor->tgt_dof_lists.active_box) {
 //           node_a->tgt_dof_lists.near.push_back(idx);
 //         }
 //       }
 //     }
-//     for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
+//     for (int n = 0; n < current_level->nodes.size(); n++) {
 //       QuadTreeNode* current_node = current_level->nodes[n];
 //       if (current_node->compressed ||
 //           current_node->src_dof_lists.active_box.size() == 0 ||
@@ -239,8 +239,8 @@
 //   ie_Mat tgt_pxy;
 //   make_tgt_id_mat(kernel, &tgt_pxy, tree, node);
 //   if (tgt_pxy.width() * tgt_pxy.height() != 0) {
-//     std::vector<unsigned int> tgt_p;
-//     unsigned int tgt_numskel = tgt_pxy.id(&tgt_p, &node->tgt_T, id_tol);
+//     std::vector<int> tgt_p;
+//     int tgt_numskel = tgt_pxy.id(&tgt_p, &node->tgt_T, id_tol);
 
 //     if (tgt_numskel == 0) return 0;
 //     set_rs_ranges(&node->tgt_dof_lists, tgt_p, node->tgt_T.height(),
@@ -254,8 +254,8 @@
 //   ie_Mat src_pxy;
 //   make_src_id_mat(kernel, &src_pxy, tree, node);
 //   if (src_pxy.width() * src_pxy.height() != 0) {
-//     std::vector<unsigned int> src_p;
-//     unsigned int src_numskel = src_pxy.id(&src_p, &node->src_T, id_tol);
+//     std::vector<int> src_p;
+//     int src_numskel = src_pxy.id(&src_p, &node->src_T, id_tol);
 //     if (src_numskel == 0) return 0;
 //     set_rs_ranges(&node->src_dof_lists, src_p, node->src_T.height(),
 //                   node->src_T.width());
@@ -265,10 +265,10 @@
 //   }
 
 // // get K matrices and set them!
-//   std::vector<unsigned int> tgt_r = node->tgt_dof_lists.redundant;
-//   std::vector<unsigned int> tgt_s = node->tgt_dof_lists.skel;
-//   std::vector<unsigned int> src_r = node->src_dof_lists.redundant;
-//   std::vector<unsigned int> src_s = node->src_dof_lists.skel;
+//   std::vector<int> tgt_r = node->tgt_dof_lists.redundant;
+//   std::vector<int> tgt_s = node->tgt_dof_lists.skel;
+//   std::vector<int> src_r = node->src_dof_lists.redundant;
+//   std::vector<int> src_s = node->src_dof_lists.skel;
 
 //   ie_Mat Xrr = kernel.forward_get(tgt_r, src_r);
 //   ie_Mat Xrs = kernel.forward_get(tgt_r, src_s);
@@ -312,10 +312,10 @@
 
 //   if (true) {  // node->level <= tree->no_proxy_level){
 //     // No proxy circle
-//     std::vector<unsigned int> far;
+//     std::vector<int> far;
 //     for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
 //       if (level_node->id != node->id) {
-//         for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
+//         for (int matrix_index : level_node->src_dof_lists.active_box) {
 //           far.push_back(matrix_index);
 //         }
 //       }
@@ -324,8 +324,8 @@
 //     *mat = ie_Mat(far.size(),
 //                   node->tgt_dof_lists.active_box.size());
 //     ie_Mat box_far = kernel.forward_get(node->tgt_dof_lists.active_box, far);
-//     for (unsigned int i = 0; i < box_far.height(); i++) {
-//       for (unsigned int j = 0; j < box_far.width(); j++) {
+//     for (int i = 0; i < box_far.height(); i++) {
+//       for (int j = 0; j < box_far.width(); j++) {
 //         mat->set(j, i, box_far.get(i, j));
 //       }
 //     }
@@ -336,12 +336,12 @@
 
 
 //   // Grab all points inside the proxy circle
-//   std::vector<unsigned int> inner_circle;
+//   std::vector<int> inner_circle;
 //   for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
 //     if (level_node->id != node->id) {
-//       for (unsigned int matrix_index : level_node->src_dof_lists.active_box) {
-//         unsigned int point_index = matrix_index / solution_dimension;
-//         unsigned int points_vec_index = point_index * domain_dimension;
+//       for (int matrix_index : level_node->src_dof_lists.active_box) {
+//         int point_index = matrix_index / solution_dimension;
+//         int points_vec_index = point_index * domain_dimension;
 
 //         double x = tree->boundary->points[points_vec_index];
 //         double y = tree->boundary->points[points_vec_index + 1];
@@ -359,8 +359,8 @@
 //   ie_Mat near_box = kernel.forward_get(node->tgt_dof_lists.active_box,
 //                                       inner_circle);
 
-//   for (unsigned int i = 0; i < near_box.height(); i++) {
-//     for (unsigned int j = 0; j < near_box.width(); j++) {
+//   for (int i = 0; i < near_box.height(); i++) {
+//     for (int j = 0; j < near_box.width(); j++) {
 //       mat->set(j, i, near_box.get(i, j));
 //     }
 //   }
@@ -371,7 +371,7 @@
 //   for (int i = 0; i < NUM_PROXY_POINTS; i++) {
 //     double ang = 2 * M_PI * i * (1.0 / NUM_PROXY_POINTS);
 //     Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
-//     for (unsigned int j = 0; j < node->tgt_dof_lists.active_box.size(); j++) {
+//     for (int j = 0; j < node->tgt_dof_lists.active_box.size(); j++) {
 //       Dof a, b;
 //       a.is_boundary = true;
 //       a.point = p;
@@ -379,9 +379,9 @@
 //       a.curvature = proxy_curvature;
 //       a.weight = proxy_weight;
 
-//       unsigned int matrix_index = node->tgt_dof_lists.active_box[j];
-//       unsigned int point_index = matrix_index / solution_dimension;
-//       unsigned int points_vec_index = point_index * domain_dimension;
+//       int matrix_index = node->tgt_dof_lists.active_box[j];
+//       int point_index = matrix_index / solution_dimension;
+//       int points_vec_index = point_index * domain_dimension;
 //       b.point = Vec2(tree->domain_points[points_vec_index],
 //                     tree->domain_points[points_vec_index + 1]);
 //       b.is_boundary = false;
@@ -411,18 +411,18 @@
 
 //   if (true) {  // node->level <= tree->no_proxy_level){
 //     // No proxy circle
-//     std::vector<unsigned int> far;
+//     std::vector<int> far;
 //     for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
 //       if (level_node->id != node->id) {
-//         for (unsigned int matrix_index : level_node->tgt_dof_lists.active_box) {
+//         for (int matrix_index : level_node->tgt_dof_lists.active_box) {
 //           far.push_back(matrix_index);
 //         }
 //       }
 //     }
 //     *mat = ie_Mat(far.size(), node->src_dof_lists.active_box.size());
 //     ie_Mat far_box = kernel.forward_get(far, node->src_dof_lists.active_box);
-//     for (unsigned int i = 0; i < far_box.height(); i++) {
-//       for (unsigned int j = 0; j < far_box.width(); j++) {
+//     for (int i = 0; i < far_box.height(); i++) {
+//       for (int j = 0; j < far_box.width(); j++) {
 //         mat->set(i, j, far_box.get(i, j));
 //       }
 //     }
@@ -431,12 +431,12 @@
 
 
 //   // Grab all points inside the proxy circle
-//   std::vector<unsigned int> inner_circle;
+//   std::vector<int> inner_circle;
 //   for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
 //     if (level_node->id != node->id) {
-//       for (unsigned int matrix_index : level_node->tgt_dof_lists.active_box) {
-//         unsigned int point_index = matrix_index / solution_dimension;
-//         unsigned int points_vec_index = point_index * domain_dimension;
+//       for (int matrix_index : level_node->tgt_dof_lists.active_box) {
+//         int point_index = matrix_index / solution_dimension;
+//         int points_vec_index = point_index * domain_dimension;
 
 //         double x = tree->domain_points[points_vec_index];
 //         double y = tree->domain_points[points_vec_index + 1];
@@ -454,8 +454,8 @@
 //   ie_Mat near_box = kernel.forward_get(inner_circle,
 //                                       node->src_dof_lists.active_box);
 
-//   for (unsigned int i = 0; i < near_box.height(); i++) {
-//     for (unsigned int j = 0; j < near_box.width(); j++) {
+//   for (int i = 0; i < near_box.height(); i++) {
+//     for (int j = 0; j < near_box.width(); j++) {
 //       mat->set(i, j, near_box.get(i, j));
 //     }
 //   }
@@ -463,13 +463,13 @@
 //   for (int i = 0; i < NUM_PROXY_POINTS; i++) {
 //     double ang = 2 * M_PI * i * (1.0 / NUM_PROXY_POINTS);
 //     Vec2 p(cntr_x + r * cos(ang), cntr_y + r * sin(ang));
-//     for (unsigned int j = 0; j < node->src_dof_lists.active_box.size(); j++) {
+//     for (int j = 0; j < node->src_dof_lists.active_box.size(); j++) {
 //       Dof a, b;
 //       a.point = p;
 //       a.is_boundary = false;
-//       unsigned int matrix_index = node->src_dof_lists.active_box[j];
-//       unsigned int point_index = matrix_index / solution_dimension;
-//       unsigned int points_vec_index = point_index * domain_dimension;
+//       int matrix_index = node->src_dof_lists.active_box[j];
+//       int point_index = matrix_index / solution_dimension;
+//       int points_vec_index = point_index * domain_dimension;
 //       b.point = Vec2(tree->boundary->points[points_vec_index],
 //                     tree->boundary->points[points_vec_index + 1]);
 //       b.normal = Vec2(tree->boundary->normals[points_vec_index],

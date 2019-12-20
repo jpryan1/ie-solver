@@ -162,7 +162,7 @@ void CubicBoundary::interpolate(bool is_interior, int nodes_per_spline,
 
   std::vector<double> distances(end - start);
   int d_idx = 0;
-  for (unsigned int i = 0; i < distances.size(); i++) {
+  for (int i = 0; i < distances.size(); i++) {
     double dist_sum = 0;
     for (int j = 0; j < quad_size; j++) {
       int idx = 2 * (quad_size * i + j);

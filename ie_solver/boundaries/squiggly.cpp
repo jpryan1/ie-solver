@@ -117,7 +117,7 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
   // Brave post-processing - lets put everyone in [0,1]x[0,1]
 
   // // points
-  for (unsigned int i = 0; i < points.size(); i += 2) {
+  for (int i = 0; i < points.size(); i += 2) {
     points[i] = (1.05 + points[i]) * (0.9 / (3 * M_PI + 2.05));
     points[i + 1] = (1.05 + points[i + 1]) * (0.9 / (3 * M_PI + 2.05));
     double potential;
@@ -147,12 +147,12 @@ void Squiggly::initialize(int N, BoundaryCondition bc) {
 
   // normals stay the same
   // weights
-  for (unsigned int i = 0; i < weights.size(); i++) {
+  for (int i = 0; i < weights.size(); i++) {
     weights[i] = weights[i] * (0.9 / (3 * M_PI + 2.05));
   }
 
   // curvatures
-  for (unsigned int i = 0; i < curvatures.size(); i++) {
+  for (int i = 0; i < curvatures.size(); i++) {
     curvatures[i] = curvatures[i] / (0.9 / (3 * M_PI + 2.05));
   }
 }

@@ -102,8 +102,8 @@ ie_Mat Kernel::laplace_neumann_kernel_forward(const Dof & tgt,
 }
 
 
-ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
-                          const std::vector<unsigned int>& J_,
+ie_Mat Kernel::operator()(const std::vector<int>& I_,
+                          const std::vector<int>& J_,
                           double * timing) const {
   switch (pde) {
     case ie_solver_config::Pde::LAPLACE:
@@ -120,8 +120,8 @@ ie_Mat Kernel::operator()(const std::vector<unsigned int>& I_,
 }
 
 
-ie_Mat Kernel::laplace_get(const std::vector<unsigned int>& I_,
-                           const std::vector<unsigned int>& J_,
+ie_Mat Kernel::laplace_get(const std::vector<int>& I_,
+                           const std::vector<int>& J_,
                            double * timing) const {
   double start, end;
   if (timing != nullptr) {
@@ -130,8 +130,8 @@ ie_Mat Kernel::laplace_get(const std::vector<unsigned int>& I_,
   double scale = 1.0 / (2 * M_PI);
   ie_Mat ret(I_.size(), J_.size());
   int olda_ = I_.size();
-  for (unsigned int j = 0; j < J_.size(); j++) {
-    unsigned int src_ind = J_[j];
+  for (int j = 0; j < J_.size(); j++) {
+    int src_ind = J_[j];
 
     double sp1 = boundary->points[2 * src_ind];
     double sp2 =  boundary->points[2 * src_ind + 1];
@@ -140,8 +140,8 @@ ie_Mat Kernel::laplace_get(const std::vector<unsigned int>& I_,
     double sw =  boundary->weights[src_ind];
     double sc = boundary->curvatures[src_ind];
 
-    for (unsigned int i = 0; i < I_.size(); i++) {
-      unsigned int tgt_ind = I_[i];
+    for (int i = 0; i < I_.size(); i++) {
+      int tgt_ind = I_[i];
 
       double tp1 = boundary->points[2 * tgt_ind];
       double tp2 = boundary->points[2 * tgt_ind + 1];
@@ -165,8 +165,8 @@ ie_Mat Kernel::laplace_get(const std::vector<unsigned int>& I_,
 }
 
 
-ie_Mat Kernel::laplace_neumann_get(const std::vector<unsigned int>& I_,
-                                   const std::vector<unsigned int>& J_,
+ie_Mat Kernel::laplace_neumann_get(const std::vector<int>& I_,
+                                   const std::vector<int>& J_,
                                    double * timing) const {
   double start, end;
   if (timing != nullptr) {
@@ -175,16 +175,16 @@ ie_Mat Kernel::laplace_neumann_get(const std::vector<unsigned int>& I_,
   double scale = 1.0 / (2 * M_PI);
   ie_Mat ret(I_.size(), J_.size());
   int olda_ = I_.size();
-  for (unsigned int j = 0; j < J_.size(); j++) {
-    unsigned int src_ind = J_[j];
+  for (int j = 0; j < J_.size(); j++) {
+    int src_ind = J_[j];
 
     double sp1 = boundary->points[2 * src_ind];
     double sp2 =  boundary->points[2 * src_ind + 1];
     double sw =  boundary->weights[src_ind];
     double sc = boundary->curvatures[src_ind];
 
-    for (unsigned int i = 0; i < I_.size(); i++) {
-      unsigned int tgt_ind = I_[i];
+    for (int i = 0; i < I_.size(); i++) {
+      int tgt_ind = I_[i];
 
       double tp1 = boundary->points[2 * tgt_ind];
       double tp2 = boundary->points[2 * tgt_ind + 1];
@@ -209,8 +209,8 @@ ie_Mat Kernel::laplace_neumann_get(const std::vector<unsigned int>& I_,
 }
 
 
-ie_Mat Kernel::stokes_get(const std::vector<unsigned int>& I_,
-                          const std::vector<unsigned int>& J_,
+ie_Mat Kernel::stokes_get(const std::vector<int>& I_,
+                          const std::vector<int>& J_,
                           double * timing) const {
   double start, end;
   double scale = 1.0 / (M_PI);
@@ -220,10 +220,10 @@ ie_Mat Kernel::stokes_get(const std::vector<unsigned int>& I_,
   }
   ie_Mat ret(I_.size(), J_.size());
   int olda_ = I_.size();
-  for (unsigned int j = 0; j < J_.size(); j++) {
-    unsigned int src_ind = J_[j];
-    unsigned int j_point_index = src_ind / 2;
-    unsigned int j_points_vec_index = j_point_index * 2;
+  for (int j = 0; j < J_.size(); j++) {
+    int src_ind = J_[j];
+    int j_point_index = src_ind / 2;
+    int j_points_vec_index = j_point_index * 2;
 
     double sp1 = boundary->points[j_points_vec_index];
     double sp2 =  boundary->points[j_points_vec_index + 1];
@@ -232,10 +232,10 @@ ie_Mat Kernel::stokes_get(const std::vector<unsigned int>& I_,
     double sw =  boundary->weights[j_point_index];
     double sc = boundary->curvatures[j_point_index];
 
-    for (unsigned int i = 0; i < I_.size(); i++) {
-      unsigned int tgt_ind = I_[i];
-      unsigned int i_point_index = tgt_ind / 2;
-      unsigned int i_points_vec_index = i_point_index * 2;
+    for (int i = 0; i < I_.size(); i++) {
+      int tgt_ind = I_[i];
+      int i_point_index = tgt_ind / 2;
+      int i_points_vec_index = i_point_index * 2;
 
       double tp1 = boundary->points[i_points_vec_index];
       double tp2 = boundary->points[i_points_vec_index + 1];
@@ -296,10 +296,10 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
   double cntr_x = node->corners[0] + node->side_length / 2.0;
   double cntr_y = node->corners[1] + node->side_length / 2.0;
 
-  std::vector<unsigned int> active_box = node->src_dof_lists.active_box;
+  std::vector<int> active_box = node->src_dof_lists.active_box;
   if (!strong_admissibility) {
     // Grab all points inside the proxy circle which are outside the box
-    std::vector<unsigned int> inner_circle, outside_box;
+    std::vector<int> inner_circle, outside_box;
 
 
     // So if we're at level 2 or 1, we don't use the proxy trick
@@ -308,7 +308,7 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
     if (node->level == 1) {
       for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
         if (level_node->id != node->id) {
-          for (unsigned int matrix_index :
+          for (int matrix_index :
                level_node->src_dof_lists.active_box) {
             outside_box.push_back(matrix_index);
           }
@@ -326,7 +326,7 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
     if (node->level == 2) {
       for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
         if (level_node->id != node->id) {
-          for (unsigned int matrix_index :
+          for (int matrix_index :
                level_node->src_dof_lists.active_box) {
             outside_box.push_back(matrix_index);
           }
@@ -334,7 +334,7 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
       }
       for (QuadTreeNode* level_node : tree->levels[node->level - 1]->nodes) {
         if (level_node->is_leaf) {
-          for (unsigned int matrix_index :
+          for (int matrix_index :
                level_node->src_dof_lists.original_box) {
             outside_box.push_back(matrix_index);
           }
@@ -354,7 +354,7 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
 
     // for (QuadTreeNode* level_node : tree->levels[node->level]->nodes) {
     //   if (level_node->id != node->id) {
-    //     for (unsigned int matrix_index :
+    //     for (int matrix_index :
     //           level_node->src_dof_lists.active_box) {
     //       outside_box.push_back(matrix_index);
     //     }
@@ -364,7 +364,7 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
 
     //   for (QuadTreeNode* level_node : tree->levels[lvl]->nodes) {
     //     if (level_node->is_leaf) {
-    //       for (unsigned int matrix_index :
+    //       for (int matrix_index :
     //             level_node->src_dof_lists.original_box) {
     //         outside_box.push_back(matrix_index);
     //       }
@@ -381,10 +381,10 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
     // return matt;
 
 
-    for (unsigned int matrix_index : node->src_dof_lists.near) {
+    for (int matrix_index : node->src_dof_lists.near) {
       // outside_box.push_back(matrix_index);
-      unsigned int point_index = matrix_index / solution_dimension;
-      unsigned int points_vec_index = point_index * domain_dimension;
+      int point_index = matrix_index / solution_dimension;
+      int points_vec_index = point_index * domain_dimension;
       double x = tree->boundary->points[points_vec_index];
       double y = tree->boundary->points[points_vec_index + 1];
       double dist = sqrt(pow(cntr_x - x, 2) + pow(cntr_y - y, 2));
@@ -425,7 +425,7 @@ ie_Mat Kernel::get_id_mat(const QuadTree* tree,
 
 ie_Mat Kernel::get_proxy_mat(double cntr_x, double cntr_y,
                              double r, const QuadTree * tree,
-                             const std::vector<unsigned int>& box_inds) const {
+                             const std::vector<int>& box_inds) const {
   // each row is a pxy point, cols are box dofs
   double proxy_weight = 2.0 * M_PI * r / NUM_PROXY_POINTS;
   std::vector<double>  pxy_p, pxy_n;
@@ -459,16 +459,16 @@ ie_Mat Kernel::get_proxy_mat(double cntr_x, double cntr_y,
 ie_Mat Kernel::stokes_proxy_get(const std::vector<double> & pxy_p,
                                 const std::vector<double> & pxy_n,
                                 double pxy_w,
-                                const std::vector<unsigned int> & box_inds) const {
+                                const std::vector<int> & box_inds) const {
   double scale = 1.0 / (M_PI);
   ie_Mat ret(2 * pxy_p.size(), box_inds.size());
   int lda = 2 * pxy_p.size();
 
   // Then Active to Proxy
-  for (unsigned int j = 0; j < box_inds.size(); j++) {
-    unsigned int src_ind = box_inds[j];
-    unsigned int j_point_index = src_ind / 2;
-    unsigned int j_points_vec_index = j_point_index * 2;
+  for (int j = 0; j < box_inds.size(); j++) {
+    int src_ind = box_inds[j];
+    int j_point_index = src_ind / 2;
+    int j_points_vec_index = j_point_index * 2;
 
     double sp1 = boundary->points[j_points_vec_index];
     double sp2 =  boundary->points[j_points_vec_index + 1];
@@ -476,7 +476,7 @@ ie_Mat Kernel::stokes_proxy_get(const std::vector<double> & pxy_p,
     double sn2 = boundary->normals[j_points_vec_index + 1];
     double sw =  boundary->weights[j_point_index];
 
-    for (unsigned int i = 0; i < pxy_p.size(); i += 2) {
+    for (int i = 0; i < pxy_p.size(); i += 2) {
       double tp1 = pxy_p[i];
       double tp2 = pxy_p[i + 1];
       double tn1 = pxy_n[i];
@@ -501,16 +501,16 @@ ie_Mat Kernel::stokes_proxy_get(const std::vector<double> & pxy_p,
   }
 
   // First Proxy To Active
-  for (unsigned int j = 0; j < pxy_p.size(); j += 2) {
+  for (int j = 0; j < pxy_p.size(); j += 2) {
     double sp1 = pxy_p[j];
     double sp2 =  pxy_p[j + 1];
     double sn1 =  pxy_n[j];
     double sn2 = pxy_n[j + 1];
     double sw =  pxy_w;
-    for (unsigned int i = 0; i < box_inds.size(); i++) {
-      unsigned int tgt_ind = box_inds[i];
-      unsigned int i_point_index = tgt_ind / 2;
-      unsigned int i_points_vec_index = i_point_index * 2;
+    for (int i = 0; i < box_inds.size(); i++) {
+      int tgt_ind = box_inds[i];
+      int i_point_index = tgt_ind / 2;
+      int i_points_vec_index = i_point_index * 2;
 
       double tp1 = boundary->points[i_points_vec_index];
       double tp2 = boundary->points[i_points_vec_index + 1];
@@ -542,13 +542,13 @@ ie_Mat Kernel::stokes_proxy_get(const std::vector<double> & pxy_p,
 ie_Mat Kernel::laplace_proxy_get(const std::vector<double> & pxy_p,
                                  const std::vector<double> & pxy_n,
                                  double pxy_w,
-                                 const std::vector<unsigned int> & box_inds) const {
+                                 const std::vector<int> & box_inds) const {
   double scale = 1.0 / (2 * M_PI);
   ie_Mat ret(pxy_p.size(), box_inds.size());
   int lda = pxy_p.size();
   // First Active to Proxy
-  for (unsigned int j = 0; j < box_inds.size(); j++) {
-    unsigned int src_ind = box_inds[j];
+  for (int j = 0; j < box_inds.size(); j++) {
+    int src_ind = box_inds[j];
 
     double sp1 = boundary->points[2 * src_ind];
     double sp2 =  boundary->points[2 * src_ind + 1];
@@ -556,7 +556,7 @@ ie_Mat Kernel::laplace_proxy_get(const std::vector<double> & pxy_p,
     double sn2 = boundary->normals[2 * src_ind + 1];
     double sw =  boundary->weights[src_ind];
 
-    for (unsigned int i = 0; i < pxy_p.size(); i += 2) {
+    for (int i = 0; i < pxy_p.size(); i += 2) {
       double tp1 = pxy_p[i];
       double tp2 = pxy_p[i + 1];
 
@@ -568,14 +568,14 @@ ie_Mat Kernel::laplace_proxy_get(const std::vector<double> & pxy_p,
   }
 
   // Then Proxy To Active
-  for (unsigned int j = 0; j < pxy_p.size(); j += 2) {
+  for (int j = 0; j < pxy_p.size(); j += 2) {
     double sp1 = pxy_p[j];
     double sp2 =  pxy_p[j + 1];
     double sn1 =  pxy_n[j];
     double sn2 = pxy_n[j + 1];
     double sw =  pxy_w;
-    for (unsigned int i = 0; i < box_inds.size(); i++) {
-      unsigned int tgt_ind = box_inds[i];
+    for (int i = 0; i < box_inds.size(); i++) {
+      int tgt_ind = box_inds[i];
       double tp1 = boundary->points[2 * tgt_ind];
       double tp2 = boundary->points[2 * tgt_ind + 1];
       double r0 = tp1 - sp1;
@@ -594,20 +594,20 @@ ie_Mat Kernel::laplace_proxy_get(const std::vector<double> & pxy_p,
 ie_Mat Kernel::laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
     const std::vector<double> & pxy_n,
     double pxy_w,
-    const std::vector<unsigned int> & box_inds) const {
+    const std::vector<int> & box_inds) const {
 
   double scale = 1.0 / (2 * M_PI);
   ie_Mat ret(pxy_p.size(), box_inds.size());
   int lda = pxy_p.size();
   // First Active to Proxy
-  for (unsigned int j = 0; j < box_inds.size(); j++) {
-    unsigned int src_ind = box_inds[j];
+  for (int j = 0; j < box_inds.size(); j++) {
+    int src_ind = box_inds[j];
 
     double sp1 = boundary->points[2 * src_ind];
     double sp2 =  boundary->points[2 * src_ind + 1];
     double sw =  boundary->weights[src_ind];
 
-    for (unsigned int i = 0; i < pxy_p.size(); i += 2) {
+    for (int i = 0; i < pxy_p.size(); i += 2) {
       double tp1 = pxy_p[i];
       double tp2 = pxy_p[i + 1];
       double tn1 = pxy_n[i];
@@ -621,13 +621,13 @@ ie_Mat Kernel::laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
   }
 
   // Then Proxy To Active
-  for (unsigned int j = 0; j < pxy_p.size(); j += 2) {
+  for (int j = 0; j < pxy_p.size(); j += 2) {
     double sp1 = pxy_p[j];
     double sp2 =  pxy_p[j + 1];
     double sw =  pxy_w;
 
-    for (unsigned int i = 0; i < box_inds.size(); i++) {
-      unsigned int tgt_ind = box_inds[i];
+    for (int i = 0; i < box_inds.size(); i++) {
+      int tgt_ind = box_inds[i];
 
       double tp1 = boundary->points[2 * tgt_ind];
       double tp2 = boundary->points[2 * tgt_ind + 1];
@@ -646,13 +646,13 @@ ie_Mat Kernel::laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
 }
 
 
-// double Kernel::forward_get(unsigned int tgt_ind,
-//                            unsigned int src_ind) const {
+// double Kernel::forward_get(int tgt_ind,
+//                            int src_ind) const {
 //   Dof tgt, src;
-//   unsigned int i_point_index = tgt_ind / solution_dimension;
-//   unsigned int i_points_vec_index = i_point_index * domain_dimension;
-//   unsigned int j_point_index = src_ind / solution_dimension;
-//   unsigned int j_points_vec_index = j_point_index * domain_dimension;
+//   int i_point_index = tgt_ind / solution_dimension;
+//   int i_points_vec_index = i_point_index * domain_dimension;
+//   int j_point_index = src_ind / solution_dimension;
+//   int j_points_vec_index = j_point_index * domain_dimension;
 
 //   tgt.point = Vec2(domain_points[i_points_vec_index],
 //                    domain_points[i_points_vec_index + 1]);
@@ -671,12 +671,12 @@ ie_Mat Kernel::laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
 // }
 
 
-// double Kernel::get(unsigned int tgt_ind, unsigned int src_ind) const {
+// double Kernel::get(int tgt_ind, int src_ind) const {
 //   Dof tgt, src;
-//   unsigned int i_point_index = tgt_ind / solution_dimension;
-//   unsigned int i_points_vec_index = i_point_index * domain_dimension;
-//   unsigned int j_point_index = src_ind / solution_dimension;
-//   unsigned int j_points_vec_index = j_point_index * domain_dimension;
+//   int i_point_index = tgt_ind / solution_dimension;
+//   int i_points_vec_index = i_point_index * domain_dimension;
+//   int j_point_index = src_ind / solution_dimension;
+//   int j_points_vec_index = j_point_index * domain_dimension;
 
 //   tgt.point = Vec2(boundary->points[i_points_vec_index],
 //                    boundary->points[i_points_vec_index + 1]);
@@ -699,12 +699,12 @@ ie_Mat Kernel::laplace_neumann_proxy_get(const std::vector<double> & pxy_p,
 //                     src_ind % solution_dimension);
 // }
 
-// ie_Mat Kernel::forward_get(const std::vector<unsigned int>& I_,
-//                            const std::vector<unsigned int>& J_) const {
+// ie_Mat Kernel::forward_get(const std::vector<int>& I_,
+//                            const std::vector<int>& J_) const {
 //   ie_Mat ret(I_.size(), J_.size());
 //   int olda_ = I_.size();
-//   for (unsigned int i = 0; i < I_.size(); i++) {
-//     for (unsigned int j = 0; j < J_.size(); j++) {
+//   for (int i = 0; i < I_.size(); i++) {
+//     for (int j = 0; j < J_.size(); j++) {
 //       ret.mat[i + olda_ * j] = forward_get(I_[i], J_[j]);
 //     }
 //   }

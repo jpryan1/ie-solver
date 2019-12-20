@@ -21,11 +21,11 @@ struct ie_Mat {
   double *mat;
   static double proxy_time, kernel_time;
 
-  unsigned int lda_, height_, width_;
+  int lda_, height_, width_;
   ie_Mat();
   ~ie_Mat();
 
-  ie_Mat(unsigned int h, unsigned int w);
+  ie_Mat(int h, int w);
 
   // Copy constructor
   ie_Mat(const ie_Mat &o);
@@ -36,29 +36,29 @@ struct ie_Mat {
   // Move assignment
   ie_Mat& operator=(ie_Mat&& move);
 
-  double get(unsigned int i, unsigned int j) const;
-  void set(unsigned int i, unsigned int j, double a);
-  void addset(unsigned int i, unsigned int j, double a);
-  void set_submatrix(const std::vector<unsigned int>& I_,
-                     const std::vector<unsigned int>& J_, const ie_Mat& A,
+  double get(int i, int j) const;
+  void set(int i, int j, double a);
+  void addset(int i, int j, double a);
+  void set_submatrix(const std::vector<int>& I_,
+                     const std::vector<int>& J_, const ie_Mat& A,
                      bool transpose_A = false);
-  void set_submatrix(unsigned int row_s, unsigned int row_e, unsigned int col_s,
-                     unsigned int col_e,
+  void set_submatrix(int row_s, int row_e, int col_s,
+                     int col_e,
                      const ie_Mat& A, bool transpose_A = false,
                      bool timing = false);
-  void set_submatrix(const std::vector<unsigned int>& I_, unsigned int col_s,
-                     unsigned int col_e,
+  void set_submatrix(const std::vector<int>& I_, int col_s,
+                     int col_e,
                      const ie_Mat& A, bool transpose_A = false);
-  void set_submatrix(unsigned int row_s, unsigned int row_e,
-                     const std::vector<unsigned int>& J_,
+  void set_submatrix(int row_s, int row_e,
+                     const std::vector<int>& J_,
                      const ie_Mat& A, bool transpose_A = false);
 
   void transpose_into(ie_Mat* transpose) const;
-  void eye(unsigned int n);
+  void eye(int n);
   ie_Mat transpose() const;
 
-  unsigned int height() const;
-  unsigned int width() const;
+  int height() const;
+  int width() const;
 
   ie_Mat& operator-=(const ie_Mat& o);
   ie_Mat& operator+=(const ie_Mat& o);
@@ -72,14 +72,14 @@ struct ie_Mat {
   ie_Mat operator*(double o) const;
   ie_Mat operator/(double o) const;
 
-  ie_Mat operator()(const std::vector<unsigned int>& I_,
-                    const std::vector<unsigned int>& J_) const;
-  ie_Mat operator()(const std::vector<unsigned int>& I_,
-                    unsigned int col_s, unsigned int col_e) const;
-  ie_Mat operator()(unsigned int row_s, unsigned int row_e,
-                    const std::vector<unsigned int>& J_) const;
-  ie_Mat operator()(unsigned int row_s, unsigned int row_e, unsigned int col_s,
-                    unsigned int col_e) const;
+  ie_Mat operator()(const std::vector<int>& I_,
+                    const std::vector<int>& J_) const;
+  ie_Mat operator()(const std::vector<int>& I_,
+                    int col_s, int col_e) const;
+  ie_Mat operator()(int row_s, int row_e,
+                    const std::vector<int>& J_) const;
+  ie_Mat operator()(int row_s, int row_e, int col_s,
+                    int col_e) const;
 
 
   double one_norm() const;
@@ -91,7 +91,7 @@ struct ie_Mat {
 
   // This function stores the DoF data, and calculates the diagonals of the
   // mat.
-  void rand_vec(unsigned  dofs);
+  void rand_vec(int dofs);
   double condition_number() const;
 
   void LU_factorize(ie_Mat* K_LU, std::vector<lapack_int>* piv) const;
@@ -104,7 +104,7 @@ struct ie_Mat {
                               const std::vector<lapack_int>& piv,
                               ie_Mat* L) const;
 
-  int id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const;
+  int id(std::vector<int>* p, ie_Mat* Z, double tol) const;
   std::vector<double> real_eigenvalues();
 
   void print() const;

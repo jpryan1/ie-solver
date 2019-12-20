@@ -25,8 +25,8 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
   switch (pde) {
     case ie_solver_config::Pde::LAPLACE: {
       U = ie_Mat(tgt_points.size() / 2, holes.size());
-      for (unsigned int i = 0; i < tgt_points.size(); i += 2) {
-        for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+      for (int i = 0; i < tgt_points.size(); i += 2) {
+        for (int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
           Hole hole = holes[hole_idx];
           Vec2 r = Vec2(tgt_points[i], tgt_points[i + 1]) - hole.center;
           U.set(i / 2, hole_idx, log(r.norm()));
@@ -36,8 +36,8 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
     }
     case ie_solver_config::Pde::STOKES: {
       U = ie_Mat(tgt_points.size(), 3 * holes.size());
-      for (unsigned int i = 0; i < tgt_points.size(); i += 2) {
-        for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+      for (int i = 0; i < tgt_points.size(); i += 2) {
+        for (int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
           Hole hole = holes[hole_idx];
           Vec2 r = Vec2(tgt_points[i], tgt_points[i + 1]) - hole.center;
           double scale = 1.0 / (4 * M_PI);
@@ -74,9 +74,9 @@ ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
   switch (pde) {
     case ie_solver_config::Pde::LAPLACE: {
       Psi = ie_Mat(holes.size(), boundary->points.size() / 2);
-      for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
+      for (int i = 0; i < boundary->points.size(); i += 2) {
         Vec2 x = Vec2(boundary->points[i], boundary->points[i + 1]);
-        for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+        for (int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
           Hole hole = holes[hole_idx];
           if ((x - hole.center).norm() < hole.radius + 1e-8) {
             Psi.set(hole_idx, i / 2, boundary->weights[i / 2]);
@@ -88,9 +88,9 @@ ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
     }
     case ie_solver_config::Pde::STOKES: {
       Psi = ie_Mat(3 * holes.size(), boundary->points.size());
-      for (unsigned int i = 0; i < boundary->points.size(); i += 2) {
+      for (int i = 0; i < boundary->points.size(); i += 2) {
         Vec2 x = Vec2(boundary->points[i], boundary->points[i + 1]);
-        for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+        for (int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
           Hole hole = holes[hole_idx];
           if ((x - hole.center).norm() < hole.radius + 1e-8) {
             Psi.set(3 * hole_idx, i, boundary->weights[i / 2]);
@@ -209,8 +209,8 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
     kernel, config.solution_dimension);
   double init_end = omp_get_wtime();
   std::cout << "timing: init " << init_end - init_start << std::endl;
-  // std::vector<unsigned int> all_inds;
-  // for (unsigned int i = 0;
+  // std::vector<int> all_inds;
+  // for (int i = 0;
   //      i < boundary->points.size() / (3 - config.solution_dimension); i++) {
   //   all_inds.push_back(i);
   // }
@@ -229,10 +229,10 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
   // Zero out points outside the domain
   if (config.pde == ie_solver_config::Pde::LAPLACE
       || config.pde == ie_solver_config::Pde::STOKES) {
-    for (unsigned int i = 0; i < domain_points.size(); i += 2) {
+    for (int i = 0; i < domain_points.size(); i += 2) {
       Vec2 point = Vec2(domain_points[i], domain_points[i + 1]);
       if (!boundary->is_in_domain(point)) {
-        for (unsigned int hole_idx = 0; hole_idx < num_holes; hole_idx++) {
+        for (int hole_idx = 0; hole_idx < num_holes; hole_idx++) {
           switch (config.pde) {
             case ie_solver_config::Pde::LAPLACE: {
               U_forward.set(i / 2, hole_idx, 0);
@@ -269,9 +269,9 @@ ie_Mat boundary_integral_solve(const ie_solver_config & config,
 }
 
 
-void get_domain_points(unsigned int domain_size, std::vector<double>* points,
+void get_domain_points(int domain_size, std::vector<double>* points,
                        double x_min, double x_max, double y_min, double y_max) {
-  for (unsigned int i = 0; i < domain_size; i++) {
+  for (int i = 0; i < domain_size; i++) {
     double x = x_min + ((i + 0.0) / (domain_size - 1)) * (x_max - x_min);
     for (int j = 0; j < domain_size; j++) {
       double y = y_min + ((j + 0.0) / (domain_size - 1)) * (y_max - y_min);

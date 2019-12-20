@@ -28,7 +28,7 @@ ie_Mat initialize_U_mat(const ie_solver_config::Pde pde,
                         const std::vector<double>& tgt_points);
 ie_Mat initialize_Psi_mat(const ie_solver_config::Pde pde,
                           const std::vector<Hole>& holes, Boundary * boundary);
-void get_domain_points(unsigned int domain_size, std::vector<double>* points,
+void get_domain_points(int domain_size, std::vector<double>* points,
                        double x_min, double x_max, double y_min, double y_max);
 void linear_solve(const SkelFactorization& skel_factorization,
                   const QuadTree& quadtree, const ie_Mat& f, ie_Mat* mu,

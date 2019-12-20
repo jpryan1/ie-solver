@@ -113,7 +113,7 @@ void Initialization::Stokes_InitializeDomainKernel(ie_Mat* K,
 
     bool in_domain = kernel.boundary->is_in_domain(x);
     if(in_domain){
-      for (unsigned int j = 0; j < points.size(); j += 2) {
+      for (int j = 0; j < points.size(); j += 2) {
         Vec2 y(points[j], points[j + 1]);
 
         Dof a, b;

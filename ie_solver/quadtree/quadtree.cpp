@@ -22,7 +22,7 @@
 namespace ie_solver {
 
 typedef std::pair<double, double> pair;
-unsigned int QuadTreeNode::id_count = 0;
+int QuadTreeNode::id_count = 0;
 
 QuadTree::~QuadTree() {
   for (QuadTreeLevel* level : levels) {
@@ -82,19 +82,19 @@ void QuadTree::initialize_tree(Boundary* boundary_,
   level_one->nodes.push_back(root);
   levels.push_back(level_one);
 
-  for (unsigned int i = 0; i < boundary->points.size(); i += domain_dimension) {
+  for (int i = 0; i < boundary->points.size(); i += domain_dimension) {
     recursive_add(this->root, boundary->points[i], boundary->points[i + 1],
                   i / domain_dimension, true);
   }
-  for (unsigned int i = 0; i < domain_points.size(); i += domain_dimension) {
+  for (int i = 0; i < domain_points.size(); i += domain_dimension) {
     recursive_add(this->root, domain_points[i], domain_points[i + 1],
                   i / domain_dimension, false);
   }
 
   // make neighbor lists in a stupid way
-  for (unsigned int level = 0; level < levels.size(); level++) {
+  for (int level = 0; level < levels.size(); level++) {
     QuadTreeLevel* current_level = levels[level];
-    for (unsigned int k = 0; k < current_level->nodes.size(); k++) {
+    for (int k = 0; k < current_level->nodes.size(); k++) {
       QuadTreeNode* node_a = current_level->nodes[k];
 
       // Each node is neighbors with all its siblings
@@ -121,7 +121,7 @@ void QuadTree::initialize_tree(Boundary* boundary_,
 
       // now if it is a leaf, check against nodes in all subsequent levels
       if (node_a->is_leaf) {
-        for (unsigned int n = 0; n < node_a->neighbors.size(); n++) {
+        for (int n = 0; n < node_a->neighbors.size(); n++) {
           QuadTreeNode* neighbor =  node_a->neighbors[n];
           // make sure this isn't a neighbor from a higher level
           if (neighbor->level != node_a->level) {
@@ -191,7 +191,7 @@ void QuadTree::get_descendent_neighbors(QuadTreeNode* big,
 
 
 void QuadTree::recursive_add(QuadTreeNode* node, double x, double y,
-                             unsigned int point_ind, bool is_boundary) {
+                             int point_ind, bool is_boundary) {
   assert(node != nullptr && "recursive_add fails on null node.");
   for (int i = 0; i < solution_dimension; i++) {
     if (is_boundary) {
@@ -323,11 +323,11 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
 
   // Now we bring the indices from the parent's box down into its childrens
   // boxes
-  for (unsigned int index = 0; index < node->src_dof_lists.original_box.size();
+  for (int index = 0; index < node->src_dof_lists.original_box.size();
        index += solution_dimension) {
-    unsigned int matrix_index = node->src_dof_lists.original_box[index];
-    unsigned int points_vec_index = (matrix_index / solution_dimension) *
-                                    domain_dimension;
+    int matrix_index = node->src_dof_lists.original_box[index];
+    int points_vec_index = (matrix_index / solution_dimension) *
+                           domain_dimension;
     // So we are trying to be general, but x,y implies 2D. To generalize later
     double x = boundary->points[points_vec_index];
     double y = boundary->points[points_vec_index + 1];
@@ -350,11 +350,11 @@ void QuadTree::node_subdivide(QuadTreeNode* node) {
     }
   }
   // Bring the tgt indices down too
-  for (unsigned int index = 0; index < node->tgt_dof_lists.original_box.size();
+  for (int index = 0; index < node->tgt_dof_lists.original_box.size();
        index += solution_dimension) {
-    unsigned int matrix_index = node->tgt_dof_lists.original_box[index];
-    unsigned int points_vec_index = (matrix_index / solution_dimension) *
-                                    domain_dimension;
+    int matrix_index = node->tgt_dof_lists.original_box[index];
+    int points_vec_index = (matrix_index / solution_dimension) *
+                           domain_dimension;
     // So we are trying to be general, but x,y implies 2D. To generalize later
     double x = domain_points[points_vec_index];
     double y = domain_points[points_vec_index + 1];
@@ -410,7 +410,7 @@ void QuadTree::mark_neighbors_and_parents(QuadTreeNode * node) {
   node->L = ie_Mat(0, 0);
   for (QuadTreeNode* neighbor : node->neighbors) {
     neighbor->compressed = false;
-    node->X_rr_is_LU_factored = false;
+    neighbor->X_rr_is_LU_factored = false;
     neighbor->src_dof_lists.active_box.clear();
     neighbor->src_dof_lists.skel.clear();
     neighbor->src_dof_lists.skelnear.clear();
@@ -491,18 +491,18 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   std::unordered_map<pair, int, boost::hash<pair>> point_to_new_index;
 
   // double a = omp_get_wtime();
-  for (unsigned int i = 0; i < new_points.size(); i += 2) {
+  for (int i = 0; i < new_points.size(); i += 2) {
     pair new_point(new_points[i], new_points[i + 1]);
     point_to_new_index[new_point] = i / 2;
   }
 
   std::vector<bool> found_in_old(new_points.size() / 2);
-  for (unsigned int i = 0; i < found_in_old.size(); i++) {
+  for (int i = 0; i < found_in_old.size(); i++) {
     found_in_old[i] = false;
   }
   // Mapping from point index in old points vec to point index in new points vec
   std::unordered_map<int, int> old_index_to_new_index;
-  for (unsigned int i = 0; i < old_points.size(); i += 2) {
+  for (int i = 0; i < old_points.size(); i += 2) {
     pair old_point(old_points[i], old_points[i + 1]);
     // Is this point also in the new points vec?
     std::unordered_map<pair, int, boost::hash<pair>>::const_iterator element =
@@ -515,7 +515,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
       deletions.push_back(i / 2);
     }
   }
-  for (unsigned int i = 0; i < found_in_old.size(); i++) {
+  for (int i = 0; i < found_in_old.size(); i++) {
     if (!found_in_old[i]) {
       additions.push_back(i);
     }
@@ -542,10 +542,10 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   //   3) marked leaf, only the leaf portion of the below is relevant.
   for (QuadTreeLevel* level : levels) {
     for (QuadTreeNode* node : level->nodes) {
-      std::vector<unsigned int> ob, ab, s, r, sn, n;
+      std::vector<int> ob, ab, s, r, sn, n;
       if (node->is_leaf) {
-        for (unsigned int idx : node->src_dof_lists.original_box) {
-          unsigned int point_index = idx / solution_dimension;
+        for (int idx : node->src_dof_lists.original_box) {
+          int point_index = idx / solution_dimension;
           std::unordered_map<int, int>::const_iterator element =
             old_index_to_new_index.find(point_index);
           if (element != old_index_to_new_index.end()) {
@@ -555,8 +555,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
         }
         node->src_dof_lists.original_box = ob;
       }
-      for (unsigned int idx : node->src_dof_lists.active_box) {
-        unsigned int point_index = idx / solution_dimension;
+      for (int idx : node->src_dof_lists.active_box) {
+        int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
@@ -564,8 +564,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
                        + idx % solution_dimension);
         }
       }
-      for (unsigned int idx : node->src_dof_lists.skel) {
-        unsigned int point_index = idx / solution_dimension;
+      for (int idx : node->src_dof_lists.skel) {
+        int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
@@ -573,8 +573,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
                       + idx % solution_dimension);
         }
       }
-      for (unsigned int idx : node->src_dof_lists.redundant) {
-        unsigned int point_index = idx / solution_dimension;
+      for (int idx : node->src_dof_lists.redundant) {
+        int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
@@ -582,8 +582,8 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
                       + idx % solution_dimension);
         }
       }
-      for (unsigned int idx : node->src_dof_lists.skelnear) {
-        unsigned int point_index = idx / solution_dimension;
+      for (int idx : node->src_dof_lists.skelnear) {
+        int point_index = idx / solution_dimension;
         std::unordered_map<int, int>::const_iterator element =
           old_index_to_new_index.find(point_index);
         if (element != old_index_to_new_index.end()) {
@@ -601,7 +601,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   // go through all additions, find their leaves, make addition and call mark
   // function
   std::vector<QuadTreeNode*> maybe_bursting;
-  for (unsigned int i = 0; i < additions.size(); i++) {
+  for (int i = 0; i < additions.size(); i++) {
     double newx = new_points[2 * additions[i]];
     double newy = new_points[2 * additions[i] + 1];
     QuadTreeNode* current = root;
@@ -648,7 +648,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
   // function
   std::unordered_map<QuadTreeNode*, bool> sparse;
 
-  for (unsigned int i = 0; i < deletions.size(); i++) {
+  for (int i = 0; i < deletions.size(); i++) {
     double oldx = old_points[2 * deletions[i]];
     double oldy = old_points[2 * deletions[i] + 1];
     QuadTreeNode* current = root;
@@ -712,9 +712,9 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
     }
   }
   // For now, just recalculate neighbors the same as above.
-  for (unsigned int level = 0; level < levels.size(); level++) {
+  for (int level = 0; level < levels.size(); level++) {
     QuadTreeLevel* current_level = levels[level];
-    for (unsigned int k = 0; k < current_level->nodes.size(); k++) {
+    for (int k = 0; k < current_level->nodes.size(); k++) {
       QuadTreeNode* node_a = current_level->nodes[k];
 
       // Each node is neighbors with all its siblings
@@ -741,7 +741,7 @@ void QuadTree::perturb(const Boundary & perturbed_boundary) {
 
       // now if it is a leaf, check against nodes in all subsequent levels
       if (node_a->is_leaf) {
-        for (unsigned int n = 0; n < node_a->neighbors.size(); n++) {
+        for (int n = 0; n < node_a->neighbors.size(); n++) {
           QuadTreeNode* neighbor =  node_a->neighbors[n];
           // make sure this isn't a neighbor from a higher level
           if (neighbor->level != node_a->level) {
@@ -979,11 +979,11 @@ void QuadTree::remove_inactive_dofs_at_level(int level) {
         continue;
       }
       if (neighbor->is_leaf) {
-        for (unsigned int idx : neighbor->src_dof_lists.original_box) {
+        for (int idx : neighbor->src_dof_lists.original_box) {
           node_a->src_dof_lists.near.push_back(idx);
         }
       } else {
-        for (unsigned int idx : neighbor->src_dof_lists.active_box) {
+        for (int idx : neighbor->src_dof_lists.active_box) {
           node_a->src_dof_lists.near.push_back(idx);
         }
       }
@@ -1006,11 +1006,11 @@ void QuadTree::remove_inactive_dofs_at_box(QuadTreeNode* node) {
   if (!node->is_leaf) {
     for (QuadTreeNode* child : node->children) {
       if (child->compressed) {
-        for (unsigned int i : child->src_dof_lists.skel) {
+        for (int i : child->src_dof_lists.skel) {
           node->src_dof_lists.active_box.push_back(i);
         }
       } else {
-        for (unsigned int i : child->src_dof_lists.active_box) {
+        for (int i : child->src_dof_lists.active_box) {
           node->src_dof_lists.active_box.push_back(i);
         }
       }
@@ -1026,11 +1026,11 @@ void QuadTree::remove_inactive_dofs_at_box(QuadTreeNode* node) {
   if (!node->is_leaf) {
     for (QuadTreeNode* child : node->children) {
       if (child->compressed) {
-        for (unsigned int i : child->tgt_dof_lists.skel) {
+        for (int i : child->tgt_dof_lists.skel) {
           node->tgt_dof_lists.active_box.push_back(i);
         }
       } else {
-        for (unsigned int i : child->tgt_dof_lists.active_box) {
+        for (int i : child->tgt_dof_lists.active_box) {
           node->tgt_dof_lists.active_box.push_back(i);
         }
       }

@@ -12,11 +12,11 @@ namespace ie_solver {
 
 // TODO(John) URGENTLY skelnear needs to be replaced as a variable name
 
-std::vector<unsigned int> big_to_small(const std::vector<unsigned int>& big,
-                                       const std::unordered_map<unsigned int,
-                                       unsigned int>& map) {
-  std::vector<unsigned int> small;
-  for (unsigned int idx : big) {
+std::vector<int> big_to_small(const std::vector<int>& big,
+                                       const std::unordered_map<int,
+                                       int>& map) {
+  std::vector<int> small;
+  for (int idx : big) {
     small.push_back(map.at(idx));
   }
   return small;
@@ -49,9 +49,9 @@ int SkelFactorization::id_compress(const Kernel& kernel,
   if (pxy.height() == 0) {
     return 0;
   }
-  std::vector<unsigned int> p;
+  std::vector<int> p;
   double id_start = omp_get_wtime();
-  unsigned int numskel = pxy.id(&p, &node->T, id_tol);
+  int numskel = pxy.id(&p, &node->T, id_tol);
   double id_end = omp_get_wtime();
   id_time += (id_end - id_start);
   if (numskel == 0) {
@@ -76,15 +76,15 @@ int SkelFactorization::id_compress(const Kernel& kernel,
 void SkelFactorization::decouple(const Kernel& kernel, QuadTreeNode* node) {
 
   // height of Z is number of skeleton columns
-  unsigned int num_redundant = node->T.width();
-  unsigned int num_skel      = node->T.height();
+  int num_redundant = node->T.width();
+  int num_skel      = node->T.height();
   // GENERATE K_BN,BN
-  std::vector<unsigned int> BN;
-  for (unsigned int idx : node->src_dof_lists.active_box) {
+  std::vector<int> BN;
+  for (int idx : node->src_dof_lists.active_box) {
     BN.push_back(idx);
   }
   if (strong_admissibility) {
-    for (unsigned int idx : node->src_dof_lists.near) BN.push_back(idx);
+    for (int idx : node->src_dof_lists.near) BN.push_back(idx);
   }
   // Note that BN has all currently deactivated DoFs removed.
 
@@ -93,17 +93,17 @@ void SkelFactorization::decouple(const Kernel& kernel, QuadTreeNode* node) {
 
   ie_Mat K_BN = kernel(BN, BN) - update;
   // Generate various index ranges within BN
-  std::vector<unsigned int> s, r, n, sn;
-  for (unsigned int i = 0; i < num_skel; i++) {
+  std::vector<int> s, r, n, sn;
+  for (int i = 0; i < num_skel; i++) {
     s.push_back(node->src_dof_lists.permutation[i]);
     sn.push_back(node->src_dof_lists.permutation[i]);
   }
-  for (unsigned int i = 0; i < num_redundant; i++) {
+  for (int i = 0; i < num_redundant; i++) {
     r.push_back(node->src_dof_lists.permutation[i + num_skel]);
   }
 
   if (strong_admissibility) {
-    for (unsigned int i = 0; i < node->src_dof_lists.near.size(); i++) {
+    for (int i = 0; i < node->src_dof_lists.near.size(); i++) {
       n.push_back(i + num_redundant + num_skel);
       sn.push_back(i + num_redundant + num_skel);
     }
@@ -140,18 +140,18 @@ void report_num_threads(int level) {
 void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   double skel_start = omp_get_wtime();
   int node_counter = 0;
-  unsigned int lvls = tree->levels.size();
+  int lvls = tree->levels.size();
   // int active_dofs = tree->boundary->points.size() / 2;
   // make_mat_time = 0.0;
   // id_time = 0.0;
   // schur_time = 0;
   ie_Mat::proxy_time = 0.;
   ie_Mat::kernel_time = 0.;
-  for (unsigned int level = lvls - 1; level >  0; level--) {
+  for (int level = lvls - 1; level >  0; level--) {
     tree->remove_inactive_dofs_at_level(level);
     QuadTreeLevel* current_level = tree->levels[level];
     #pragma omp parallel for num_threads(num_threads)
-    for (unsigned int n = 0; n < current_level->nodes.size(); n++) {
+    for (int n = 0; n < current_level->nodes.size(); n++) {
       double node_start = omp_get_wtime();
       QuadTreeNode* current_node = current_level->nodes[n];
       if (current_node->compressed || current_node->src_dof_lists.active_box.size()
@@ -172,7 +172,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   // boxes up the tree.
   tree->remove_inactive_dofs_at_all_boxes();
 
-  std::vector<unsigned int> allskel = tree->root->src_dof_lists.active_box;
+  std::vector<int> allskel = tree->root->src_dof_lists.active_box;
   if (allskel.size() > 0) {
     ie_Mat allskel_updates = ie_Mat(allskel.size(), allskel.size());
     get_all_schur_updates(&allskel_updates, allskel, tree->root, false);
@@ -196,12 +196,12 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     }
   }
 
-  std::vector<unsigned int> sorted_allskel = allskel;
+  std::vector<int> sorted_allskel = allskel;
   std::sort(sorted_allskel.begin(), sorted_allskel.end());
-  unsigned int skel_idx = 0;
+  int skel_idx = 0;
 
-  std::vector<unsigned int> allredundant;
-  for (unsigned int i = 0;
+  std::vector<int> allredundant;
+  for (int i = 0;
        i < tree->boundary->weights.size()* tree->solution_dimension; i++) {
     if (skel_idx < sorted_allskel.size() && i == sorted_allskel[skel_idx]) {
       skel_idx++;
@@ -213,7 +213,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   // In our bordered linear system, the skel and redundant indices are
   // partitioned so we create a map from their original index into their
   // partition
-  std::unordered_map<unsigned int, unsigned int> skel_big2small, red_big2small;
+  std::unordered_map<int, int> skel_big2small, red_big2small;
   for (int i = 0; i < allskel.size(); i++) {
     skel_big2small[allskel[i]] = i;
   }
@@ -275,7 +275,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
     if (!current_node->compressed) {
       continue;
     }
-    std::vector<unsigned int> small_redundants = big_to_small(
+    std::vector<int> small_redundants = big_to_small(
           current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->X_rr_is_LU_factored);
     apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
@@ -320,7 +320,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
 
 
 void SkelFactorization::get_all_schur_updates(ie_Mat * updates,
-    const std::vector<unsigned int>& BN, const QuadTreeNode * node,
+    const std::vector<int>& BN, const QuadTreeNode * node,
     bool get_neighbors) const {
   assert(node != nullptr && "get_all_schur_updates fails on null node.");
   assert(BN.size() > 0 && "get_all_schur_updates needs positive num of DOFs");
@@ -337,7 +337,7 @@ void SkelFactorization::get_all_schur_updates(ie_Mat * updates,
 
 
 void SkelFactorization::get_descendents_updates(ie_Mat * updates,
-    const std::vector<unsigned int>& BN, const QuadTreeNode * node)  const {
+    const std::vector<int>& BN, const QuadTreeNode * node)  const {
   assert(node != nullptr && "get_descendents_updates fails on null node.");
   assert(!node->is_leaf &&
          "get_descendents_updates must be called on non-leaf.");
@@ -351,7 +351,7 @@ void SkelFactorization::get_descendents_updates(ie_Mat * updates,
 
 
 void SkelFactorization::get_update(ie_Mat * update,
-                                   const std::vector<unsigned int>& BN,
+                                   const std::vector<int>& BN,
                                    const QuadTreeNode * node)  const {
   // node needs to check all its dofs against BN, enter interactions into
   // corresponding locations
@@ -359,11 +359,11 @@ void SkelFactorization::get_update(ie_Mat * update,
   // relevant, so we only care about child's SN dofs
   // First create a list of Dofs that are also in node's skelnear,
   // and with each one give the index in skelnear and the index in BN
-  std::vector<unsigned int> BN_;
-  std::vector<unsigned int> sn_;
-  for (unsigned int sn_idx = 0; sn_idx < node->src_dof_lists.skelnear.size();
+  std::vector<int> BN_;
+  std::vector<int> sn_;
+  for (int sn_idx = 0; sn_idx < node->src_dof_lists.skelnear.size();
        sn_idx++) {
-    for (unsigned int bn_idx = 0; bn_idx < BN.size(); bn_idx++) {
+    for (int bn_idx = 0; bn_idx < BN.size(); bn_idx++) {
       if (BN[bn_idx] == node->src_dof_lists.skelnear[sn_idx]) {
         sn_.push_back(sn_idx);
         BN_.push_back(bn_idx);
@@ -372,8 +372,8 @@ void SkelFactorization::get_update(ie_Mat * update,
   }
   // For every pair of dofs shared by both, update their interaction
   int num_shared_by_both = BN_.size();
-  for (unsigned int i = 0; i < num_shared_by_both; i++) {
-    for (unsigned int j = 0; j < num_shared_by_both; j++) {
+  for (int i = 0; i < num_shared_by_both; i++) {
+    for (int j = 0; j < num_shared_by_both; j++) {
       update->addset(BN_[i], BN_[j], node->schur_update.get(sn_[i], sn_[j]));
     }
   }
@@ -385,8 +385,8 @@ void SkelFactorization::get_update(ie_Mat * update,
 
 // Sets vec(b) = vec(b) + mat*vec(a)
 void SkelFactorization::apply_sweep_matrix(const ie_Mat & mat, ie_Mat * vec,
-    const std::vector<unsigned int>& a,
-    const std::vector<unsigned int>& b,
+    const std::vector<int>& a,
+    const std::vector<int>& b,
     bool transpose = false) const {
   if (a.size()*b.size() == 0) return;
   if (transpose) {
@@ -407,7 +407,7 @@ void SkelFactorization::apply_sweep_matrix(const ie_Mat & mat, ie_Mat * vec,
 
 // Sets vec(range) = mat * vec(range)
 void SkelFactorization::apply_diag_matrix(const ie_Mat & mat, ie_Mat * vec,
-    const std::vector<unsigned int>& range)
+    const std::vector<int>& range)
 const {
   if (range.size() == 0) return;
   vec->set_submatrix(range,  0, vec->width(),  mat * (*vec)(range, 0,
@@ -417,7 +417,7 @@ const {
 
 void SkelFactorization::apply_diag_inv_matrix(const ie_Mat & mat,
     const std::vector<lapack_int>& piv, ie_Mat * vec,
-    const std::vector<unsigned int>& range) const {
+    const std::vector<int>& range) const {
   if (range.size() == 0) return;
   ie_Mat product(range.size(),  vec->width());
   mat.left_multiply_inverse((*vec)(range,  0, vec->width()), piv, &product);
@@ -468,7 +468,7 @@ void SkelFactorization::sparse_matvec(const QuadTree & quadtree,
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
 
-  std::vector<unsigned int> allskel =
+  std::vector<int> allskel =
     quadtree.root->src_dof_lists.active_box;
 
   if (allskel.size() > 0) {
@@ -563,7 +563,7 @@ void SkelFactorization::solve(const QuadTree & quadtree, ie_Mat * x,
   // We need all of the skeleton indices. This is just the negation of
   // [0,b.size()] and the redundant DoFs
   // with that in mind...
-  std::vector<unsigned int> allskel = quadtree.root->src_dof_lists.active_box;
+  std::vector<int> allskel = quadtree.root->src_dof_lists.active_box;
   if (allskel.size() > 0) {
     apply_diag_inv_matrix(quadtree.allskel_mat_lu, quadtree.allskel_mat_piv, x,
                           allskel);
@@ -572,7 +572,7 @@ void SkelFactorization::solve(const QuadTree & quadtree, ie_Mat * x,
     QuadTreeLevel* current_level = quadtree.levels[level];
     #pragma omp parallel for num_threads(num_threads)
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
-      // for(unsigned int n = 0; n < current_level->nodes.size(); n++){
+      // for(int n = 0; n < current_level->nodes.size(); n++){
 
       QuadTreeNode* current_node = current_level->nodes[n];
       if (!current_node->compressed) {
@@ -612,13 +612,13 @@ void SkelFactorization::multiply_connected_solve(const QuadTree & quadtree,
     }
   }
 
-  std::vector<unsigned int> allskel = quadtree.root->src_dof_lists.active_box;
-  std::vector<unsigned int> sorted_allskel = allskel;
+  std::vector<int> allskel = quadtree.root->src_dof_lists.active_box;
+  std::vector<int> sorted_allskel = allskel;
   std::sort(sorted_allskel.begin(), sorted_allskel.end());
-  unsigned int skel_idx = 0;
+  int skel_idx = 0;
 
-  std::vector<unsigned int> allredundant;
-  for (unsigned int i = 0;
+  std::vector<int> allredundant;
+  for (int i = 0;
        i < quadtree.boundary->weights.size()* quadtree.solution_dimension; i++) {
     if (skel_idx < sorted_allskel.size() && i == sorted_allskel[skel_idx]) {
       skel_idx++;
@@ -629,7 +629,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree & quadtree,
   // In our bordered linear system, the skel and redundant indices are
   // partitioned so we create a map from their original index into their
   // partition
-  std::unordered_map<unsigned int, unsigned int> skel_big2small, red_big2small;
+  std::unordered_map<int, int> skel_big2small, red_big2small;
   for (int i = 0; i < allskel.size(); i++) {
     skel_big2small[allskel[i]] = i;
   }
@@ -704,7 +704,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree & quadtree,
     if (!current_node->compressed) {
       continue;
     }
-    std::vector<unsigned int> small_redundants = big_to_small(
+    std::vector<int> small_redundants = big_to_small(
           current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->X_rr_is_LU_factored);
     apply_diag_inv_matrix(current_node->X_rr_lu, current_node->X_rr_piv,
@@ -741,7 +741,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree & quadtree,
     if (!current_node->compressed) {
       continue;
     }
-    std::vector<unsigned int> small_redundants = big_to_small(
+    std::vector<int> small_redundants = big_to_small(
           current_node->src_dof_lists.redundant, red_big2small);
     assert(current_node->X_rr_is_LU_factored);
 
@@ -757,7 +757,7 @@ void SkelFactorization::multiply_connected_solve(const QuadTree & quadtree,
     QuadTreeLevel* current_level = quadtree.levels[level];
     #pragma omp parallel for num_threads(num_threads)
     for (int n = current_level->nodes.size() - 1; n >= 0; n--) {
-      // for(unsigned int n = 0; n < current_level->nodes.size(); n++){
+      // for(int n = 0; n < current_level->nodes.size(); n++){
 
       QuadTreeNode* current_node = current_level->nodes[n];
       if (!current_node->compressed) {

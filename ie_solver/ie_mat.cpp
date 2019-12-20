@@ -73,7 +73,7 @@ ie_Mat& ie_Mat::operator= (ie_Mat&& move) {
 }
 
 
-ie_Mat::ie_Mat(unsigned int h, unsigned int w) {
+ie_Mat::ie_Mat(int h, int w) {
   lda_      = h;
   height_   = h;
   width_    = w;
@@ -82,39 +82,39 @@ ie_Mat::ie_Mat(unsigned int h, unsigned int w) {
 }
 
 
-double ie_Mat::get(unsigned int i, unsigned int j) const {
+double ie_Mat::get(int i, int j) const {
   assert(i < height_ && j < width_ && mat != NULL);
 
   return mat[i + lda_ * j];
 }
 
 
-void ie_Mat::set(unsigned int i, unsigned int j, double a) {
+void ie_Mat::set(int i, int j, double a) {
   assert(i < height_ && j < width_ && mat != NULL);
   mat[i + lda_ * j] = a;
 }
 
 
-void ie_Mat::addset(unsigned int i, unsigned int j, double a) {
+void ie_Mat::addset(int i, int j, double a) {
   assert(i < height_ && j < width_ && mat != NULL);
   mat[i + lda_ * j] += a;
 }
 
 
-void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
-                           const std::vector<unsigned int>& J_,
+void ie_Mat::set_submatrix(const std::vector<int>& I_,
+                           const std::vector<int>& J_,
                            const ie_Mat& A, bool transpose_A) {
   if (transpose_A) {
     assert(I_.size() == A.width_ && J_.size() == A.height_);
-    for (unsigned int i = 0; i < I_.size(); i++) {
-      for (unsigned int j = 0; j < J_.size(); j++) {
+    for (int i = 0; i < I_.size(); i++) {
+      for (int j = 0; j < J_.size(); j++) {
         set(I_[i], J_[j], A.get(j, i));
       }
     }
   } else {
     assert(I_.size() == A.height_ && J_.size() == A.width_);
-    for (unsigned int i = 0; i < I_.size(); i++) {
-      for (unsigned int j = 0; j < J_.size(); j++) {
+    for (int i = 0; i < I_.size(); i++) {
+      for (int j = 0; j < J_.size(); j++) {
         set(I_[i], J_[j], A.get(i, j));
       }
     }
@@ -122,19 +122,19 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 }
 
 
-void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
-                           unsigned int col_s, unsigned int col_e,
+void ie_Mat::set_submatrix(int row_s, int row_e,
+                           int col_s, int col_e,
                            const ie_Mat& A, bool transpose_A, bool timing) {
   if (transpose_A) {
-    for (unsigned int i = 0; i < row_e - row_s; i++) {
-      for (unsigned int j = 0; j < col_e - col_s; j++) {
+    for (int i = 0; i < row_e - row_s; i++) {
+      for (int j = 0; j < col_e - col_s; j++) {
         set(i + row_s, j + col_s, A.get(j, i));
       }
     }
     assert(row_e - row_s == A.width_ && col_e - col_s == A.height_);
   } else {
     assert(row_e - row_s == A.height_ && col_e - col_s == A.width_);
-    for (unsigned int j = 0; j < col_e - col_s; j++) {
+    for (int j = 0; j < col_e - col_s; j++) {
       memcpy(&(mat[row_s + lda_ * (j + col_s)]), &(A.mat[A.lda_ * j]),
              (row_e - row_s)*sizeof(double));
     }
@@ -142,20 +142,20 @@ void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
 }
 
 
-void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
-                           unsigned int col_s, unsigned int col_e,
+void ie_Mat::set_submatrix(const std::vector<int>& I_,
+                           int col_s, int col_e,
                            const ie_Mat& A, bool transpose_A) {
   if (transpose_A) {
     assert(I_.size() == A.width_ &&  col_e - col_s  == A.height_);
-    for (unsigned int i = 0; i < I_.size(); i++) {
-      for (unsigned int j = 0; j < col_e - col_s; j++) {
+    for (int i = 0; i < I_.size(); i++) {
+      for (int j = 0; j < col_e - col_s; j++) {
         set(I_[i], j + col_s, A.get(j, i));
       }
     }
   } else {
     assert(I_.size() == A.height_ &&  col_e - col_s  == A.width_);
-    for (unsigned int i = 0; i < I_.size(); i++) {
-      for (unsigned int j = 0; j < col_e - col_s; j++) {
+    for (int i = 0; i < I_.size(); i++) {
+      for (int j = 0; j < col_e - col_s; j++) {
         set(I_[i], j + col_s, A.get(i, j));
       }
     }
@@ -163,19 +163,19 @@ void ie_Mat::set_submatrix(const std::vector<unsigned int>& I_,
 }
 
 
-void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
-                           const std::vector<unsigned int>& J_,
+void ie_Mat::set_submatrix(int row_s, int row_e,
+                           const std::vector<int>& J_,
                            const ie_Mat& A, bool transpose_A) {
   if (transpose_A) {
     assert(row_e - row_s == A.width_ && J_.size() == A.height_);
-    for (unsigned int i = 0; i < row_e - row_s; i++) {
-      for (unsigned int j = 0; j < J_.size(); j++) {
+    for (int i = 0; i < row_e - row_s; i++) {
+      for (int j = 0; j < J_.size(); j++) {
         set(i + row_s, J_[j], A.get(j, i));
       }
     }
   } else {
     assert(row_e - row_s == A.height_ && J_.size() == A.width_);
-    for (unsigned int j = 0; j < J_.size(); j++) {
+    for (int j = 0; j < J_.size(); j++) {
       memcpy(&(mat[row_s + lda_ * J_[j] ]), &(A.mat[A.lda_ * j]),
              (row_e - row_s)*sizeof(double));
     }
@@ -183,11 +183,11 @@ void ie_Mat::set_submatrix(unsigned int row_s, unsigned int row_e,
 }
 
 
-ie_Mat ie_Mat::operator()(unsigned int row_s, unsigned int row_e,
-                          unsigned int col_s, unsigned int col_e) const {
+ie_Mat ie_Mat::operator()(int row_s, int row_e,
+                          int col_s, int col_e) const {
   ie_Mat submatrix(row_e - row_s, col_e - col_s);
-  for (unsigned int i = 0; i < row_e - row_s; i++) {
-    for (unsigned int j = 0; j < col_e - col_s; j++) {
+  for (int i = 0; i < row_e - row_s; i++) {
+    for (int j = 0; j < col_e - col_s; j++) {
       submatrix.set(i, j, this->get(i + row_s, j + col_s));
     }
   }
@@ -203,15 +203,15 @@ void ie_Mat::transpose_into(ie_Mat* transpose) const {
     transpose->width_  = height_;
     transpose->mat     = new double[height_ * width_];
   }
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       transpose->mat[j + i * width_] = mat[i + lda_ * j];
     }
   }
 }
 
 
-void ie_Mat::eye(unsigned int n) {
+void ie_Mat::eye(int n) {
   if (width_ != n || height_ != n || lda_ != n) {
     if (mat) delete[] mat;
     lda_    = n;
@@ -219,18 +219,18 @@ void ie_Mat::eye(unsigned int n) {
     width_  = n;
     mat     = new double[height_ * width_];
   }
-  for (unsigned int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     set(i, i, 1.0);
   }
 }
 
 
-unsigned int ie_Mat::height() const {
+int ie_Mat::height() const {
   return height_;
 }
 
 
-unsigned int ie_Mat::width() const {
+int ie_Mat::width() const {
   return width_;
 }
 
@@ -238,8 +238,8 @@ unsigned int ie_Mat::width() const {
 ie_Mat& ie_Mat::operator-=(const ie_Mat& o) {
   assert(o.height_ == height_ && o.width_ == width_);
 
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       mat[i + lda_ * j] =  mat[i + lda_ * j] - o. mat[i + lda_ * j];
     }
   }
@@ -249,8 +249,8 @@ ie_Mat& ie_Mat::operator-=(const ie_Mat& o) {
 
 ie_Mat& ie_Mat::operator+=(const ie_Mat& o) {
   assert(o.height_ == height_ && o.width_ == width_);
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       mat[i + lda_ * j] =  mat[i + lda_ * j] + o.mat[i + lda_ * j];
     }
   }
@@ -259,8 +259,8 @@ ie_Mat& ie_Mat::operator+=(const ie_Mat& o) {
 
 
 ie_Mat& ie_Mat::operator*=(double o) {
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       mat[i + lda_ * j] =  mat[i + lda_ * j] * o;
     }
   }
@@ -269,8 +269,8 @@ ie_Mat& ie_Mat::operator*=(double o) {
 
 ie_Mat& ie_Mat::operator/=(double o) {
   assert(std::abs(o) > 1e-8 && "Error: divide matrix by 0.");
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       mat[i + lda_ * j] =  mat[i + lda_ * j] / o;
     }
   }
@@ -280,8 +280,8 @@ ie_Mat& ie_Mat::operator/=(double o) {
 
 ie_Mat ie_Mat::operator-() const {
   ie_Mat result(height_, width_);
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       result.set(i, j, -this->get(i, j));
     }
   }
@@ -292,8 +292,8 @@ ie_Mat ie_Mat::operator-() const {
 ie_Mat ie_Mat::operator-(const ie_Mat& o) const {
   assert(o.height_ == height_ && o.width_ == width_);
   ie_Mat result(height_, width_);
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       result.set(i, j, this->get(i, j) - o.get(i, j));
     }
   }
@@ -304,8 +304,8 @@ ie_Mat ie_Mat::operator-(const ie_Mat& o) const {
 ie_Mat ie_Mat::operator+(const ie_Mat& o) const {
   assert(o.height_ == height_ && o.width_ == width_);
   ie_Mat sum(height_, width_);
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       sum.set(i, j, this->get(i, j) + o.get(i, j));
     }
   }
@@ -326,8 +326,8 @@ ie_Mat ie_Mat::operator*(const ie_Mat& o) const {
 
 ie_Mat ie_Mat::operator*(double o) const {
   ie_Mat result(height_, width_);
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       result.set(i, j, this->get(i, j) *o);
     }
   }
@@ -338,8 +338,8 @@ ie_Mat ie_Mat::operator*(double o) const {
 ie_Mat ie_Mat::operator/(double o) const {
   assert(std::abs(o) > 1e-8 && "Error: divide matrix by 0.");
   ie_Mat result(height_, width_);
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       result.set(i, j, this->get(i, j) / o);
     }
   }
@@ -348,12 +348,12 @@ ie_Mat ie_Mat::operator/(double o) const {
 
 
 // TODO(John) shouldn't this->I have the underscore after it, not this arg?
-ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
-                          const std::vector<unsigned int>& J_) const {
+ie_Mat ie_Mat::operator()(const std::vector<int>& I_,
+                          const std::vector<int>& J_) const {
   ie_Mat ret(I_.size(), J_.size());
   int olda_ = I_.size();
-  for (unsigned int i = 0; i < I_.size(); i++) {
-    for (unsigned int j = 0; j < J_.size(); j++) {
+  for (int i = 0; i < I_.size(); i++) {
+    for (int j = 0; j < J_.size(); j++) {
       assert(I_[i] < height() && J_[j] < width());
       ret.mat[i + olda_ * j] = get(I_[i], J_[j]);
     }
@@ -362,12 +362,12 @@ ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
 }
 
 
-ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
-                          unsigned int col_s, unsigned int col_e) const {
+ie_Mat ie_Mat::operator()(const std::vector<int>& I_,
+                          int col_s, int col_e) const {
   ie_Mat ret(I_.size(), col_e - col_s);
   int olda_ = I_.size();
-  for (unsigned int i = 0; i < I_.size(); i++) {
-    for (unsigned int j = 0; j < col_e - col_s; j++) {
+  for (int i = 0; i < I_.size(); i++) {
+    for (int j = 0; j < col_e - col_s; j++) {
       assert(I_[i] < height() && col_s + j < width());
       ret.mat[i + olda_ * j] = get(I_[i], col_s + j);
     }
@@ -376,12 +376,12 @@ ie_Mat ie_Mat::operator()(const std::vector<unsigned int>& I_,
 }
 
 
-ie_Mat ie_Mat::operator()(unsigned int row_s, unsigned int row_e,
-                          const std::vector<unsigned int>& J_) const {
+ie_Mat ie_Mat::operator()(int row_s, int row_e,
+                          const std::vector<int>& J_) const {
   ie_Mat ret(row_e - row_s, J_.size());
   int olda_ = row_e - row_s;
-  for (unsigned int i = 0; i < row_e - row_s; i++) {
-    for (unsigned int j = 0; j < J_.size(); j++) {
+  for (int i = 0; i < row_e - row_s; i++) {
+    for (int j = 0; j < J_.size(); j++) {
       assert(row_s + i < height() && J_[j] < width());
       ret.mat[i + olda_ * j] = get(row_s + i, J_[j]);
     }
@@ -392,8 +392,8 @@ ie_Mat ie_Mat::operator()(unsigned int row_s, unsigned int row_e,
 
 double ie_Mat::frob_norm() const {
   double sum = 0;
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       sum += pow(get(i, j), 2);
     }
   }
@@ -402,8 +402,8 @@ double ie_Mat::frob_norm() const {
 
 double ie_Mat::max_entry_magnitude() const {
   double max = 0;
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       max = std::max(max, std::abs(get(i, j)));
     }
   }
@@ -413,9 +413,9 @@ double ie_Mat::max_entry_magnitude() const {
 
 double ie_Mat::one_norm() const {
   double top = 0;
-  for (unsigned int j = 0; j < width_; j++) {
+  for (int j = 0; j < width_; j++) {
     double sum = 0;
-    for (unsigned int i = 0; i < height_; i++) {
+    for (int i = 0; i < height_; i++) {
       sum += fabs(get(i, j));
     }
     if (sum > top) {
@@ -432,7 +432,7 @@ double ie_Mat::vec_two_norm() const {
 }
 
 
-void ie_Mat::rand_vec(unsigned int dofs) {
+void ie_Mat::rand_vec(int dofs) {
   // check if we need a resize
   if (width_ != 1 || height_ != dofs || lda_ != dofs) {
     if (mat) delete[] mat;
@@ -441,7 +441,7 @@ void ie_Mat::rand_vec(unsigned int dofs) {
     width_  = 1;
     mat     = new double[height_ * width_];
   }
-  for (unsigned int i = 0; i < dofs; i++) {
+  for (int i = 0; i < dofs; i++) {
     mat[i] = rand() / (0.0 + RAND_MAX);
   }
 }
@@ -546,7 +546,7 @@ double ie_Mat::condition_number() const {
 // Performs interpolative decomposition, and returns number of skeleton columns.
 // Takes double /tol/, tolerance factorfor error in CPQR factorization.
 // Populates /p/ with permutation, Z with linear transformation.
-int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
+int ie_Mat::id(std::vector<int>* p, ie_Mat* Z, double tol) const {
   ie_Mat cpy = *this;
   assert(height() != 0 &&  width() != 0);
   std::vector<lapack_int> pvt(width_);
@@ -557,10 +557,10 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
   int info1 = LAPACKE_dgeqp3(CblasColMajor, height_, width_, cpy.mat, lda_,
                              &pvt[0], &tau[0]);
   assert(info1 == 0);
-  unsigned int skel = 0;
+  int skel = 0;
 
   double thresh = fabs(tol * cpy.get(0, 0));
-  for (unsigned int i = 1; i < width_; i++) {
+  for (int i = 1; i < width_; i++) {
     // check if R_{i,i} / R_{0,0} < tol
     if (fabs(cpy.get(i, i)) < thresh) {
       skel = i;
@@ -571,7 +571,7 @@ int ie_Mat::id(std::vector<unsigned int>* p, ie_Mat* Z, double tol) const {
     // no compression to be done :/
     return 0;
   }
-  for (unsigned int i = 0; i < width_; i++) {
+  for (int i = 0; i < width_; i++) {
     p->push_back(pvt[i] - 1);
   }
 
@@ -597,7 +597,7 @@ std::vector<double> ie_Mat::real_eigenvalues() {
                            width_, eigs, imags,
                            nullptr, 1, nullptr, 1);
   assert(info == 0);
-  for (unsigned int i = 0; i < width_; i++) {
+  for (int i = 0; i < width_; i++) {
     if (fabs(imags[i]) < 1e-14) {
       eigvs.push_back(eigs[i]);
     }
@@ -611,8 +611,8 @@ std::vector<double> ie_Mat::real_eigenvalues() {
 
 void ie_Mat::print() const {
   std::string message = "\n(Printing matrix*1000)\n";
-  for (unsigned int i = 0; i < height_; i++) {
-    for (unsigned int j = 0; j < width_; j++) {
+  for (int i = 0; i < height_; i++) {
+    for (int j = 0; j < width_; j++) {
       message += std::to_string(1000 * get(i, j)) + " ";
     }
     message += "\n";
@@ -636,7 +636,7 @@ void ie_Mat::write_singular_values_to_file(const std::string& filename) const {
                                    &(superb[0]));
   assert(info == 0);
   if (output.is_open()) {
-    for (unsigned int i = 0; i < sing.size(); i++) {
+    for (int i = 0; i < sing.size(); i++) {
       output << sing[i] << std::endl;
     }
     output.close();

@@ -15,7 +15,7 @@ void io::write_boundary_to_file(const std::string& filename,
   std::ofstream output;
   output.open(filename);
   if (output.is_open()) {
-    for (unsigned int i = 0; i < points.size(); i += 2) {
+    for (int i = 0; i < points.size(); i += 2) {
       output << points[i] << "," << points[i + 1] << std::endl;
     }
     output.close();
@@ -39,7 +39,7 @@ void io::write_times_to_files(int* scale_n,
   e_output.open("output/data/ie_solver_e_scaling.txt");
 
   if (n_output.is_open()) {
-    for (unsigned int i = 0; i < n_times.size(); i++) {
+    for (int i = 0; i < n_times.size(); i++) {
       n_output << scale_n[i] << "," << n_times[i] << std::endl;
     }
     n_output.close();
@@ -48,7 +48,7 @@ void io::write_times_to_files(int* scale_n,
   }
 
   if (e_output.is_open()) {
-    for (unsigned int i = 0; i < eps_times.size(); i++) {
+    for (int i = 0; i < eps_times.size(); i++) {
       e_output << scale_eps[i] << "," << eps_times[i] << std::endl;
     }
     e_output.close();
@@ -69,7 +69,7 @@ void io::write_solution_to_file(const std::string& filename,
   int points_index = 0;
 
   if (output.is_open()) {
-    for (unsigned int i = 0; i < domain.height(); i += solution_dimension) {
+    for (int i = 0; i < domain.height(); i += solution_dimension) {
       output << domain_points[points_index] << "," <<
              domain_points[points_index + 1] << ",";
       points_index += 2;  // depends on domain dimension

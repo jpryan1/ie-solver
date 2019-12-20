@@ -37,7 +37,7 @@ void Annulus::initialize(int N, BoundaryCondition bc) {
     weights.push_back(2 * M_PI / N);
   }
 
-  for (unsigned int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
+  for (int hole_idx = 0; hole_idx < holes.size(); hole_idx++) {
     Hole hole = holes[hole_idx];
     int start_idx = N + hole_nodes * hole_idx;
     int end_idx = N + hole_nodes * (hole_idx + 1);
