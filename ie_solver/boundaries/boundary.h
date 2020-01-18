@@ -25,6 +25,7 @@ enum BoundaryCondition {
   REVERSE_NORMAL_VEC,
   LEFT_TO_RIGHT_FLOW,
   NO_SLIP,
+  ALL_ONE_VEC,
   DEFAULT  // This is special, means use BC inherent to experiment/function.
 };
 

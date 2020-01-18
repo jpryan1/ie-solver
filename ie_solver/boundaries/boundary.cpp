@@ -83,6 +83,10 @@ void Boundary::apply_boundary_condition(int start_point_idx, int end_point_idx,
         boundary_values.set(2 * point_idx, 0, -normals[2 * point_idx ]);
         boundary_values.set(2 * point_idx + 1, 0, -normals[2 * point_idx + 1]);
         break;
+      }case HORIZONTAL_VEC: {
+        boundary_values.set(2 * point_idx, 0, 1.);
+        boundary_values.set(2 * point_idx + 1, 0, 0.);
+        break;
       }
       case LEFT_TO_RIGHT_FLOW: {
         double x = points[2 * point_idx];

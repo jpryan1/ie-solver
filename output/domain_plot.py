@@ -7,24 +7,24 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
-# Ex 1 
-# is_channel_plot = False
-# ARROW_LENGTH = 0.4 
-# BORDER_WIDTH = 8
-# HEAD_WIDTH = 3
-# QUIVER_RES_X = 10
-# QUIVER_RES_Y = 10
-# BOUNDARY_RES = 5
-# ZOOM = 1
-# TICK_LABEL_SIZE = 40
-# TICKS = [0.15, 0.65, 1.15]
-# OUTPUT_FILE = "ex1.eps"
+# Ex 1
+is_channel_plot = False
+ARROW_LENGTH = 0.4
+BORDER_WIDTH = 8
+HEAD_WIDTH = 3
+QUIVER_RES_X = 10
+QUIVER_RES_Y = 10
+BOUNDARY_RES = 5
+ZOOM = 1
+TICK_LABEL_SIZE = 40
+TICKS = [0.15, 0.65, 1.15]
+OUTPUT_FILE = "ex1.eps"
 # config.num_boundary_points = pow(2, 14);
 # config.domain_size = 200;
 
 # Ex 2
 # is_channel_plot = True
-# ARROW_LENGTH = 0.4 
+# ARROW_LENGTH = 0.4
 # BORDER_WIDTH = 8
 # HEAD_WIDTH = 5
 # QUIVER_RES_X = 20
@@ -39,7 +39,7 @@ import matplotlib.pyplot as plt
 
 # Ex 3
 # is_channel_plot = False
-# ARROW_LENGTH = None 
+# ARROW_LENGTH = None
 # BORDER_WIDTH = 8
 # HEAD_WIDTH = None
 # QUIVER_RES_X = None
@@ -51,18 +51,20 @@ import matplotlib.pyplot as plt
 # OUTPUT_FILE = "ex3.eps"
 # config.num_boundary_points = pow(2, 14);
 # config.domain_size = 200;
+
+
 # Ex 4
-is_channel_plot = True
-ARROW_LENGTH = 0.4 
-BORDER_WIDTH = 8
-HEAD_WIDTH = 5
-QUIVER_RES_X = 20
-QUIVER_RES_Y = 10
-BOUNDARY_RES = 1
-ZOOM = 1.65
-TICK_LABEL_SIZE = 20
-TICKS = [0.25, 1, 1.75]
-OUTPUT_FILE = "ex4.eps"
+# is_channel_plot = False
+# ARROW_LENGTH = 0.4
+# BORDER_WIDTH = 8
+# HEAD_WIDTH = 3
+# QUIVER_RES_X = 5
+# QUIVER_RES_Y = 5
+# BOUNDARY_RES = 5
+# ZOOM = 1
+# TICK_LABEL_SIZE = 40
+# TICKS = [0.15, 0.65, 1.15]
+# OUTPUT_FILE = "ex4.eps"
 # config.num_boundary_points = pow(2, 12);
 # config.domain_size = 400;
 
@@ -84,7 +86,7 @@ if is_stokes:
 	CMAP = copy(matplotlib.cm.viridis)
 else:
 	CMAP = copy(matplotlib.cm.hot)
-CMAP.set_bad("white",1.)	
+CMAP.set_bad("white",1.)
 solution_dim = int(np.sqrt(len(solution_lines)))
 solution_grid = np.array([[MASKED_VALUE for x in range(solution_dim)] for y in range(solution_dim)])
 
@@ -99,8 +101,8 @@ for i in range(solution_dim):
 		max_sol_y = max(max_sol_y, (linesplit[1]))
 
 		mag = np.sqrt((linesplit[2])**2 + (linesplit[3])**2) if is_stokes \
-			else linesplit[2] 
-		solution_grid[i][j] = mag if mag!=0 else MASKED_VALUE 
+			else linesplit[2]
+		solution_grid[i][j] = mag if mag!=0 else MASKED_VALUE
 		if(is_stokes):
 			if(i % QUIVER_RES_X != 0 or j % QUIVER_RES_Y != 0 \
 				or np.sqrt((linesplit[2])**2 + (linesplit[3])**2)<0.1):
@@ -141,14 +143,15 @@ xl, xr = ax.get_xlim()
 yl, yr = ax.get_ylim()
 l = min(xl,yl)-0.01
 r = max(xr,yr)+0.01
-ax.set_xlim((l - (r+l)/2.)/ZOOM + (r+l)/2., (r - (r+l)/2.)/ZOOM + (r+l)/2.)  
+ax.set_xlim((l - (r+l)/2.)/ZOOM + (r+l)/2., (r - (r+l)/2.)/ZOOM + (r+l)/2.)
 
 if(is_channel_plot):
 	yl-=0.2
 	yr+=0.2
-	ax.set_ylim((yl - (yr+yl)/2.)/ZOOM + (yr+yl)/2., (yr - (yr+yl)/2.)/ZOOM + (yr+yl)/2.)  
+	ax.set_ylim((yl - (yr+yl)/2.)/ZOOM + (yr+yl)/2., (yr - (yr+yl)/2.)/ZOOM + (yr+yl)/2.)
 else:
-	ax.set_ylim((l - (r+l)/2.)/ZOOM + (r+l)/2., (r - (r+l)/2.)/ZOOM + (r+l)/2.)  
+	ax.set_ylim((l - (r+l)/2.)/ZOOM + (r+l)/2., (r - (r+l)/2.)/ZOOM + (r+l)/2.)
 
-plt.savefig(OUTPUT_FILE, bbox_inches="tight", format="eps")
+# plt.savefig(OUTPUT_FILE, bbox_inches="tight", format="eps")
+plt.savefig(OUTPUT_FILE)
 plt.show()
