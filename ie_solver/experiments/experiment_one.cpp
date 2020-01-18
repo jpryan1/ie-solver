@@ -51,39 +51,12 @@ void run_experiment1(int N) {
   ie_Mat solution = boundary_integral_solve(config, &quadtree,
                     domain_points);
 
-  
-  int FRAME_CAP = 1;
-  for (int frame = 0; frame < FRAME_CAP; frame++) {
-    double ang = (frame / (0.0 + FRAME_CAP)) * 2 * M_PI;
+  boundary->perturbation_parameters[0] = (M_PI / 2.) + 0.1;
+  boundary->initialize(config.num_boundary_points, config.boundary_condition);
 
-    boundary->perturbation_parameters[0] = ang;
-    boundary->initialize(config.num_boundary_points,
-                                   config.boundary_condition);
-
-    quadtree.perturb(*boundary.get());
-
-    solution = boundary_integral_solve(config, &quadtree,
-                                       domain_points);
-    io::write_solution_to_file("output/bake/sol/" + std::to_string(frame)
-                               + ".txt", solution, domain_points,
-                               config.solution_dimension);
-    io::write_boundary_to_file("output/bake/boundary/" + std::to_string(
-                                 frame)  + ".txt",
-                               boundary->points);
-    io::write_quadtree_to_file("output/bake/tree/" + std::to_string(
-                                 frame)  + ".txt", quadtree);
-  }
-
-  // ie_Mat solution = boundary_integral_solve(config, &quadtree,
-  //                   domain_points);
-  // io::write_solution_to_file("output/data/ie_solver_solution.txt", solution,
-  //                            domain_points,
-  //                            config.solution_dimension);
-  // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
-  //                            boundary->points);
-  // io::write_quadtree_to_file("output/bake/tree/ie_solver_tree.txt", quadtree);
+  quadtree.perturb(*boundary.get());
+  solution = boundary_integral_solve(config, &quadtree, domain_points);
 }
-
 
 }  // namespace ie_solver
 
@@ -91,7 +64,7 @@ void run_experiment1(int N) {
 int main(int argc, char** argv) {
   srand(0);
   std::cout << "\nEXPERIMENT ONE" << std::endl;
-  for (int i = 8; i < 18; i++) {
+  for (int i = 15; i < 20 ; i++) {
     std::cout << "i = " << i << std::endl;
     for (int k = 0; k < 3; k++) {
       ie_solver::run_experiment1(pow(2, i));

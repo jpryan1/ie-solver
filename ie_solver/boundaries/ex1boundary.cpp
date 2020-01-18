@@ -48,32 +48,16 @@ void Ex1Boundary::get_spline_points(std::vector<double>* x0_points,
 
 void Ex1Boundary::get_star_spline_points(double x, double y,
     std::vector<double>* x0_points, std::vector<double>* x1_points) {
-  double longer = 0.05;
-  double shorter = 0.02;
 
-  x0_points->push_back(x);
-  x1_points->push_back(y - longer);
+  for (int i = 0; i < 20; i++) {
+    double ang = 2 * M_PI * (i / (20.));
 
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y - shorter);
+    double xc =  0.015 * cos(ang) * (sin(5 * ang) + 4);
+    double yc =  0.015 * sin(ang) * (sin(5 * ang) + 4);
 
-  x0_points->push_back(x + longer);
-  x1_points->push_back(y);
-
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x);
-  x1_points->push_back(y + longer);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x - longer);
-  x1_points->push_back(y);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y - shorter);
+    x0_points->push_back(x + xc);
+    x1_points->push_back(y + yc);
+  }
 }
 
 
@@ -86,11 +70,11 @@ void Ex1Boundary::initialize(int N, BoundaryCondition bc) {
   holes.clear();
 
   if (perturbation_parameters.size() == 0) {
-    perturbation_parameters.push_back(0);
+    perturbation_parameters.push_back(M_PI / 2.);
   }
 
   int OUTER_NUM_SPLINE_POINTS = 24;
-  int STAR_NUM_SPLINE_POINTS = 8;
+  int STAR_NUM_SPLINE_POINTS = 20;
 
   int OUTER_NODES_PER_SPLINE = (2 * N / 3) / OUTER_NUM_SPLINE_POINTS;
   int STAR_NODES_PER_SPLINE = (N / 12) / STAR_NUM_SPLINE_POINTS;

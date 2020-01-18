@@ -18,7 +18,6 @@
 #include "ie_solver/boundaries/ex1boundary.h"
 #include "ie_solver/boundaries/ex2boundary.h"
 #include "ie_solver/boundaries/ex3boundary.h"
-#include "ie_solver/boundaries/ex4boundary.h"
 
 namespace ie_solver {
 
@@ -73,9 +72,6 @@ void QuadTree::initialize_tree(Boundary* boundary_,
       break;
     case Boundary::BoundaryShape::EX3:
       boundary = new Ex3Boundary();
-      break;
-    case Boundary::BoundaryShape::EX4:
-      boundary = new Ex4Boundary();
       break;
   }
 
@@ -940,9 +936,6 @@ void QuadTree::copy_into(QuadTree* new_tree) const {
       break;
     case Boundary::BoundaryShape::EX3:
       new_tree->boundary = new Ex3Boundary();
-      break;
-    case Boundary::BoundaryShape::EX4:
-      new_tree->boundary = new Ex4Boundary();
       break;
   }
 
