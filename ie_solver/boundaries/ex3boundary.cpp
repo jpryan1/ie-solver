@@ -26,32 +26,15 @@ void Ex3Boundary::get_spline_points(std::vector<double>* x0_spline_points,
 
 void Ex3Boundary::get_star_spline_points(double x, double y,
     std::vector<double>* x0_points, std::vector<double>* x1_points) {
-  double longer = 0.3;
-  double shorter = 0.12;
+  for (int i = 0; i < 20; i++) {
+    double ang = 2 * M_PI * (i / (20.));
 
-  x0_points->push_back(x);
-  x1_points->push_back(y - longer);
+    double xc =  0.06 * cos(ang) * (sin(5 * ang) + 4);
+    double yc =  0.06 * sin(ang) * (sin(5 * ang) + 4);
 
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y - shorter);
-
-  x0_points->push_back(x + longer);
-  x1_points->push_back(y);
-
-  x0_points->push_back(x + shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x);
-  x1_points->push_back(y + longer);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y + shorter);
-
-  x0_points->push_back(x - longer);
-  x1_points->push_back(y);
-
-  x0_points->push_back(x - shorter);
-  x1_points->push_back(y - shorter);
+    x0_points->push_back(x + xc);
+    x1_points->push_back(y + yc);
+  }
 }
 
 
@@ -64,13 +47,12 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
   holes.clear();
 
   int OUTER_NUM_SPLINE_POINTS = 20;
-  int STAR_NUM_SPLINE_POINTS = 8;
+  int STAR_NUM_SPLINE_POINTS = 20;
 
   int OUTER_NODES_PER_SPLINE = (2 * N / 3) / OUTER_NUM_SPLINE_POINTS;
   int STAR_NODES_PER_SPLINE = (N / 6) / STAR_NUM_SPLINE_POINTS;
 
   num_outer_nodes = OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
-
 
   if (perturbation_parameters.size() == 0) {
     perturbation_parameters.push_back(0);
@@ -123,7 +105,7 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
 
   interpolate(true, STAR_NODES_PER_SPLINE, star2_x0_cubics, star2_x1_cubics);
 
-  if (bc == BoundaryCondition::DEFAULT) {
+  if (bc == BoundaryCondition::EX3A) {
     boundary_values = ie_Mat(weights.size(), 1);
     int b1 =  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
     int b2 = b1 + STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
@@ -131,6 +113,17 @@ void Ex3Boundary::initialize(int N, BoundaryCondition bc) {
     apply_boundary_condition(0, b1, BoundaryCondition::ALL_ZEROS);
     apply_boundary_condition(b1, b2, BoundaryCondition::ALL_ONES);
     apply_boundary_condition(b2, b3, BoundaryCondition::ALL_NEG_ONES);
+  } else if (bc == BoundaryCondition::EX3B) {
+    boundary_values = ie_Mat(2 * weights.size(), 1);
+    int b1 =  OUTER_NUM_SPLINE_POINTS * OUTER_NODES_PER_SPLINE;
+    int b2 = b1 + STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+    int b3 = b2 + STAR_NUM_SPLINE_POINTS * STAR_NODES_PER_SPLINE;
+    apply_boundary_condition(0, b1, BoundaryCondition::HORIZONTAL_VEC);
+    apply_boundary_condition(b1, b2, BoundaryCondition::REVERSE_NORMAL_VEC);
+    apply_boundary_condition(b2, b3, BoundaryCondition::NORMAL_VEC);
+  } else if (bc == BoundaryCondition::DEFAULT) {
+    std::cout << "No default boundary condition for ex3boundary" << std::endl;
+    exit(0);
   } else {
     set_boundary_values_size(bc);
     apply_boundary_condition(0, weights.size(), bc);

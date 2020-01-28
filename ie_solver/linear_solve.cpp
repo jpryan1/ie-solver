@@ -125,7 +125,7 @@ void linear_solve(const SkelFactorization& skel_factorization,
     skel_factorization.multiply_connected_solve(quadtree, mu, alpha, f);
   }
   double end = omp_get_wtime();
-  std::cout << "timing: linear_solve " << (end - start) << std::endl;
+  // std::cout << "timing: linear_solve " << (end - start) << std::endl;
 }
 
 // void linear_solve(const SkelFactorization& skel_factorization,

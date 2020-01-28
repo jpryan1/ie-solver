@@ -181,7 +181,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   if (tree->U.width() == 0) {
     tree->allskel_mat.LU_factorize(&tree->allskel_mat_lu, &tree->allskel_mat_piv);
     double skel_end = omp_get_wtime();
-    std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+    // std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
     return;
   }
 
@@ -305,7 +305,7 @@ void SkelFactorization::skeletonize(const Kernel& kernel, QuadTree* tree) {
   S.LU_factorize(&tree->S_LU, &tree->S_piv);
 
   double skel_end = omp_get_wtime();
-  std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
+  // std::cout << "timing: skeletonize " << (skel_end - skel_start) << std::endl;
 
 }
 
