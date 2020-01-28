@@ -652,8 +652,8 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
   int FRAME_CAP = 10;
   for (int frame = 0; frame < FRAME_CAP; frame++) {
     int rand_idx = floor(8 * (rand() / (0. + RAND_MAX)));
-    perturbed_boundary->perturbation_parameters[rand_idx] = 0.3
-        + 0.4 * (rand() / (0. + RAND_MAX));
+    perturbed_boundary->perturbation_parameters[rand_idx] = 0.35
+        + 0.3 * (rand() / (0. + RAND_MAX));
     perturbed_boundary->initialize(config.num_boundary_points,
                                    config.boundary_condition);
 
@@ -665,7 +665,7 @@ TEST(IeSolverTest, Ex2UpdateLosesNoAcc) {
     ie_Mat new_sol = boundary_integral_solve(config, &fresh,
                      domain_points);
     // Allow 10* more error due to conditioning
-    ASSERT_LE((new_sol - solution).max_entry_magnitude(), 1000 * config.id_tol);
+    ASSERT_LE((new_sol - solution).max_entry_magnitude(), 300 * config.id_tol);
   }
 }
 

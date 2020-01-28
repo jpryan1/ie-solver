@@ -33,31 +33,6 @@ void Ex2Boundary::get_spline_points(std::vector<double>* x0_points,
   }
 }
 
-// void Ex2Boundary::get_fin_spline_points(std::vector<double>* x0_points,
-//                                         std::vector<double>* x1_points) {
-//   x0_points->push_back(0.025);
-//   x1_points->push_back(0.);
-
-//   x0_points->push_back(0.);
-//   x1_points->push_back(0.075);
-
-//   x0_points->push_back(-0.025);
-//   x1_points->push_back(0.);
-
-//   x0_points->push_back(0.);
-//   x1_points->push_back(-0.075);
-
-//   // Rotate by perturbation_parameters[0]
-
-//   for (int i = x0_points->size() - 4; i < x0_points->size(); i++) {
-//     double temp = cos(perturbation_parameters[0]) * (*x0_points)[i]
-//                   - sin(perturbation_parameters[0]) * (*x1_points)[i];
-//     (*x1_points)[i] = 0.5 + sin(perturbation_parameters[0]) * (*x0_points)[i]
-//                       + cos(perturbation_parameters[0]) * (*x1_points)[i];
-//     (*x0_points)[i] = 0.5 + temp;
-//   }
-// }
-
 
 void Ex2Boundary::initialize(int N, BoundaryCondition bc) {
   boundary_shape = BoundaryShape::EX2;

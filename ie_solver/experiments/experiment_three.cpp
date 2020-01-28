@@ -15,17 +15,18 @@
 #include "ie_solver/linear_solve.h"
 #include "ie_solver/boundaries/ex3boundary.h"
 
-#define is_b 0
+#define THREE_B 0
+#define DELTA_X 0.0001
 
 namespace ie_solver {
 
-ie_solver_config get_experiment_threea_config() {
+ie_solver_config get_experiment_three_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
-  config.num_boundary_points = pow(2, 15);
+  config.num_boundary_points = pow(2, 15);  // 15 for timing, 12 for conv, img
   config.domain_size =  200;
   config.num_threads = 4;
-  if (is_b) {
+  if (THREE_B) {
     config.boundary_condition = BoundaryCondition::EX3B;
     config.solution_dimension = 2;
     config.pde = ie_solver_config::Pde::STOKES;
@@ -76,11 +77,11 @@ void get_sample_vals(const ie_solver_config& config, double* samples,
                       domain_points);
 
     double gradient;
-    if (is_b) {
+    if (THREE_B) {
       gradient = -solution.get(0, 0);
     } else {
       gradient = (solution.get(1, 0) - solution.get(0, 0))
-                 / 0.0002;
+                 / (2 * DELTA_X);
     }
     findiff[i] = gradient;
   }
@@ -124,7 +125,7 @@ void enforce_separation(double* ang1, double* ang2) {
 
 void run_experiment3a(int num_inner_threads) {
   // double start = omp_get_wtime();
-  ie_solver_config config = get_experiment_threea_config();
+  ie_solver_config config = get_experiment_three_config();
   config.num_threads = num_inner_threads;
   // We'll iteratively reinitialized another Boundary and use that
   // to update the quadtree's Boundary.
@@ -136,7 +137,7 @@ void run_experiment3a(int num_inner_threads) {
 
   double current_ang1 = -2.879;
   double current_ang2 = 0.010;
-  if (is_b) {
+  if (THREE_B) {
     current_ang1 = 1.4;
     current_ang2 = 3;
   }
@@ -154,12 +155,12 @@ void run_experiment3a(int num_inner_threads) {
 
   // TODO(John) the fact that round numbers screw things up is a problem -
   // out of domain should salt these maybe?
-  domain_points.push_back(0.4999);
-  domain_points.push_back(0.5001);
+  domain_points.push_back(0.5 - DELTA_X);
+  domain_points.push_back(0.5 + DELTA_X);
 
-  if (!is_b) {
-    domain_points.push_back(0.5001);
-    domain_points.push_back(0.5001);
+  if (!THREE_B) {
+    domain_points.push_back(0.5 + DELTA_X);
+    domain_points.push_back(0.5 + DELTA_X);
   }
   // get_domain_points(config.domain_size, &domain_points,
   //                   quadtree.min, quadtree.max, quadtree.min, quadtree.max);
@@ -167,11 +168,11 @@ void run_experiment3a(int num_inner_threads) {
                     domain_points);
 
   double prev_gradient;
-  if (is_b) {
+  if (THREE_B) {
     prev_gradient = -solution.get(0, 0);
   } else {
     prev_gradient = (solution.get(1, 0) - solution.get(0, 0))
-                    / 0.0002;
+                    / (2 * DELTA_X);
   }
   double start_alpha = 1;
   double alpha_decay = 0.8;
@@ -222,14 +223,13 @@ void run_experiment3a(int num_inner_threads) {
       ie_Mat solution = boundary_integral_solve(config, &quadtree,
                         domain_points);
       double gradient;
-      if (is_b) {
+      if (THREE_B) {
         gradient = -solution.get(0, 0);
       } else {
         gradient = (solution.get(1, 0) - solution.get(0, 0))
-                   / 0.0002;
+                   / (2 * DELTA_X);
       }
       if (prev_gradient < gradient) {
-
         prev_gradient = gradient;
         current_ang1 = trial_ang1;
         current_ang2 = trial_ang2;
@@ -261,7 +261,6 @@ void run_experiment3a(int num_inner_threads) {
   //                            config.solution_dimension);
   // io::write_boundary_to_file("output/data/ie_solver_boundary.txt",
   //                            boundary->points);
-
 }
 
 }  // namespace ie_solver
@@ -270,10 +269,12 @@ void run_experiment3a(int num_inner_threads) {
 int main(int argc, char** argv) {
   srand(0);  // omp_get_wtime());
   omp_set_nested(1);
+  ie_solver::run_experiment3a(1);
+
   // std::cout << "inner_threads " << 1 << std::endl;
   // for (int k = 0; k < 3; k++) {
-    // std::cout << "k " << k << std::endl;
-    ie_solver::run_experiment3a(1);
+  //   std::cout << "k " << k << std::endl;
+  //   ie_solver::run_experiment3a(1);
   // }
   // std::cout << "inner_threads " << 2 << std::endl;
 
