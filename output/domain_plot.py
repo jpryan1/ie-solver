@@ -8,34 +8,34 @@ import matplotlib.pyplot as plt
 # TODO: this file is highly targeted in dimensions, make more robust ASAP!
 
 # Ex 1
-is_channel_plot = False
-ARROW_LENGTH = 0.4
-BORDER_WIDTH = 8
-HEAD_WIDTH = 3
-QUIVER_RES_X = 10
-QUIVER_RES_Y = 10
-BOUNDARY_RES = 5
-ZOOM = 1
-TICK_LABEL_SIZE = 40
-TICKS = [0.15, 0.65, 1.15]
-OUTPUT_FILE = "ex1.eps"
-# config.num_boundary_points = pow(2, 14);
-# config.domain_size = 200;
-
-# Ex 2
-# is_channel_plot = True
+# is_channel_plot = False
 # ARROW_LENGTH = 0.4
 # BORDER_WIDTH = 8
-# HEAD_WIDTH = 5
-# QUIVER_RES_X = 20
+# HEAD_WIDTH = 3
+# QUIVER_RES_X = 10
 # QUIVER_RES_Y = 10
-# BOUNDARY_RES = 1
-# ZOOM = 1.65
-# TICK_LABEL_SIZE = 20
-# TICKS = [0.25, 1, 1.75]
-# OUTPUT_FILE = "ex2.eps"
+# BOUNDARY_RES = 5
+# ZOOM = 1
+# TICK_LABEL_SIZE = 40
+# TICKS = [0.2, 0.9, 1.6]
+# OUTPUT_FILE = "ex1.eps"
 # config.num_boundary_points = pow(2, 12);
-# config.domain_size = 400;
+# config.domain_size = 200;
+
+# Ex 2 
+is_channel_plot = True
+ARROW_LENGTH = 0.4
+BORDER_WIDTH = 8
+HEAD_WIDTH = 5
+QUIVER_RES_X = 20
+QUIVER_RES_Y = 10
+BOUNDARY_RES = 1
+ZOOM = 1.65
+TICK_LABEL_SIZE = 20
+TICKS = [0.25, 1, 1.75]
+OUTPUT_FILE = "ex2.eps"
+# config.num_boundary_points = pow(2, 12);
+# config.domain_size = 200;
 
 # Ex 3
 # is_channel_plot = False
@@ -46,10 +46,10 @@ OUTPUT_FILE = "ex1.eps"
 # QUIVER_RES_Y = None
 # BOUNDARY_RES = 5
 # ZOOM = 1
-# TICK_LABEL_SIZE = 30
+# TICK_LABEL_SIZE = 40
 # TICKS = [-1,0,1]
-# OUTPUT_FILE = "ex3.eps"
-# config.num_boundary_points = pow(2, 14);
+# OUTPUT_FILE = "ex3a.eps"
+# config.num_boundary_points = pow(2, 12);
 # config.domain_size = 200;
 
 
@@ -58,13 +58,13 @@ OUTPUT_FILE = "ex1.eps"
 # ARROW_LENGTH = 0.4
 # BORDER_WIDTH = 8
 # HEAD_WIDTH = 3
-# QUIVER_RES_X = 5
-# QUIVER_RES_Y = 5
+# QUIVER_RES_X = 10
+# QUIVER_RES_Y = 10
 # BOUNDARY_RES = 5
 # ZOOM = 1
 # TICK_LABEL_SIZE = 40
-# TICKS = [0.15, 0.65, 1.15]
-# OUTPUT_FILE = "ex4.eps"
+# TICKS = [0.15, 0.75, 1.35]
+# OUTPUT_FILE = "ex3b.eps"
 # config.num_boundary_points = pow(2, 12);
 # config.domain_size = 400;
 
@@ -115,7 +115,7 @@ for i in range(solution_dim):
 solution_grid = np.ma.masked_where(solution_grid == MASKED_VALUE, solution_grid)
 imsh = ax.imshow(solution_grid,
 	extent=[min_sol_x, max_sol_x, min_sol_y, max_sol_y], origin="lower", \
-	cmap=CMAP, interpolation="bilinear")
+	cmap=CMAP, interpolation="bilinear") # for ex3a: , vmin=-1.5, vmax=1.5)
 if(is_stokes):
 	quiver_scale = (10 / ARROW_LENGTH ) * ZOOM
 	ax.quiver(X,Y,U,V, color="white",scale=quiver_scale, headwidth=HEAD_WIDTH)
@@ -152,6 +152,5 @@ if(is_channel_plot):
 else:
 	ax.set_ylim((l - (r+l)/2.)/ZOOM + (r+l)/2., (r - (r+l)/2.)/ZOOM + (r+l)/2.)
 
-# plt.savefig(OUTPUT_FILE, bbox_inches="tight", format="eps")
-plt.savefig(OUTPUT_FILE)
+plt.savefig(OUTPUT_FILE, bbox_inches="tight", format="eps")
 plt.show()

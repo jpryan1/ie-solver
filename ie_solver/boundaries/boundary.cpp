@@ -12,6 +12,7 @@ void Boundary::set_boundary_values_size(BoundaryCondition bc) {
   int num_points = weights.size();
   switch (bc) {
     case SINGLE_ELECTRON:
+    case EX3A:
     case ALL_ONES:
     case ALL_NEG_ONES:
     case ALL_ZEROS:
@@ -24,6 +25,8 @@ void Boundary::set_boundary_values_size(BoundaryCondition bc) {
     case NORMAL_VEC:
     case REVERSE_NORMAL_VEC:
     case LEFT_TO_RIGHT_FLOW:
+    case EX3B:
+    case HORIZONTAL_VEC:
     case NO_SLIP:
       boundary_values = ie_Mat(2 * num_points, 1);
       break;
@@ -83,7 +86,7 @@ void Boundary::apply_boundary_condition(int start_point_idx, int end_point_idx,
         boundary_values.set(2 * point_idx, 0, -normals[2 * point_idx ]);
         boundary_values.set(2 * point_idx + 1, 0, -normals[2 * point_idx + 1]);
         break;
-      }case HORIZONTAL_VEC: {
+      } case HORIZONTAL_VEC: {
         boundary_values.set(2 * point_idx, 0, 1.);
         boundary_values.set(2 * point_idx + 1, 0, 0.);
         break;
@@ -104,8 +107,10 @@ void Boundary::apply_boundary_condition(int start_point_idx, int end_point_idx,
         boundary_values.set(2 * point_idx + 1, 0, 0.);
         break;
       }
+      case EX3A:
+      case EX3B:
       case DEFAULT: {
-        std::cout << "DEFAULT BoundaryCondition enum not to be given " <<
+        std::cout << "BoundaryCondition enum not to be given " <<
                   "directly to apply_boundary_condition function." << std::endl;
         exit(-1);
         break;

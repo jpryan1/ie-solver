@@ -15,17 +15,25 @@
 #include "ie_solver/linear_solve.h"
 #include "ie_solver/boundaries/ex3boundary.h"
 
+#define is_b 0
+
 namespace ie_solver {
 
-ie_solver_config get_experiment_three_config() {
+ie_solver_config get_experiment_threea_config() {
   ie_solver_config config;
   config.id_tol = 1e-6;
-  config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
-  config.num_boundary_points = pow(2, 14);
-  config.domain_size = 10;  // 200;
-  config.solution_dimension = 1;
+  config.num_boundary_points = pow(2, 15);
+  config.domain_size =  200;
   config.num_threads = 4;
-  config.boundary_condition = BoundaryCondition::DEFAULT;
+  if (is_b) {
+    config.boundary_condition = BoundaryCondition::EX3B;
+    config.solution_dimension = 2;
+    config.pde = ie_solver_config::Pde::STOKES;
+  } else {
+    config.boundary_condition = BoundaryCondition::EX3A;
+    config.solution_dimension = 1;
+    config.pde = ie_solver_config::Pde::LAPLACE_NEUMANN;
+  }
   config.boundary_shape = Boundary::BoundaryShape::EX3;
   return config;
 }
@@ -50,13 +58,30 @@ void get_sample_vals(const ie_solver_config& config, double* samples,
     trees[i].perturb(*boundary);
   }
 
-  // #pragma omp parallel for num_threads(2)
+  int num_outer_threads;
+  switch (config.num_threads) {
+    case 1:
+      num_outer_threads = 4;
+      break;
+    case 2:
+      num_outer_threads = 2;
+      break;
+    default:
+      num_outer_threads = 1;
+      break;
+  }
+  #pragma omp parallel for num_threads(num_outer_threads)
   for (int i = 0; i < 4; i++) {
     ie_Mat solution = boundary_integral_solve(config, &trees[i],
                       domain_points);
 
-    double gradient = (solution.get(1, 0) - solution.get(0, 0))
-                      / 0.0002;
+    double gradient;
+    if (is_b) {
+      gradient = -solution.get(0, 0);
+    } else {
+      gradient = (solution.get(1, 0) - solution.get(0, 0))
+                 / 0.0002;
+    }
     findiff[i] = gradient;
   }
 }
@@ -97,10 +122,10 @@ void enforce_separation(double* ang1, double* ang2) {
 }
 
 
-void run_experiment3() {
+void run_experiment3a(int num_inner_threads) {
   // double start = omp_get_wtime();
-  ie_solver_config config = get_experiment_three_config();
-
+  ie_solver_config config = get_experiment_threea_config();
+  config.num_threads = num_inner_threads;
   // We'll iteratively reinitialized another Boundary and use that
   // to update the quadtree's Boundary.
   std::unique_ptr<Boundary> boundary =
@@ -109,8 +134,13 @@ void run_experiment3() {
   boundary->initialize(config.num_boundary_points,
                        config.boundary_condition);
 
-  double current_ang1 = 2.879;
-  double current_ang2 = -0.010;
+  double current_ang1 = -2.879;
+  double current_ang2 = 0.010;
+  if (is_b) {
+    current_ang1 = 1.4;
+    current_ang2 = 3;
+  }
+
 
   boundary->perturbation_parameters[0] = current_ang1;
   boundary->perturbation_parameters[1] = current_ang2;
@@ -127,14 +157,22 @@ void run_experiment3() {
   domain_points.push_back(0.4999);
   domain_points.push_back(0.5001);
 
-  domain_points.push_back(0.5001);
-  domain_points.push_back(0.5001);
-
+  if (!is_b) {
+    domain_points.push_back(0.5001);
+    domain_points.push_back(0.5001);
+  }
+  // get_domain_points(config.domain_size, &domain_points,
+  //                   quadtree.min, quadtree.max, quadtree.min, quadtree.max);
   ie_Mat solution = boundary_integral_solve(config, &quadtree,
                     domain_points);
 
-  double prev_gradient = (solution.get(1, 0) - solution.get(0, 0))
-                         / 0.0002;
+  double prev_gradient;
+  if (is_b) {
+    prev_gradient = -solution.get(0, 0);
+  } else {
+    prev_gradient = (solution.get(1, 0) - solution.get(0, 0))
+                    / 0.0002;
+  }
   double start_alpha = 1;
   double alpha_decay = 0.8;
   double h = 1e-4;
@@ -142,6 +180,9 @@ void run_experiment3() {
 
   for (int step = 0; step < FRAME_CAP; step++) {
     // First, find gradient.
+    double prev_time = omp_get_wtime();
+
+
     double findiff1[4];
     double samples1[4] = {current_ang1 - 2 * h, current_ang1 - h,
                           current_ang1 + h, current_ang1 + 2 * h
@@ -161,7 +202,8 @@ void run_experiment3() {
                     - findiff1[3]) / (12 * h);
     double grad2 = (findiff2[0] - 8 * findiff2[1] + 8 * findiff2[2]
                     - findiff2[3]) / (12 * h);
-
+    double curr_time = omp_get_wtime();
+    // std::cout << curr_time - prev_time << std::endl;
     // Now, perform line search
     double alpha = start_alpha;
     while (alpha > 0.01) {
@@ -171,22 +213,28 @@ void run_experiment3() {
 
       // Calculate new obj val, check wolfe cond satisfaction,
       // else update param, repeat.
+
       boundary->perturbation_parameters[0] = trial_ang1;
       boundary->perturbation_parameters[1] = trial_ang2;
       boundary->initialize(config.num_boundary_points,
-                                     config.boundary_condition);
+                           config.boundary_condition);
       quadtree.perturb(*boundary);
       ie_Mat solution = boundary_integral_solve(config, &quadtree,
                         domain_points);
-      double gradient = (solution.get(1, 0) - solution.get(0, 0))
-                        / 0.0002;
-
+      double gradient;
+      if (is_b) {
+        gradient = -solution.get(0, 0);
+      } else {
+        gradient = (solution.get(1, 0) - solution.get(0, 0))
+                   / 0.0002;
+      }
       if (prev_gradient < gradient) {
+
         prev_gradient = gradient;
         current_ang1 = trial_ang1;
         current_ang2 = trial_ang2;
-        std::cout << "Current obj function val "
-                  << gradient << std::endl;
+        std::cout << "theta1: " << trial_ang1 << " theta2: " << trial_ang2
+                  << " obj: " << gradient << std::endl;
         boundary->perturbation_parameters[0] = current_ang1;
         boundary->perturbation_parameters[1] = current_ang2;
 
@@ -222,7 +270,25 @@ void run_experiment3() {
 int main(int argc, char** argv) {
   srand(0);  // omp_get_wtime());
   omp_set_nested(1);
-  ie_solver::run_experiment3();
+  // std::cout << "inner_threads " << 1 << std::endl;
+  // for (int k = 0; k < 3; k++) {
+    // std::cout << "k " << k << std::endl;
+    ie_solver::run_experiment3a(1);
+  // }
+  // std::cout << "inner_threads " << 2 << std::endl;
+
+  // for (int k = 0; k < 3; k++) {
+  //   std::cout << "k " << k << std::endl;
+
+  //   ie_solver::run_experiment3a(2);
+  // }
+  // std::cout << "inner_threads " << 4 << std::endl;
+
+  // for (int k = 0; k < 3; k++) {
+  //   std::cout << "k " << k << std::endl;
+
+  //   ie_solver::run_experiment3a(4);
+  // }
   return 0;
 }
 

@@ -26,6 +26,8 @@ enum BoundaryCondition {
   LEFT_TO_RIGHT_FLOW,
   NO_SLIP,
   HORIZONTAL_VEC,
+  EX3A,
+  EX3B,
   DEFAULT  // This is special, means use BC inherent to experiment/function.
 };
 
@@ -47,8 +49,7 @@ class Boundary {
     CUBIC_SPLINE,
     EX1,
     EX2,
-    EX3,
-    EX4
+    EX3
   };
 
   BoundaryShape boundary_shape;

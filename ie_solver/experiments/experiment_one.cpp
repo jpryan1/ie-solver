@@ -64,7 +64,7 @@ void run_experiment1(int N) {
 int main(int argc, char** argv) {
   srand(0);
   std::cout << "\nEXPERIMENT ONE" << std::endl;
-  for (int i = 15; i < 20 ; i++) {
+  for (int i = 20; i <= 20 ; i++) {
     std::cout << "i = " << i << std::endl;
     for (int k = 0; k < 3; k++) {
       ie_solver::run_experiment1(pow(2, i));

@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
@@ -19,8 +19,8 @@ time_solve_update = []
 
 lines = open("scale_plots/ex1_data.txt").readlines()
 
-for i in range(15,20):
-  j=i-15
+for i in range(16,21):
+  j=i-16
   num_dofs.append(2**i)
   trial_lines = lines[(2+13*j):(2+13*(j+1))]
   trial_nums = [float(line.split(" ")[2]) for line in trial_lines[1:]]
@@ -43,6 +43,8 @@ axs[0].legend()
 axs[0].set_xlabel("Number of points")
 axs[0].set_ylabel("Time (s)")
 axs[0].set_title("Factoring speedup after update")
+axs[0].set_xticks([i*100000 for i in range(1,10,2)])
+axs[0].set_xticklabels(["100k", "300k", "500k", "700k", "900k", ])
 
 
 axs[1].plot(num_dofs,time_solve_noupdate,":r^", label="Solve w/ original factorization", linewidth=LW, markersize=MS)
@@ -53,7 +55,9 @@ axs[1].plot(num_dofs,time_solve_update, ":b^", label="Solve w/ updated factoriza
 axs[1].legend()
 axs[1].set_xlabel("Number of points")
 axs[1].set_ylabel("Time (s)")
-axs[1].set_title("Solving from initial/updated factorization")
+axs[1].set_title("Linear solve with initial/updated factorization")
+axs[1].set_xticks([i*100000 for i in range(1,10,2)])
+axs[1].set_xticklabels(["100k", "300k", "500k", "700k", "900k", ])
 
 
 for ax in axs:
@@ -64,3 +68,4 @@ for ax in axs:
 plt.tight_layout()
 # plt.savefig("ex1_speedup_plot.png")
 plt.savefig("scale_plots/ex1_speedup_plot.eps", format="eps")
+plt.show()
